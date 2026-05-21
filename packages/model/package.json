@@ -1,0 +1,56 @@
+{
+  "name": "@btxml/model",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abco20/bt-checker.git",
+    "directory": "packages/model"
+  },
+  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "bugs": {
+    "url": "https://github.com/abco20/bt-checker/issues"
+  },
+  "keywords": [
+    "behaviortree",
+    "behaviortree.cpp",
+    "btcpp",
+    "groot",
+    "xml",
+    "formatter",
+    "linter",
+    "vscode"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./json-schema": {
+      "types": "./dist/json-schema.d.ts",
+      "import": "./dist/json-schema.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js"
+    }
+  },
+  "files": ["dist/**", "resources/**", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
+  "sideEffects": false,
+  "dependencies": {
+    "@btxml/foundation": "0.1.0",
+    "@btxml/syntax": "0.1.0",
+    "jsonc-parser": "^3.3.1",
+    "zod": "^4.0.0"
+  }
+}

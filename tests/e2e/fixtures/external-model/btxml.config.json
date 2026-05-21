@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json",
+  "files": {
+    "include": ["main.xml"]
+  },
+  "resolver": {},
+  "models": {
+    "files": ["models/nodes.xml"]
+  }
+}

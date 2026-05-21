@@ -1,0 +1,60 @@
+{
+  "name": "btxml-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "clean": "node ./scripts/clean.mjs",
+    "build": "node ./scripts/build.mjs",
+    "docs:rules": "node --import tsx ./scripts/generate-rules-docs.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm build && node --import tsx --test \"packages/*/tests/**/*.unit.test.ts\" && node --import tsx --test \"tests/integration/**/*.test.ts\"",
+    "update:btcpp-catalog": "node scripts/update-btcpp-catalog.mjs",
+    "generate:btcpp-builtins": "node --import tsx scripts/generate-btcpp-builtins.mjs",
+    "check:btcpp-builtins": "node --import tsx scripts/generate-btcpp-builtins.mjs --all --check",
+    "check:btcpp-catalog-metadata": "node scripts/check-btcpp-catalog-metadata.mjs",
+    "schemas:generate": "node --import tsx scripts/generate-schemas.ts",
+    "schemas:check": "node --import tsx scripts/generate-schemas.ts --check",
+    "package:vsix": "pnpm build && node ./scripts/package-vsix.mjs",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "verify:generated": "pnpm check:btcpp-catalog-metadata && pnpm check:btcpp-builtins && pnpm docs:rules -- --check && pnpm schemas:check",
+    "verify:quality": "pnpm format:check && pnpm lint && pnpm typecheck",
+    "verify:build": "pnpm clean && pnpm build",
+    "verify:tests": "pnpm build && node scripts/verify/run-tests.mjs",
+    "verify:packages": "pnpm build && node scripts/verify/packages.mjs --no-build",
+    "verify:vsix": "pnpm build && node ./scripts/package-vsix.mjs && node scripts/verify/vsix.mjs",
+    "verify:runtime": "pnpm build && node scripts/verify/runtime.mjs",
+    "release:verify": "node scripts/release-verify.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.13.9",
+    "@types/vscode": "^1.116.0",
+    "@types/yargs": "^17.0.35",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.1",
+    "ajv": "^8.0.0",
+    "btxml": "workspace:*",
+    "tsup": "^8.4.0",
+    "tsx": "^4.8.1",
+    "typescript": "^5.8.2",
+    "vscode": "^1.1.37",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ignore": "^7.0.5",
+    "jsonc-parser": "^3.3.1",
+    "picocolors": "^1.1.1",
+    "yargs": "^18.0.0",
+    "zod": "^4.0.0"
+  }
+}

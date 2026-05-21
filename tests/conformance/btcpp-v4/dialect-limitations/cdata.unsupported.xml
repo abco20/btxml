@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <![CDATA[some text]]>
+  <BehaviorTree ID="main">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>

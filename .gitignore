@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.vscode-test/
+coverage/
+.tmp/
+.env
+.env.*
+!.env.example
+.npmrc
+.DS_Store
+*.vsix
+*.tgz
+pack.json
+packages/btxml/schemas/*.json
+packages/vscode-btxml/schemas/*.json

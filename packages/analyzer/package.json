@@ -1,0 +1,56 @@
+{
+  "name": "@btxml/analyzer",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abco20/bt-checker.git",
+    "directory": "packages/analyzer"
+  },
+  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "bugs": {
+    "url": "https://github.com/abco20/bt-checker/issues"
+  },
+  "keywords": [
+    "behaviortree",
+    "behaviortree.cpp",
+    "btcpp",
+    "groot",
+    "xml",
+    "formatter",
+    "linter",
+    "vscode"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./rules": {
+      "types": "./dist/rules.d.ts",
+      "import": "./dist/rules.js"
+    }
+  },
+  "files": ["dist/**", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "dependencies": {
+    "ajv": "^8.0.0",
+    "@btxml/foundation": "0.1.0",
+    "@btxml/script": "0.1.0",
+    "@btxml/syntax": "0.1.0",
+    "@btxml/model": "0.1.0",
+    "@btxml/config": "0.1.0",
+    "@btxml/semantic": "0.1.0",
+    "zod": "^4.0.0"
+  }
+}

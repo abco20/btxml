@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <include ros_pkg="my_pkg" path="trees/common.xml"/>
+  <BehaviorTree ID="main">
+    <SubTree ID="child"/>
+  </BehaviorTree>
+</root>

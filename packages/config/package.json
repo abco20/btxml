@@ -1,0 +1,55 @@
+{
+  "name": "@btxml/config",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abco20/bt-checker.git",
+    "directory": "packages/config"
+  },
+  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "bugs": {
+    "url": "https://github.com/abco20/bt-checker/issues"
+  },
+  "keywords": [
+    "behaviortree",
+    "behaviortree.cpp",
+    "btcpp",
+    "groot",
+    "xml",
+    "formatter",
+    "linter",
+    "vscode"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./json-schema": {
+      "types": "./dist/json-schema.d.ts",
+      "import": "./dist/json-schema.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js"
+    }
+  },
+  "files": ["dist/**", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "dependencies": {
+    "@btxml/foundation": "0.1.0",
+    "@btxml/model": "0.1.0",
+    "zod": "^4.0.0"
+  }
+}

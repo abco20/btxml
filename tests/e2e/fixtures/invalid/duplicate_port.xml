@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="main">
+    <Sequence/>
+  </BehaviorTree>
+
+  <TreeNodesModel>
+    <Action ID="SetFlag">
+      <input_port name="enabled" type="bool">Enabled flag</input_port>
+      <input_port name="enabled" type="std::string">Duplicated</input_port>
+    </Action>
+  </TreeNodesModel>
+</root>

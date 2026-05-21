@@ -1,0 +1,36 @@
+{
+  "name": "@btxml/script",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abco20/bt-checker.git",
+    "directory": "packages/script"
+  },
+  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "bugs": {
+    "url": "https://github.com/abco20/bt-checker/issues"
+  },
+  "keywords": ["behaviortree", "behaviortree.cpp", "btcpp", "xml", "script", "parser"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "@btxml/model": "0.1.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist/**", "README.md", "LICENSE"],
+  "sideEffects": false
+}

@@ -1,0 +1,15 @@
+{
+  "name": "btxml-browser-smoke",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup --config tsup.config.ts && node verify-bundle.mjs"
+  },
+  "dependencies": {
+    "@btxml/language-service": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2"
+  }
+}

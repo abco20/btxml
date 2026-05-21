@@ -1,0 +1,19 @@
+{
+  "files": {
+    "include": ["**/*.xml"],
+    "ignore": ["build/**", "install/**", "log/**", "node_modules/**", ".git/**"]
+  },
+  "linter": {
+    "rules": {}
+  },
+  "formatter": {
+    "indentWidth": 2,
+    "xmlDeclaration": "always",
+    "blankLineBetweenBehaviorTrees": true,
+    "lineEnding": "lf"
+  },
+  "models": {
+    "files": [],
+    "definitions": []
+  }
+}

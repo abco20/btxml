@@ -1,0 +1,441 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BTXMLConfig",
+  "description": "Configuration schema for btxml projects.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "files": {
+      "type": "object",
+      "properties": {
+        "followSymlinks": {
+          "type": "boolean"
+        },
+        "ignore": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "maxSize": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "useGitignore": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "formatter": {
+      "type": "object",
+      "properties": {
+        "blankLineBetweenBehaviorTrees": {
+          "type": "boolean"
+        },
+        "indentWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "lineEnding": {
+          "type": "string",
+          "enum": ["lf", "crlf", "auto"]
+        },
+        "xmlDeclaration": {
+          "type": "string",
+          "enum": ["always", "never", "preserve"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "linter": {
+      "type": "object",
+      "properties": {
+        "baseline": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "rules": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "include/no-cycle",
+              "include/no-depth-exceeded",
+              "include/no-missing-file",
+              "include/no-missing-ros-package",
+              "include/no-outside-root",
+              "include/no-too-many-files",
+              "include/no-unresolved-variable",
+              "include/report-external-used",
+              "include/require-path",
+              "include/require-ros-package-resolver",
+              "model/no-blackboard-type-mismatch",
+              "model/no-childless-control-shape-mismatch",
+              "model/no-conflicting-definition",
+              "model/no-duplicate-port-name",
+              "model/no-leaf-block-shape",
+              "model/no-unknown-node",
+              "model/no-unknown-port",
+              "model/require-output-port-remap",
+              "model/require-port",
+              "model/require-port-name",
+              "model/valid-child-count",
+              "model/valid-port-default-value",
+              "model/valid-port-name",
+              "model/valid-port-value",
+              "script/no-unknown-variable",
+              "script/valid-assignment",
+              "script/valid-expression-type",
+              "script/valid-result-type",
+              "script/valid-syntax",
+              "suppression/no-unused",
+              "suppression/require-reason",
+              "tree/no-ambiguous-subtree",
+              "tree/no-duplicate-id",
+              "tree/no-duplicate-id-in-file",
+              "tree/no-duplicate-node-model-id",
+              "tree/no-unknown-main-tree",
+              "tree/no-unknown-subtree",
+              "tree/require-id",
+              "xml/no-unknown-top-level-element",
+              "xml/require-btcpp-format",
+              "xml/valid-root"
+            ]
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["off", "info", "warn", "error"]
+              },
+              {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "string",
+                    "enum": ["off", "info", "warn", "error"]
+                  },
+                  {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                ],
+                "additionalItems": false,
+                "minItems": 2,
+                "maxItems": 2
+              }
+            ]
+          }
+        },
+        "suppressions": {
+          "type": "object",
+          "properties": {
+            "inline": {
+              "type": "string",
+              "enum": ["allow", "deny"]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "models": {
+      "type": "object",
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "augmentations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "builtins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["btcpp-v4", "btcpp-v4.6.2", "btcpp-v4.8.2", "btcpp-v4.9.0"]
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inline": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["Action", "Condition", "Control", "Decorator", "SubTree"]
+              },
+              "ports": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "enum": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "default": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": ["input", "output", "inout"]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["kind"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "formatter": {
+            "type": "object",
+            "properties": {
+              "blankLineBetweenBehaviorTrees": {
+                "type": "boolean"
+              },
+              "indentWidth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "lineEnding": {
+                "type": "string",
+                "enum": ["lf", "crlf", "auto"]
+              },
+              "xmlDeclaration": {
+                "type": "string",
+                "enum": ["always", "never", "preserve"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "linter": {
+            "type": "object",
+            "properties": {
+              "rules": {
+                "type": "object",
+                "propertyNames": {
+                  "enum": [
+                    "include/no-cycle",
+                    "include/no-depth-exceeded",
+                    "include/no-missing-file",
+                    "include/no-missing-ros-package",
+                    "include/no-outside-root",
+                    "include/no-too-many-files",
+                    "include/no-unresolved-variable",
+                    "include/report-external-used",
+                    "include/require-path",
+                    "include/require-ros-package-resolver",
+                    "model/no-blackboard-type-mismatch",
+                    "model/no-childless-control-shape-mismatch",
+                    "model/no-conflicting-definition",
+                    "model/no-duplicate-port-name",
+                    "model/no-leaf-block-shape",
+                    "model/no-unknown-node",
+                    "model/no-unknown-port",
+                    "model/require-output-port-remap",
+                    "model/require-port",
+                    "model/require-port-name",
+                    "model/valid-child-count",
+                    "model/valid-port-default-value",
+                    "model/valid-port-name",
+                    "model/valid-port-value",
+                    "script/no-unknown-variable",
+                    "script/valid-assignment",
+                    "script/valid-expression-type",
+                    "script/valid-result-type",
+                    "script/valid-syntax",
+                    "suppression/no-unused",
+                    "suppression/require-reason",
+                    "tree/no-ambiguous-subtree",
+                    "tree/no-duplicate-id",
+                    "tree/no-duplicate-id-in-file",
+                    "tree/no-duplicate-node-model-id",
+                    "tree/no-unknown-main-tree",
+                    "tree/no-unknown-subtree",
+                    "tree/require-id",
+                    "xml/no-unknown-top-level-element",
+                    "xml/require-btcpp-format",
+                    "xml/valid-root"
+                  ]
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["off", "info", "warn", "error"]
+                    },
+                    {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "string",
+                          "enum": ["off", "info", "warn", "error"]
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {}
+                        }
+                      ],
+                      "additionalItems": false,
+                      "minItems": 2,
+                      "maxItems": 2
+                    }
+                  ]
+                }
+              },
+              "suppressions": {
+                "type": "object",
+                "properties": {
+                  "inline": {
+                    "type": "string",
+                    "enum": ["allow", "deny"]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["files"],
+        "additionalProperties": false
+      }
+    },
+    "resolver": {
+      "type": "object",
+      "properties": {
+        "behaviorTreeIds": {
+          "type": "string",
+          "enum": ["workspace-unique", "file-local-first", "allow-ambiguous"]
+        },
+        "entrypoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "includes": {
+          "type": "object",
+          "properties": {
+            "allowOutsideRoot": {
+              "type": "boolean"
+            },
+            "elements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "attribute": {
+                    "type": "string"
+                  },
+                  "base": {
+                    "type": "string",
+                    "enum": ["file", "project-root"]
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "attribute"],
+                "additionalProperties": false
+              }
+            },
+            "maxDepth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "maxFiles": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "variables": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "strict": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

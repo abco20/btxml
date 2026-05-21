@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json",
+  "files": {
+    "include": ["target.xml"],
+    "ignore": ["ignored.xml"]
+  },
+  "linter": {}
+}

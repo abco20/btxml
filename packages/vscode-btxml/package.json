@@ -1,0 +1,138 @@
+{
+  "name": "vscode-btxml",
+  "displayName": "btxml",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "btxml",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abco20/bt-checker.git",
+    "directory": "packages/vscode-btxml"
+  },
+  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "bugs": {
+    "url": "https://github.com/abco20/bt-checker/issues"
+  },
+  "keywords": [
+    "behaviortree",
+    "behaviortree.cpp",
+    "btcpp",
+    "groot",
+    "xml",
+    "formatter",
+    "linter",
+    "vscode"
+  ],
+  "scripts": {
+    "build": "tsup && node ../../scripts/copy-schemas.mjs --target schemas && node ../../scripts/copy-lsp-runtime.mjs --target dist"
+  },
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "categories": ["Programming Languages", "Formatters", "Linters"],
+  "activationEvents": [
+    "onLanguage:xml",
+    "workspaceContains:btxml.config.json",
+    "workspaceContains:**/behavior_trees/**/*.xml"
+  ],
+  "main": "./dist/extension.cjs",
+  "dependencies": {
+    "@btxml/config": "0.1.0",
+    "@btxml/core": "0.1.0",
+    "@btxml/model": "0.1.0",
+    "@btxml/syntax": "0.1.0",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "btxml.restartLanguageServer",
+        "title": "BTXML: Restart Language Server"
+      },
+      {
+        "command": "btxml.showOutput",
+        "title": "BTXML: Show Output"
+      },
+      {
+        "command": "btxml.formatDocument",
+        "title": "BTXML: Format Groot XML"
+      },
+      {
+        "command": "btxml.checkWorkspace",
+        "title": "BTXML: Check Workspace"
+      },
+      {
+        "command": "btxml.showProjectSummary",
+        "title": "BTXML: Show Project Summary"
+      },
+      {
+        "command": "btxml.openConfig",
+        "title": "BTXML: Open Config"
+      },
+      {
+        "command": "btxml.createConfig",
+        "title": "BTXML: Create Config"
+      }
+    ],
+    "configuration": {
+      "title": "BTXML",
+      "properties": {
+        "btxml.enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "btxml.configPath": {
+          "type": ["string", "null"],
+          "default": null
+        },
+        "btxml.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "btxml.format.enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "btxml.completion.enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "btxml.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off"
+        },
+        "btxml.server.path": {
+          "type": ["string", "null"],
+          "default": null
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "btcpp-xml",
+        "aliases": ["BTCPP XML", "BehaviorTree XML"],
+        "extensions": [".bt.xml", ".tree.xml"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "btcpp-xml",
+        "scopeName": "text.xml.btcpp",
+        "path": "./syntaxes/btcpp-xml.tmLanguage.json"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": ["btxml.config.json"],
+        "url": "./schemas/btxml.config.schema.json"
+      },
+      {
+        "fileMatch": ["btxml.nodes.json"],
+        "url": "./schemas/btxml.nodes.schema.json"
+      }
+    ]
+  }
+}

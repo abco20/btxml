@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json",
+  "files": {
+    "include": ["main.xml"]
+  }
+}

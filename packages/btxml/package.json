@@ -1,0 +1,88 @@
+{
+  "name": "btxml",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abco20/bt-checker.git",
+    "directory": "packages/btxml"
+  },
+  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "bugs": {
+    "url": "https://github.com/abco20/bt-checker/issues"
+  },
+  "keywords": [
+    "behaviortree",
+    "behaviortree.cpp",
+    "btcpp",
+    "groot",
+    "xml",
+    "formatter",
+    "linter",
+    "vscode"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup && node ../../scripts/copy-schemas.mjs --target schemas && node ../../scripts/copy-lsp-runtime.mjs --target dist"
+  },
+  "bin": {
+    "btxml": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./editor": {
+      "types": "./dist/editor.d.ts",
+      "import": "./dist/editor.js"
+    },
+    "./editor/node": {
+      "types": "./dist/editor-node.d.ts",
+      "import": "./dist/editor-node.js"
+    },
+    "./semantic": {
+      "types": "./dist/semantic.d.ts",
+      "import": "./dist/semantic.js"
+    },
+    "./syntax": {
+      "types": "./dist/syntax.d.ts",
+      "import": "./dist/syntax.js"
+    },
+    "./model": {
+      "types": "./dist/model.d.ts",
+      "import": "./dist/model.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    },
+    "./rules": {
+      "types": "./dist/rules.d.ts",
+      "import": "./dist/rules.js"
+    },
+    "./schemas/btxml.config.schema.json": "./schemas/btxml.config.schema.json",
+    "./schemas/btxml.nodes.schema.json": "./schemas/btxml.nodes.schema.json"
+  },
+  "files": ["dist/**", "schemas/**", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
+  "dependencies": {
+    "@btxml/analyzer": "0.1.0",
+    "@btxml/config": "0.1.0",
+    "@btxml/core": "0.1.0",
+    "@btxml/foundation": "0.1.0",
+    "@btxml/language-service": "0.1.0",
+    "@btxml/model": "0.1.0",
+    "@btxml/project": "0.1.0",
+    "@btxml/semantic": "0.1.0",
+    "@btxml/syntax": "0.1.0",
+    "picocolors": "^1.1.1",
+    "yargs": "^18.0.0",
+    "zod": "^4.0.0"
+  }
+}

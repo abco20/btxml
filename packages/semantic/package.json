@@ -1,0 +1,52 @@
+{
+  "name": "@btxml/semantic",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abco20/bt-checker.git",
+    "directory": "packages/semantic"
+  },
+  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "bugs": {
+    "url": "https://github.com/abco20/bt-checker/issues"
+  },
+  "keywords": [
+    "behaviortree",
+    "behaviortree.cpp",
+    "btcpp",
+    "groot",
+    "xml",
+    "formatter",
+    "linter",
+    "vscode"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ast-view": {
+      "types": "./dist/ast-view.d.ts",
+      "import": "./dist/ast-view.js"
+    }
+  },
+  "files": ["dist/**", "README.md", "LICENSE"],
+  "dependencies": {
+    "@btxml/foundation": "0.1.0",
+    "@btxml/syntax": "0.1.0",
+    "@btxml/model": "0.1.0",
+    "@btxml/config": "0.1.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@btxml/lsp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup"
+  },
+  "main": "./dist/server.cjs",
+  "files": ["dist/**", "README.md", "LICENSE"],
+  "dependencies": {
+    "@btxml/foundation": "0.1.0",
+    "@btxml/language-service": "0.1.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  }
+}

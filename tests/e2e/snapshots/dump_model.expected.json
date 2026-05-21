@@ -1,0 +1,20 @@
+{
+  "behaviorTrees": ["parent_tree", "child_tree_a", "child_tree_b"],
+  "treeNodesModel": {
+    "SetFlag": {
+      "kind": "Action",
+      "ports": [
+        {
+          "direction": "input",
+          "name": "enabled",
+          "type": "bool"
+        },
+        {
+          "direction": "input",
+          "name": "target_name",
+          "type": "std::string"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "source": "BehaviorTree/BehaviorTree.CPP",
+  "version": "4.9.0",
+  "ref": "4.9.0",
+  "commit": "3ff6a32ba0497a08519c77a1436e3b81eff1bcd6",
+  "generator": "scripts/update-btcpp-catalog.mjs",
+  "xml": "btcpp_default_models.xml"
+}
