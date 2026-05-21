@@ -629,7 +629,12 @@ test("LSP isolates subtree resolution by nearest config for nested projects", as
         jsonrpc: "2.0",
         method: "textDocument/didOpen",
         params: {
-          textDocument: { uri: `file://${pkgAMain}`, languageId: "xml", version: 1, text: mainText },
+          textDocument: {
+            uri: `file://${pkgAMain}`,
+            languageId: "xml",
+            version: 1,
+            text: mainText,
+          },
         },
       }),
     );
@@ -724,7 +729,12 @@ test("LSP keeps multiple nearest-config projects isolated when both are open", a
         jsonrpc: "2.0",
         method: "textDocument/didOpen",
         params: {
-          textDocument: { uri: `file://${pkgAMain}`, languageId: "xml", version: 1, text: mainText },
+          textDocument: {
+            uri: `file://${pkgAMain}`,
+            languageId: "xml",
+            version: 1,
+            text: mainText,
+          },
         },
       }),
     );
@@ -737,7 +747,12 @@ test("LSP keeps multiple nearest-config projects isolated when both are open", a
         jsonrpc: "2.0",
         method: "textDocument/didOpen",
         params: {
-          textDocument: { uri: `file://${pkgBMain}`, languageId: "xml", version: 1, text: mainText },
+          textDocument: {
+            uri: `file://${pkgBMain}`,
+            languageId: "xml",
+            version: 1,
+            text: mainText,
+          },
         },
       }),
     );
@@ -821,7 +836,12 @@ test("LSP falls back to workspace project when no config exists", async () => {
         jsonrpc: "2.0",
         method: "textDocument/didOpen",
         params: {
-          textDocument: { uri: `file://${mainFile}`, languageId: "xml", version: 1, text: mainText },
+          textDocument: {
+            uri: `file://${mainFile}`,
+            languageId: "xml",
+            version: 1,
+            text: mainText,
+          },
         },
       }),
     );
@@ -919,7 +939,12 @@ test("LSP prefers explicit configPath over nearest document config", async () =>
         jsonrpc: "2.0",
         method: "textDocument/didOpen",
         params: {
-          textDocument: { uri: `file://${pkgAMain}`, languageId: "xml", version: 1, text: mainText },
+          textDocument: {
+            uri: `file://${pkgAMain}`,
+            languageId: "xml",
+            version: 1,
+            text: mainText,
+          },
         },
       }),
     );

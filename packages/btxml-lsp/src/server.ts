@@ -93,7 +93,11 @@ function normalizeLanguageId(languageId: string) {
   return languageId === "btcpp-xml" ? "btcpp-xml" : "xml";
 }
 
-function toDocumentSnapshot(document: TextDocument): OpenDocumentSnapshot {
+function toDocumentSnapshot(document: {
+  getText(): string;
+  version: number;
+  languageId: string;
+}): OpenDocumentSnapshot {
   return {
     text: document.getText(),
     version: document.version,
@@ -205,13 +209,16 @@ function getConfiguredConfigPath(workspaceRoot: string) {
 }
 
 async function findNearestConfigPath(documentPath: string, workspaceRoot: string) {
-  const boundedRoot = isWithinPath(workspaceRoot, documentPath) ? path.resolve(workspaceRoot) : undefined;
+  const boundedRoot = isWithinPath(workspaceRoot, documentPath)
+    ? path.resolve(workspaceRoot)
+    : undefined;
   let currentDir = path.dirname(documentPath);
 
   while (true) {
     const candidate = path.join(currentDir, "btxml.config.json");
     if (await pathExists(candidate)) return candidate;
-    if (boundedRoot && normalizeFsPath(currentDir) === normalizeFsPath(boundedRoot)) return undefined;
+    if (boundedRoot && normalizeFsPath(currentDir) === normalizeFsPath(boundedRoot))
+      return undefined;
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) return undefined;
     if (boundedRoot && !isWithinPath(boundedRoot, parentDir)) return undefined;
@@ -276,13 +283,14 @@ function getProjectServiceForBoundDocumentUri(uri: string) {
   return binding ? getProjectService(binding) : undefined;
 }
 
-function getDocument(uri: string) {
+function getWorkspaceDocument(uri: string) {
   const normalizedUri = normalizeDocumentUri(uri);
   const projectService = getProjectServiceForBoundDocumentUri(normalizedUri);
   return (
     projectService?.getDocument(normalizedUri) ||
-    (normalizedUri.startsWith("file://") ? projectService?.getDocument(fileUriToPath(normalizedUri)) : undefined) ||
-    documents.get(normalizedUri)
+    (normalizedUri.startsWith("file://")
+      ? projectService?.getDocument(fileUriToPath(normalizedUri))
+      : undefined)
   );
 }
 
@@ -374,19 +382,9 @@ async function bindOpenDocument(uri: string, snapshot: OpenDocumentSnapshot) {
   }
 
   if (!wasLoaded || changedProject || !nextService.getDocument(normalizedUri)) {
-    nextService.openDocument(
-      normalizedUri,
-      snapshot.text,
-      snapshot.version,
-      snapshot.languageId,
-    );
+    nextService.openDocument(normalizedUri, snapshot.text, snapshot.version, snapshot.languageId);
   } else {
-    nextService.updateDocument(
-      normalizedUri,
-      snapshot.text,
-      snapshot.version,
-      snapshot.languageId,
-    );
+    nextService.updateDocument(normalizedUri, snapshot.text, snapshot.version, snapshot.languageId);
   }
 
   if (changedProject && previousKey) disposeProjectIfUnused(previousKey);
@@ -426,7 +424,7 @@ function publishDiagnostics(uri: string) {
     return;
   }
 
-  const document = getDocument(normalizedUri);
+  const document = getWorkspaceDocument(normalizedUri);
   const projectService = getProjectServiceForBoundDocumentUri(normalizedUri);
   if (!document || !projectService) {
     connection.sendNotification("textDocument/publishDiagnostics", {
@@ -454,7 +452,8 @@ function scheduleDiagnostics(uri: string) {
 }
 
 function bindingMatchesFilePath(binding: ProjectBinding, fsPath: string) {
-  if (binding.configPath && normalizeFsPath(binding.configPath) === normalizeFsPath(fsPath)) return true;
+  if (binding.configPath && normalizeFsPath(binding.configPath) === normalizeFsPath(fsPath))
+    return true;
   return isWithinPath(binding.cwd, fsPath);
 }
 
@@ -503,7 +502,9 @@ documents.onDidClose((event: TextDocumentChangeEvent<TextDocument>) => {
 
 connection.onInitialize((params: InitializeParams) => {
   applySettings(params.initializationOptions);
-  setWorkspaceRoots(collectWorkspaceRoots(params as InitializeParams & { rootUri?: string | null }));
+  setWorkspaceRoots(
+    collectWorkspaceRoots(params as InitializeParams & { rootUri?: string | null }),
+  );
   return {
     serverInfo: {
       name: "btxml",
@@ -565,7 +566,11 @@ connection.onNotification("workspace/didChangeWatchedFiles", async (params) => {
   const changes = (params as { changes?: Array<{ uri: string }> })?.changes || [];
   if (changes.length === 0) return;
 
-  if (changes.some((change) => normalizeDocumentUri(change.uri).toLowerCase().endsWith("btxml.config.json"))) {
+  if (
+    changes.some((change) =>
+      normalizeDocumentUri(change.uri).toLowerCase().endsWith("btxml.config.json"),
+    )
+  ) {
     loadedProjects.clear();
     await rebindAllOpenDocuments();
     return;
@@ -599,7 +604,7 @@ connection.onRequest("textDocument/completion", async (params: CompletionParams)
   const normalizedParams = withNormalizedTextDocumentUri(params);
   return handleCompletion(
     await getProjectServiceForDocumentUri(normalizedParams.textDocument.uri),
-    getDocument(normalizedParams.textDocument.uri),
+    getWorkspaceDocument(normalizedParams.textDocument.uri),
     normalizedParams,
   );
 });
@@ -608,7 +613,7 @@ connection.onRequest("textDocument/hover", async (params: TextDocumentPositionPa
   const normalizedParams = withNormalizedTextDocumentUri(params);
   return handleHover(
     await getProjectServiceForDocumentUri(normalizedParams.textDocument.uri),
-    getDocument(normalizedParams.textDocument.uri),
+    getWorkspaceDocument(normalizedParams.textDocument.uri),
     normalizedParams,
   );
 });
@@ -617,7 +622,7 @@ connection.onRequest("textDocument/definition", async (params: TextDocumentPosit
   const normalizedParams = withNormalizedTextDocumentUri(params);
   return handleDefinition(
     await getProjectServiceForDocumentUri(normalizedParams.textDocument.uri),
-    getDocument(normalizedParams.textDocument.uri),
+    getWorkspaceDocument(normalizedParams.textDocument.uri),
     normalizedParams,
   );
 });
@@ -626,7 +631,7 @@ connection.onRequest("textDocument/references", async (params: TextDocumentPosit
   const normalizedParams = withNormalizedTextDocumentUri(params);
   return handleReferences(
     await getProjectServiceForDocumentUri(normalizedParams.textDocument.uri),
-    getDocument(normalizedParams.textDocument.uri),
+    getWorkspaceDocument(normalizedParams.textDocument.uri),
     normalizedParams,
   );
 });
@@ -635,7 +640,7 @@ connection.onRequest("textDocument/documentSymbol", async (params: DocumentSymbo
   const normalizedParams = withNormalizedTextDocumentUri(params);
   return handleDocumentSymbols(
     await getProjectServiceForDocumentUri(normalizedParams.textDocument.uri),
-    getDocument(normalizedParams.textDocument.uri),
+    getWorkspaceDocument(normalizedParams.textDocument.uri),
     normalizedParams,
     SymbolKind,
   );
@@ -646,7 +651,7 @@ connection.onRequest("textDocument/formatting", async (params: DocumentFormattin
   const normalizedParams = withNormalizedTextDocumentUri(params);
   return handleFormatting(
     await getProjectServiceForDocumentUri(normalizedParams.textDocument.uri),
-    getDocument(normalizedParams.textDocument.uri),
+    getWorkspaceDocument(normalizedParams.textDocument.uri),
     normalizedParams,
   );
 });
@@ -655,7 +660,7 @@ connection.onRequest("textDocument/codeAction", async (params: CodeActionParams)
   const normalizedParams = withNormalizedTextDocumentUri(params);
   return handleCodeActions(
     await getProjectServiceForDocumentUri(normalizedParams.textDocument.uri),
-    getDocument(normalizedParams.textDocument.uri),
+    getWorkspaceDocument(normalizedParams.textDocument.uri),
     normalizedParams,
   );
 });
