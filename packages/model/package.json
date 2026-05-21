@@ -5,12 +5,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abco20/bt-checker.git",
+    "url": "git+https://github.com/abco20/btxml.git",
     "directory": "packages/model"
   },
-  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "homepage": "https://github.com/abco20/btxml#readme",
   "bugs": {
-    "url": "https://github.com/abco20/bt-checker/issues"
+    "url": "https://github.com/abco20/btxml/issues"
   },
   "keywords": [
     "behaviortree",
@@ -45,7 +45,13 @@
       "import": "./dist/zod.js"
     }
   },
-  "files": ["dist/**", "resources/**", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
+  "files": [
+    "dist/**",
+    "resources/**",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "sideEffects": false,
   "dependencies": {
     "@btxml/foundation": "0.1.0",

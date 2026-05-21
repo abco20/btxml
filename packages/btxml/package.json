@@ -5,12 +5,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abco20/bt-checker.git",
+    "url": "git+https://github.com/abco20/btxml.git",
     "directory": "packages/btxml"
   },
-  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "homepage": "https://github.com/abco20/btxml#readme",
   "bugs": {
-    "url": "https://github.com/abco20/bt-checker/issues"
+    "url": "https://github.com/abco20/btxml/issues"
   },
   "keywords": [
     "behaviortree",
@@ -70,7 +70,13 @@
     "./schemas/btxml.config.schema.json": "./schemas/btxml.config.schema.json",
     "./schemas/btxml.nodes.schema.json": "./schemas/btxml.nodes.schema.json"
   },
-  "files": ["dist/**", "schemas/**", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
+  "files": [
+    "dist/**",
+    "schemas/**",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "dependencies": {
     "@btxml/analyzer": "0.1.0",
     "@btxml/config": "0.1.0",

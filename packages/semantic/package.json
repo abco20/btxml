@@ -5,12 +5,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abco20/bt-checker.git",
+    "url": "git+https://github.com/abco20/btxml.git",
     "directory": "packages/semantic"
   },
-  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "homepage": "https://github.com/abco20/btxml#readme",
   "bugs": {
-    "url": "https://github.com/abco20/bt-checker/issues"
+    "url": "https://github.com/abco20/btxml/issues"
   },
   "keywords": [
     "behaviortree",
@@ -42,7 +42,11 @@
       "import": "./dist/ast-view.js"
     }
   },
-  "files": ["dist/**", "README.md", "LICENSE"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@btxml/foundation": "0.1.0",
     "@btxml/syntax": "0.1.0",

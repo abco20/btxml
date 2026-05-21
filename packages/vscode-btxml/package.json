@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abco20/bt-checker.git",
+    "url": "git+https://github.com/abco20/btxml.git",
     "directory": "packages/vscode-btxml"
   },
-  "homepage": "https://github.com/abco20/bt-checker#readme",
+  "homepage": "https://github.com/abco20/btxml#readme",
   "bugs": {
-    "url": "https://github.com/abco20/bt-checker/issues"
+    "url": "https://github.com/abco20/btxml/issues"
   },
   "keywords": [
     "behaviortree",
@@ -30,7 +30,11 @@
   "engines": {
     "vscode": "^1.88.0"
   },
-  "categories": ["Programming Languages", "Formatters", "Linters"],
+  "categories": [
+    "Programming Languages",
+    "Formatters",
+    "Linters"
+  ],
   "activationEvents": [
     "onLanguage:xml",
     "workspaceContains:btxml.config.json",
@@ -83,7 +87,10 @@
           "default": true
         },
         "btxml.configPath": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null
         },
         "btxml.diagnostics.enabled": {
@@ -100,11 +107,18 @@
         },
         "btxml.trace.server": {
           "type": "string",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "default": "off"
         },
         "btxml.server.path": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "default": null
         }
       }
@@ -112,8 +126,14 @@
     "languages": [
       {
         "id": "btcpp-xml",
-        "aliases": ["BTCPP XML", "BehaviorTree XML"],
-        "extensions": [".bt.xml", ".tree.xml"],
+        "aliases": [
+          "BTCPP XML",
+          "BehaviorTree XML"
+        ],
+        "extensions": [
+          ".bt.xml",
+          ".tree.xml"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -126,11 +146,15 @@
     ],
     "jsonValidation": [
       {
-        "fileMatch": ["btxml.config.json"],
+        "fileMatch": [
+          "btxml.config.json"
+        ],
         "url": "./schemas/btxml.config.schema.json"
       },
       {
-        "fileMatch": ["btxml.nodes.json"],
+        "fileMatch": [
+          "btxml.nodes.json"
+        ],
         "url": "./schemas/btxml.nodes.schema.json"
       }
     ]
