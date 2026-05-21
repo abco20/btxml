@@ -128,7 +128,7 @@ const packageExportSnapshots = [
   { packageName: "@btxml/project", exportSubpaths: [".", "./node"] },
   { packageName: "@btxml/language-service", exportSubpaths: [".", "./node"] },
   {
-    packageName: "@abco20/btxml",
+    packageName: "@abco20/btxml-checker",
     exportSubpaths: [
       ".",
       "./config",
@@ -288,12 +288,12 @@ describe("Public API Surface", () => {
       },
       {
         path: join(process.cwd(), "packages/btxml/src/editor.ts"),
-        label: "@abco20/btxml/editor",
+        label: "@abco20/btxml-checker/editor",
         forbidden: ["WorkspaceService", "WorkspaceServiceOptions", "ProjectWorkspaceService"],
       },
       {
         path: join(process.cwd(), "packages/btxml/src/editor-node.ts"),
-        label: "@abco20/btxml/editor/node",
+        label: "@abco20/btxml-checker/editor/node",
         forbidden: ["WorkspaceService", "ProjectWorkspaceService"],
       },
       {
@@ -442,7 +442,7 @@ describe("Public API Surface", () => {
     );
   });
 
-  it("@abco20/btxml editor facades use canonical editor and semantic entry points", () => {
+  it("@abco20/btxml-checker editor facades use canonical editor and semantic entry points", () => {
     const editorSource = readFileSync(join(process.cwd(), "packages/btxml/src/editor.ts"), "utf-8");
     const editorNodeSource = readFileSync(
       join(process.cwd(), "packages/btxml/src/editor-node.ts"),
@@ -454,12 +454,12 @@ describe("Public API Surface", () => {
     );
 
     for (const name of ["BtEditorService", "BtEditorServiceOptions"]) {
-      assert.ok(editorSource.includes(name), `Expected @abco20/btxml/editor export: ${name}`);
+      assert.ok(editorSource.includes(name), `Expected @abco20/btxml-checker/editor export: ${name}`);
     }
     for (const name of ["BtProjectEditorService", "BtProjectEditorServiceOptions"]) {
       assert.ok(
         editorNodeSource.includes(name),
-        `Expected @abco20/btxml/editor/node export: ${name}`,
+        `Expected @abco20/btxml-checker/editor/node export: ${name}`,
       );
     }
     for (const name of [

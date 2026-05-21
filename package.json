@@ -1,5 +1,5 @@
 {
-  "name": "btxml-monorepo",
+  "name": "btxml-checker-monorepo",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -40,7 +40,7 @@
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.9.1",
     "ajv": "^8.0.0",
-    "@abco20/btxml": "workspace:*",
+    "@abco20/btxml-checker": "workspace:*",
     "tsup": "^8.4.0",
     "tsx": "^4.8.1",
     "typescript": "^5.8.2",

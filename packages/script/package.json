@@ -6,12 +6,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abco20/btxml.git",
+    "url": "git+https://github.com/abco20/btxml-checker.git",
     "directory": "packages/script"
   },
-  "homepage": "https://github.com/abco20/btxml#readme",
+  "homepage": "https://github.com/abco20/btxml-checker#readme",
   "bugs": {
-    "url": "https://github.com/abco20/btxml/issues"
+    "url": "https://github.com/abco20/btxml-checker/issues"
   },
   "keywords": ["behaviortree", "behaviortree.cpp", "btcpp", "xml", "script", "parser"],
   "publishConfig": {

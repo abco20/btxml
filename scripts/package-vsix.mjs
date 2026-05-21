@@ -6,7 +6,7 @@ const root = path.resolve(fileURLToPath(new URL("../", import.meta.url)));
 const extensionDir = path.join(root, "packages/vscode-btxml");
 import fs from "node:fs";
 const pkg = JSON.parse(fs.readFileSync(path.join(extensionDir, "package.json"), "utf8"));
-const output = path.resolve(extensionDir, `btxml-${pkg.version}.vsix`);
+const output = path.resolve(extensionDir, `btxml-checker-${pkg.version}.vsix`);
 
 const result = spawnSync(
   process.platform === "win32" ? "pnpm.cmd" : "pnpm",

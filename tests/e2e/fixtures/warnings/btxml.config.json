@@ -1,4 +1,4 @@
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "linter": {}
 }

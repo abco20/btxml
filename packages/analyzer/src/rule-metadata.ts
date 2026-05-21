@@ -208,7 +208,7 @@ const RuleMetadataDetailsByCode: Record<string, Omit<RuleMetadata, "defaultSever
     title: "Conflicting node model",
     description: "Node model definitions must agree on kind and port shape.",
     suppressible: false,
-    fix: "Run `btxml repair` to inspect conflicts. Run `btxml repair --write` to resolve the conflict interactively.",
+    fix: "Run `btxmlc repair` to inspect conflicts. Run `btxmlc repair --write` to resolve the conflict interactively.",
   },
   [RuleCodes.DuplicateBehaviorTreeIdInWorkspace]: {
     code: RuleCodes.DuplicateBehaviorTreeIdInWorkspace,
@@ -493,7 +493,7 @@ const RuleMetadataDetailsByCode: Record<string, Omit<RuleMetadata, "defaultSever
     title: "Conflicting port default",
     description: "Merged port defaults must agree.",
     suppressible: false,
-    fix: "Run `btxml repair` to inspect conflicts. Run `btxml repair --write` to resolve the conflict interactively.",
+    fix: "Run `btxmlc repair` to inspect conflicts. Run `btxmlc repair --write` to resolve the conflict interactively.",
   },
   [RuleCodes.UnusedSuppression]: defaultRule(
     RuleCodes.UnusedSuppression,

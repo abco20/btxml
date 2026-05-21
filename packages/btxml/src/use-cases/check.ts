@@ -84,7 +84,7 @@ function formatDiagnostics(file: string, input: string, options: CheckRunOptions
         "file is not formatted",
         undefined,
         file,
-        { help: `run \`btxml format ${file}\`` },
+        { help: `run \`btxmlc format ${file}\`` },
       ),
     );
   }

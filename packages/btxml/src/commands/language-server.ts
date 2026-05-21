@@ -12,8 +12,8 @@ function resolveServerEntry() {
   const candidates = [
     path.resolve(runtimeDir, "server.cjs"),
     path.resolve(runtimeDir, "..", "server.cjs"),
-    path.resolve(runtimeDir, "..", "btxml", "dist", "server.cjs"),
-    path.resolve(runtimeDir, "..", "btxml-monorepo", "dist", "server.cjs"),
+    path.resolve(runtimeDir, "..", "btxml-checker", "dist", "server.cjs"),
+    path.resolve(runtimeDir, "..", "btxml-checker-monorepo", "dist", "server.cjs"),
     path.resolve(process.cwd(), "dist", "server.cjs"),
     path.resolve(process.cwd(), "packages", "btxml-lsp", "dist", "server.cjs"),
   ];

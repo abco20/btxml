@@ -817,7 +817,7 @@ See rule description.
 ### Valid example / fix
 
 ```xml
-Run `btxml repair` to inspect conflicts. Run `btxml repair --write` to resolve the conflict interactively.
+Run `btxmlc repair` to inspect conflicts. Run `btxmlc repair --write` to resolve the conflict interactively.
 ```
 
 ### Config override

@@ -67,7 +67,7 @@ export function renderNode(
     diagnostics.push({
       code: "XML015_UNSUPPORTED_MIXED_CONTENT",
       severity: "error",
-      message: "Mixed XML content is not supported by btxml formatter",
+      message: "Mixed XML content is not supported by btxml-checker formatter",
       uri: "",
     });
   }

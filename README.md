@@ -1,6 +1,6 @@
-# btxml
+# btxml-checker
 
-`btxml` is a formatter, linter, and language tooling suite for BehaviorTree.CPP XML files.
+`btxml-checker` is a formatter, linter, and language tooling suite for BehaviorTree.CPP XML files. Its CLI command is `btxmlc`.
 
 It helps robotics and automation projects keep BehaviorTree XML readable, consistent, and semantically valid by checking tree IDs, subtree references, include graphs, node models, ports, blackboard usage, BT.CPP script attributes, and common XML structure issues.
 
@@ -27,36 +27,36 @@ It helps robotics and automation projects keep BehaviorTree XML readable, consis
 This repository is currently organized as a pnpm monorepo.
 
 ```bash
-git clone https://github.com/abco20/btxml.git
-cd btxml
+git clone https://github.com/abco20/btxml-checker.git
+cd btxml-checker
 pnpm install
 pnpm build
 ```
 
-After building, the CLI entry point is provided by the `@abco20/btxml` package.
+After building, the CLI entry point is provided by the `@abco20/btxml-checker` package.
 
 For local development, you can run commands through pnpm:
 
 ```bash
-pnpm --filter ./packages/btxml exec btxml --help
+pnpm --filter ./packages/btxml exec btxmlc --help
 ```
 
 Install it in a project with:
 
 ```bash
-npm install --save-dev @abco20/btxml
+npm install --save-dev @abco20/btxml-checker
 ```
 
 For one-off usage without installing first:
 
 ```bash
-npx @abco20/btxml check "behavior_trees/**/*.xml"
+npx @abco20/btxml-checker check "behavior_trees/**/*.xml"
 ```
 
 After installing in a project:
 
 ```bash
-npx btxml check "behavior_trees/**/*.xml"
+npx btxmlc check "behavior_trees/**/*.xml"
 ```
 
 ## Quick start
@@ -64,129 +64,129 @@ npx btxml check "behavior_trees/**/*.xml"
 Create a configuration file:
 
 ```bash
-npx btxml init
+npx btxmlc init
 ```
 
 Format XML files:
 
 ```bash
-npx btxml format "behavior_trees/**/*.xml" --write
+npx btxmlc format "behavior_trees/**/*.xml" --write
 ```
 
 Check formatting without writing changes:
 
 ```bash
-npx btxml format "behavior_trees/**/*.xml" --check
+npx btxmlc format "behavior_trees/**/*.xml" --check
 ```
 
 Lint XML files:
 
 ```bash
-npx btxml lint "behavior_trees/**/*.xml"
+npx btxmlc lint "behavior_trees/**/*.xml"
 ```
 
 Run format and lint checks together:
 
 ```bash
-npx btxml check "behavior_trees/**/*.xml"
+npx btxmlc check "behavior_trees/**/*.xml"
 ```
 
 Generate machine-readable output:
 
 ```bash
-npx btxml check "behavior_trees/**/*.xml" --output json
+npx btxmlc check "behavior_trees/**/*.xml" --output json
 ```
 
 ## CLI commands
 
-### `btxml init`
+### `btxmlc init`
 
 Creates a `btxml.config.json` file in the current working directory.
 
 ```bash
-npx btxml init
+npx btxmlc init
 ```
 
 Use `--force` to overwrite an existing config file.
 
 ```bash
-npx btxml init --force
+npx btxmlc init --force
 ```
 
-### `btxml format [files..]`
+### `btxmlc format [files..]`
 
 Formats BT/XML files.
 
 Common options:
 
 ```bash
-npx btxml format "behavior_trees/**/*.xml" --write
-npx btxml format "behavior_trees/**/*.xml" --check
-npx btxml format tree.xml --stdout
-npx btxml format "behavior_trees/**/*.xml" --diff
+npx btxmlc format "behavior_trees/**/*.xml" --write
+npx btxmlc format "behavior_trees/**/*.xml" --check
+npx btxmlc format tree.xml --stdout
+npx btxmlc format "behavior_trees/**/*.xml" --diff
 ```
 
-### `btxml lint [files..]`
+### `btxmlc lint [files..]`
 
 Runs semantic and structural diagnostics.
 
 ```bash
-npx btxml lint "behavior_trees/**/*.xml"
+npx btxmlc lint "behavior_trees/**/*.xml"
 ```
 
 Useful options:
 
 ```bash
-npx btxml lint "behavior_trees/**/*.xml" --fix
-npx btxml lint "behavior_trees/**/*.xml" --output json
-npx btxml lint "behavior_trees/**/*.xml" --warnings-as-errors
-npx btxml lint "behavior_trees/**/*.xml" --max-warnings 0
+npx btxmlc lint "behavior_trees/**/*.xml" --fix
+npx btxmlc lint "behavior_trees/**/*.xml" --output json
+npx btxmlc lint "behavior_trees/**/*.xml" --warnings-as-errors
+npx btxmlc lint "behavior_trees/**/*.xml" --max-warnings 0
 ```
 
-### `btxml check [files..]`
+### `btxmlc check [files..]`
 
 Runs formatting and lint checks together.
 
 ```bash
-npx btxml check "behavior_trees/**/*.xml"
+npx btxmlc check "behavior_trees/**/*.xml"
 ```
 
 Useful options:
 
 ```bash
-npx btxml check "behavior_trees/**/*.xml" --diff
-npx btxml check "behavior_trees/**/*.xml" --fix
-npx btxml check "behavior_trees/**/*.xml" --format-only
-npx btxml check "behavior_trees/**/*.xml" --lint-only
-npx btxml check "behavior_trees/**/*.xml" --output json
+npx btxmlc check "behavior_trees/**/*.xml" --diff
+npx btxmlc check "behavior_trees/**/*.xml" --fix
+npx btxmlc check "behavior_trees/**/*.xml" --format-only
+npx btxmlc check "behavior_trees/**/*.xml" --lint-only
+npx btxmlc check "behavior_trees/**/*.xml" --output json
 ```
 
-### `btxml explain [rule]`
+### `btxmlc explain [rule]`
 
 Shows documentation for a diagnostic rule.
 
 ```bash
-npx btxml explain model/no-unknown-port
-npx btxml explain tree/no-unknown-subtree
+npx btxmlc explain model/no-unknown-port
+npx btxmlc explain tree/no-unknown-subtree
 ```
 
-### `btxml doctor [files..]`
+### `btxmlc doctor [files..]`
 
 Reports workspace health, including selected files, ignored files, configured external models, node definitions, include graph status, and missing includes.
 
 ```bash
-npx btxml doctor
-npx btxml doctor --output json
+npx btxmlc doctor
+npx btxmlc doctor --output json
 ```
 
-### `btxml repair [files..]`
+### `btxmlc repair [files..]`
 
 Inspects and repairs supported model conflicts interactively.
 
 ```bash
-npx btxml repair
-npx btxml repair --json
-npx btxml repair --write
+npx btxmlc repair
+npx btxmlc repair --json
+npx btxmlc repair --write
 ```
 
 ## Configuration
@@ -194,14 +194,14 @@ npx btxml repair --write
 Initialize a project config with:
 
 ```bash
-npx btxml init
+npx btxmlc init
 ```
 
 This creates:
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json"
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -211,7 +211,7 @@ Example:
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "files": {
     "include": ["behavior_trees/**/*.xml"],
     "ignore": ["**/build/**", "**/dist/**"]
@@ -234,7 +234,7 @@ Example:
 
 ## Rule categories
 
-`btxml` includes rules for:
+`btxml-checker` includes rules for:
 
 * `xml/*` — root structure, BT.CPP format declaration, top-level elements
 * `tree/*` — behavior tree IDs, duplicate IDs, subtree resolution, main tree references
@@ -243,11 +243,11 @@ Example:
 * `script/*` — BT.CPP script syntax, variables, assignments, expressions, result types
 * `suppression/*` — unused suppressions and suppression reasons
 
-Use `btxml explain <rule>` to inspect a rule from the command line.
+Use `btxmlc explain <rule>` to inspect a rule from the command line.
 
 ## VS Code extension
 
-The repository includes a VS Code extension package, `vscode-btxml`.
+The repository includes a VS Code extension package, `vscode-btxml-checker`.
 
 It provides:
 

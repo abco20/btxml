@@ -35,8 +35,8 @@
       "@btxml/language-service/*": ["packages/language-service/src/*"],
       "@btxml/core": ["packages/core/src/index.ts"],
       "@btxml/core/*": ["packages/core/src/*"],
-      "@abco20/btxml": ["packages/btxml/src/index.ts"],
-      "@abco20/btxml/*": ["packages/btxml/src/*"]
+      "@abco20/btxml-checker": ["packages/btxml/src/index.ts"],
+      "@abco20/btxml-checker/*": ["packages/btxml/src/*"]
     },
     "strict": true,
     "noEmit": true,

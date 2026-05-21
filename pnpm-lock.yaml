@@ -24,7 +24,7 @@ importers:
         specifier: ^4.0.0
         version: 4.4.3
     devDependencies:
-      '@abco20/btxml':
+      '@abco20/btxml-checker':
         specifier: workspace:*
         version: link:packages/btxml
       '@biomejs/biome':
@@ -117,6 +117,34 @@ importers:
       zod:
         specifier: ^4.0.0
         version: 4.4.3
+    devDependencies:
+      '@btxml/analyzer':
+        specifier: workspace:*
+        version: link:../analyzer
+      '@btxml/config':
+        specifier: workspace:*
+        version: link:../config
+      '@btxml/core':
+        specifier: workspace:*
+        version: link:../core
+      '@btxml/foundation':
+        specifier: workspace:*
+        version: link:../foundation
+      '@btxml/language-service':
+        specifier: workspace:*
+        version: link:../language-service
+      '@btxml/model':
+        specifier: workspace:*
+        version: link:../model
+      '@btxml/project':
+        specifier: workspace:*
+        version: link:../project
+      '@btxml/semantic':
+        specifier: workspace:*
+        version: link:../semantic
+      '@btxml/syntax':
+        specifier: workspace:*
+        version: link:../syntax
 
   packages/btxml-lsp:
     dependencies:

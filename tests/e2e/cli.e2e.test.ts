@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { jsonCheckReportSchema } from "@abco20/btxml";
+import { jsonCheckReportSchema } from "@abco20/btxml-checker";
 
 const repoRoot = process.cwd();
 const cli = path.resolve(repoRoot, "packages/btxml/dist/cli.js");

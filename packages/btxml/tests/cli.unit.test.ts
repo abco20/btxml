@@ -281,7 +281,7 @@ test("CLI repair reports BT012 for conflicting model files", () => {
   assert.ok(result.stdout.includes("signature B"));
   assert.ok(!result.stdout.includes("Use source 0"));
   assert.ok(!result.stdout.includes("canonical"));
-  assert.ok(result.stdout.includes("run `btxml repair --write`"));
+  assert.ok(result.stdout.includes("run `btxmlc repair --write`"));
 });
 
 test("CLI repair --json returns schemaVersion 2", () => {

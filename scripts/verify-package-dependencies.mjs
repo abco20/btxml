@@ -11,12 +11,12 @@ const nodeBuiltins = new Set([
   ...builtinModules.map((name) => `node:${name}`),
 ]);
 
-const allowedMissing = new Map([["vscode-btxml", new Set(["vscode"])]]);
+const allowedMissing = new Map([["vscode-btxml-checker", new Set(["vscode"])]]);
 
 const skipPackages = new Set([]);
 
 function isBundledWorkspaceImport(packageName, importedPackage) {
-  return packageName === "@abco20/btxml" && importedPackage.startsWith("@btxml/");
+  return packageName === "@abco20/btxml-checker" && importedPackage.startsWith("@btxml/");
 }
 
 function readJson(file) {

@@ -1,12 +1,12 @@
 # Configuration
 
-BTXML is configured through a `btxml.config.json` file in your project root.
+BTXML Checker is configured through a `btxml.config.json` file in your project root.
 
 ## Minimal config
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json"
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -16,7 +16,7 @@ Enable strict mode with `strict: true`.
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "strict": true
 }
 ```
@@ -25,7 +25,7 @@ Strict mode raises key diagnostics to stricter severities for CI-oriented workfl
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "strict": true,
   "linter": {
     "rules": {
@@ -37,7 +37,7 @@ Strict mode raises key diagnostics to stricter severities for CI-oriented workfl
 
 ## Config discovery
 
-btxml searches for `btxml.config.json` starting from the current working directory (or the directory of the file being edited in VS Code). You can override the path with the CLI `--config` flag.
+BTXML Checker searches for `btxml.config.json` starting from the current working directory (or the directory of the file being edited in VS Code). You can override the path with the CLI `--config` flag.
 
 ## `$schema`
 
@@ -61,7 +61,7 @@ Controls which files are discovered and how they are treated.
 
 ## `resolver`
 
-Controls how btxml resolves includes, entrypoints, and BehaviorTree IDs.
+Controls how BTXML Checker resolves includes, entrypoints, and BehaviorTree IDs.
 
 ```json
 {

@@ -36,13 +36,13 @@ function toCliError(message: string | undefined, argv: string[]) {
       return new CliError(
         `unknown command \`${first}\``,
         2,
-        "run `btxml --help` to see available commands",
+        "run `btxmlc --help` to see available commands",
       );
     }
     return new CliError(
       `unknown option \`--${value}\``,
       2,
-      "run `btxml --help` to see supported options",
+      "run `btxmlc --help` to see supported options",
     );
   }
 
@@ -52,7 +52,7 @@ function toCliError(message: string | undefined, argv: string[]) {
     return new CliError(
       `unknown option \`--${value}\``,
       2,
-      "run `btxml --help` to see supported options",
+      "run `btxmlc --help` to see supported options",
     );
   }
 
@@ -61,8 +61,8 @@ function toCliError(message: string | undefined, argv: string[]) {
 
 export async function runCli(argv: string[]): Promise<number> {
   try {
-    await yargs(hideBin(["node", "btxml", ...argv]))
-      .scriptName("btxml")
+    await yargs(hideBin(["node", "btxmlc", ...argv]))
+      .scriptName("btxmlc")
       .version(TOOL_VERSION)
       .parserConfiguration({ "boolean-negation": false })
       .strict()

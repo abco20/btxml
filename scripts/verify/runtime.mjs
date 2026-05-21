@@ -54,13 +54,13 @@ async function verifyPackedLanguageServer() {
     run(npmCommand, ["init", "-y"], tempDir);
     run(npmCommand, ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...tarballs], tempDir);
 
-    const serverPath = path.join(tempDir, "node_modules", "@abco20", "btxml", "dist", "server.cjs");
+    const serverPath = path.join(tempDir, "node_modules", "@abco20", "btxml-checker", "dist", "server.cjs");
     if (!fs.existsSync(serverPath)) {
-      throw new Error(`Packed @abco20/btxml language server is missing: ${serverPath}`);
+      throw new Error(`Packed @abco20/btxml-checker language server is missing: ${serverPath}`);
     }
 
     await runLanguageServer(serverPath, tempDir);
-    console.log("Packed @abco20/btxml language server loaded.");
+    console.log("Packed @abco20/btxml-checker language server loaded.");
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

@@ -136,7 +136,7 @@ async function assertUndoWithinTwoStepsAfterEdit(
 }
 
 export async function run() {
-  const extension = vscode.extensions.getExtension("btxml.vscode-btxml");
+  const extension = vscode.extensions.getExtension("abco20.vscode-btxml-checker");
   assert.ok(extension, "extension should be registered");
 
   await extension.activate();

@@ -1,4 +1,4 @@
-# btxml
+# btxml-checker
 
 BehaviorTree.CPP XML checker and formatter.
 
@@ -7,50 +7,50 @@ BehaviorTree.CPP XML checker and formatter.
 Install in a project:
 
 ```bash
-npm install --save-dev @abco20/btxml
-npx btxml check "behavior_trees/**/*.xml"
+npm install --save-dev @abco20/btxml-checker
+npx btxmlc check "behavior_trees/**/*.xml"
 ```
 
 Use once without installing first:
 
 ```bash
-npx @abco20/btxml check "behavior_trees/**/*.xml"
+npx @abco20/btxml-checker check "behavior_trees/**/*.xml"
 ```
 
 ## CLI Usage
 
 Commands:
 
-- `btxml format` rewrites XML into Groot-compatible layout.
-- `btxml format --check` only reports whether formatting differs.
-- `btxml lint` checks XML syntax and BT rules.
-- `btxml lint --fix` applies safe, deterministic lint fixes.
-- `btxml check` runs format check and lint together.
-- `btxml repair` interactively resolves conflicting node model definitions.
-- `btxml init` creates a starter `btxml.config.json`.
-- `btxml explain <code>` shows documentation for a rule code.
-- `btxml doctor` diagnoses workspace health.
+- `btxmlc format` rewrites XML into Groot-compatible layout.
+- `btxmlc format --check` only reports whether formatting differs.
+- `btxmlc lint` checks XML syntax and BT rules.
+- `btxmlc lint --fix` applies safe, deterministic lint fixes.
+- `btxmlc check` runs format check and lint together.
+- `btxmlc repair` interactively resolves conflicting node model definitions.
+- `btxmlc init` creates a starter `btxml.config.json`.
+- `btxmlc explain <code>` shows documentation for a rule code.
+- `btxmlc doctor` diagnoses workspace health.
 
-By default, `btxml format` formats only BehaviorTree.CPP XML files. Generic XML files such as `package.xml` are skipped unless `--force` is specified.
+By default, `btxmlc format` formats only BehaviorTree.CPP XML files. Generic XML files such as `package.xml` are skipped unless `--force` is specified.
 
 Use `lint --fix` for safe automatic fixes:
 
 ```bash
-npx btxml lint --fix
+npx btxmlc lint --fix
 ```
 
 Use `repair` for node model conflicts that require a choice:
 
 ```bash
-npx btxml repair
-npx btxml repair --write
+npx btxmlc repair
+npx btxmlc repair --write
 ```
 
-`btxml check` and `btxml lint` support `--output human` and `--output json`.
+`btxmlc check` and `btxmlc lint` support `--output human` and `--output json`.
 
 ```bash
-npx btxml check --output json
-npx btxml lint --output json
+npx btxmlc check --output json
+npx btxmlc lint --output json
 ```
 
 ## Configuration
@@ -61,7 +61,7 @@ Minimal config:
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json"
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -69,7 +69,7 @@ Common project config:
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "files": {
     "include": ["behavior_trees/**/*.xml"]
   },
@@ -109,9 +109,9 @@ Disable bundled BT.CPP built-in node models if your project provides its own def
 Use the public package exports only:
 
 ```ts
-import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "@abco20/btxml";
-import { createBtEditorService, type BtEditorService } from "@abco20/btxml/editor";
-import { getNodeTypeFromElement, isGenericNodeTag } from "@abco20/btxml/semantic";
+import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "@abco20/btxml-checker";
+import { createBtEditorService, type BtEditorService } from "@abco20/btxml-checker/editor";
+import { getNodeTypeFromElement, isGenericNodeTag } from "@abco20/btxml-checker/semantic";
 
 const { config, ok, diagnostics } = normalizeBtxmlConfig({
   strict: true,

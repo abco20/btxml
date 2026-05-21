@@ -1,18 +1,18 @@
 {
-  "name": "vscode-btxml",
-  "displayName": "btxml",
+  "name": "vscode-btxml-checker",
+  "displayName": "BTXML Checker",
   "version": "0.1.0",
   "private": true,
   "publisher": "abco20",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abco20/btxml.git",
+    "url": "git+https://github.com/abco20/btxml-checker.git",
     "directory": "packages/vscode-btxml"
   },
-  "homepage": "https://github.com/abco20/btxml#readme",
+  "homepage": "https://github.com/abco20/btxml-checker#readme",
   "bugs": {
-    "url": "https://github.com/abco20/btxml/issues"
+    "url": "https://github.com/abco20/btxml-checker/issues"
   },
   "keywords": [
     "behaviortree",
@@ -52,35 +52,35 @@
     "commands": [
       {
         "command": "btxml.restartLanguageServer",
-        "title": "BTXML: Restart Language Server"
+        "title": "BTXML Checker: Restart Language Server"
       },
       {
         "command": "btxml.showOutput",
-        "title": "BTXML: Show Output"
+        "title": "BTXML Checker: Show Output"
       },
       {
         "command": "btxml.formatDocument",
-        "title": "BTXML: Format Groot XML"
+        "title": "BTXML Checker: Format Groot XML"
       },
       {
         "command": "btxml.checkWorkspace",
-        "title": "BTXML: Check Workspace"
+        "title": "BTXML Checker: Check Workspace"
       },
       {
         "command": "btxml.showProjectSummary",
-        "title": "BTXML: Show Project Summary"
+        "title": "BTXML Checker: Show Project Summary"
       },
       {
         "command": "btxml.openConfig",
-        "title": "BTXML: Open Config"
+        "title": "BTXML Checker: Open Config"
       },
       {
         "command": "btxml.createConfig",
-        "title": "BTXML: Create Config"
+        "title": "BTXML Checker: Create Config"
       }
     ],
     "configuration": {
-      "title": "BTXML",
+      "title": "BTXML Checker",
       "properties": {
         "btxml.enabled": {
           "type": "boolean",

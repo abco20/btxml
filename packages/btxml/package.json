@@ -1,16 +1,16 @@
 {
-  "name": "@abco20/btxml",
+  "name": "@abco20/btxml-checker",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abco20/btxml.git",
+    "url": "git+https://github.com/abco20/btxml-checker.git",
     "directory": "packages/btxml"
   },
-  "homepage": "https://github.com/abco20/btxml#readme",
+  "homepage": "https://github.com/abco20/btxml-checker#readme",
   "bugs": {
-    "url": "https://github.com/abco20/btxml/issues"
+    "url": "https://github.com/abco20/btxml-checker/issues"
   },
   "keywords": [
     "behaviortree",
@@ -32,7 +32,7 @@
     "build": "tsup && node ../../scripts/copy-schemas.mjs --target schemas && node ../../scripts/copy-lsp-runtime.mjs --target dist"
   },
   "bin": {
-    "btxml": "./dist/cli.js"
+    "btxmlc": "./dist/cli.js"
   },
   "exports": {
     ".": {

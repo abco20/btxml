@@ -36,7 +36,7 @@ export function registerCommands(
     vscode.commands.registerCommand("btxml.checkWorkspace", async () => {
       const root = workspaceRoot();
       if (!root) {
-        vscode.window.showWarningMessage("Open a workspace to run btxml check");
+        vscode.window.showWarningMessage("Open a workspace to run BTXML Checker");
         return;
       }
       const cliPath = context.asAbsolutePath(path.join("dist", "cli.cjs"));

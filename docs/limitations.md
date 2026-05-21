@@ -1,6 +1,6 @@
 # Limitations
 
-btxml v0.1 intentionally focuses on BehaviorTree.CPP / Groot XML workflows and does not aim to be a general-purpose XML formatter.
+btxml-checker v0.1 intentionally focuses on BehaviorTree.CPP / Groot XML workflows and does not aim to be a general-purpose XML formatter.
 
 ## Unsupported XML constructs
 
@@ -11,17 +11,17 @@ btxml v0.1 intentionally focuses on BehaviorTree.CPP / Groot XML workflows and d
 
 ## Behavioral limitations
 
-- btxml formatter is Groot-style, not a general XML formatter.
+- btxml-checker formatter is Groot-style, not a general XML formatter.
 - Formatting is deterministic and Groot-oriented, not a general XML pretty-printer.
 - Encoding is UTF-8 only.
 - Line ending is LF only.
-- Port value validation is static and conservative. btxml checks documented XML-facing value shapes, but it does not emulate arbitrary user-defined BehaviorTree.CPP `convertFromString<T>` runtime conversions.
+- Port value validation is static and conservative. btxml-checker checks documented XML-facing value shapes, but it does not emulate arbitrary user-defined BehaviorTree.CPP `convertFromString<T>` runtime conversions.
 - Numeric literal validation intentionally requires full-string matches. This is stricter than some current BehaviorTree.CPP `std::from_chars` call sites, which may accept parseable numeric prefixes.
 - Blackboard analysis is conservative and only infers what the XML and config make explicit.
 - Blackboard type mismatch checking defaults to BT.CPP-compatible `std::string` entry tolerance. You can disable that compatibility in `model/no-blackboard-type-mismatch` if you prefer stricter static checking.
 - The VS Code extension should avoid interfering with ordinary XML files that are not BT XML.
-- btxml validates child counts for built-in BT.CPP node kinds and selected special builtins, but it cannot infer custom runtime child-count constraints that are not represented in XML/model data.
-- C++ type strings exported by BT.CPP are compared as strings. btxml does not normalize C++ type aliases or ABI-specific type names.
+- btxml-checker validates child counts for built-in BT.CPP node kinds and selected special builtins, but it cannot infer custom runtime child-count constraints that are not represented in XML/model data.
+- C++ type strings exported by BT.CPP are compared as strings. btxml-checker does not normalize C++ type aliases or ABI-specific type names.
 
 ## Unsupported XML features
 

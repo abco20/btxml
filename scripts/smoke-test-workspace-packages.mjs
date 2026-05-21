@@ -13,7 +13,7 @@ const pnpmCommand = getPnpmCommand();
 const npmCommand = getNpmCommand();
 
 const PUBLISHABLE_PACKAGE_NAMES = [
-  "@abco20/btxml",
+  "@abco20/btxml-checker",
 ];
 
 const BT_XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -46,8 +46,8 @@ const MODEL_JSON = JSON.stringify(
 
 const README_EXAMPLE_MODULE = String.raw`
 import assert from "node:assert/strict";
-import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "@abco20/btxml";
-import { createBtEditorService } from "@abco20/btxml/editor";
+import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "@abco20/btxml-checker";
+import { createBtEditorService } from "@abco20/btxml-checker/editor";
 
 const workspaceXml = "<?xml version=\"1.0\"?>\n<root BTCPP_format=\"4\"><BehaviorTree ID=\"Main\"/></root>";
 const editorXml = "<root BTCPP_format=\"4\"><BehaviorTree ID=\"Main\"/></root>";
@@ -184,12 +184,12 @@ function runSmokeAssertions(projectDir) {
   runNodeModule(
     String.raw`
       import assert from "node:assert/strict";
-      import { checkBtXml, normalizeBtxmlConfig } from "@abco20/btxml";
-      import { createBtEditorService } from "@abco20/btxml/editor";
-      import { createBtProjectEditorService } from "@abco20/btxml/editor/node";
-      import { buildDocumentModel } from "@abco20/btxml/model";
-      import { buildSemanticIndex, buildSemanticDocumentView } from "@abco20/btxml/semantic";
-      import { parseBtXml } from "@abco20/btxml/syntax";
+      import { checkBtXml, normalizeBtxmlConfig } from "@abco20/btxml-checker";
+      import { createBtEditorService } from "@abco20/btxml-checker/editor";
+      import { createBtProjectEditorService } from "@abco20/btxml-checker/editor/node";
+      import { buildDocumentModel } from "@abco20/btxml-checker/model";
+      import { buildSemanticIndex, buildSemanticDocumentView } from "@abco20/btxml-checker/semantic";
+      import { parseBtXml } from "@abco20/btxml-checker/syntax";
 
       const xml = await import("node:fs/promises").then((fs) => fs.readFile(new URL("./main.xml", import.meta.url), "utf8"));
       const tempMainUri = new URL("./main.xml", import.meta.url).href;

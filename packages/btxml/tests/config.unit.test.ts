@@ -35,7 +35,7 @@ function makeProjectDir(prefix: string) {
   return dir;
 }
 
-test("btxml init writes minimal v1 config", () => {
+test("btxmlc init writes minimal v1 config", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-init-"));
   chdir(dir, () => {
     const result = runInit({});
@@ -43,12 +43,12 @@ test("btxml init writes minimal v1 config", () => {
     const configPath = path.join(dir, "btxml.config.json");
     assert.equal(fs.existsSync(configPath), true);
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    assert.equal(config.$schema, "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json");
+    assert.equal(config.$schema, "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json");
     assert.equal(Object.keys(config).length, 1);
   });
 });
 
-test("btxml check --reporter json controls output without config", async () => {
+test("btxmlc check --reporter json controls output without config", async () => {
   const dir = makeProjectDir("btxml-check-reporter-");
   fs.writeFileSync(
     path.join(dir, "tree.xml"),
@@ -79,7 +79,7 @@ test("btxml check --reporter json controls output without config", async () => {
   });
 });
 
-test("btxml check --max-warnings 0 fails on warnings", async () => {
+test("btxmlc check --max-warnings 0 fails on warnings", async () => {
   const dir = makeProjectDir("btxml-check-maxwarnings-");
   fs.writeFileSync(
     path.join(dir, "tree.xml"),
@@ -104,7 +104,7 @@ test("btxml check --max-warnings 0 fails on warnings", async () => {
   });
 });
 
-test("btxml check --update-baseline writes baseline", async () => {
+test("btxmlc check --update-baseline writes baseline", async () => {
   const dir = makeProjectDir("btxml-check-baseline-");
   fs.writeFileSync(
     path.join(dir, "tree.xml"),
@@ -130,7 +130,7 @@ test("btxml check --update-baseline writes baseline", async () => {
   });
 });
 
-test("btxml format respects formatter config", async () => {
+test("btxmlc format respects formatter config", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-format-config-"));
   fs.writeFileSync(
     path.join(dir, "btxml.config.json"),

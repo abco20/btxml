@@ -160,7 +160,7 @@ export function printFormatHint(filePath: string): string {
         message: "file is not formatted",
         uri: filePath,
         details: {
-          help: `run \`btxml format ${filePath}\``,
+          help: `run \`btxmlc format ${filePath}\``,
         },
       },
     ],

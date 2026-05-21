@@ -364,7 +364,7 @@ export function printRepairHuman(result: RepairResult): string {
     }
   } else {
     lines.push(
-      `showing first ${showDetailLimit} groups. Use \`btxml repair --show <nodeId|index>\` for full details.`,
+      `showing first ${showDetailLimit} groups. Use \`btxmlc repair --show <nodeId|index>\` for full details.`,
     );
     lines.push("");
 
@@ -383,8 +383,8 @@ export function printRepairHuman(result: RepairResult): string {
     lines.push("");
   }
 
-  lines.push("run `btxml repair --write` to resolve model groups interactively");
-  lines.push("run `btxml repair --show <model|model.port|index>` to inspect one model group");
+  lines.push("run `btxmlc repair --write` to resolve model groups interactively");
+  lines.push("run `btxmlc repair --show <model|model.port|index>` to inspect one model group");
 
   return lines.join("\n");
 }

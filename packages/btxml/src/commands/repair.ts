@@ -153,7 +153,7 @@ export async function runRepair(
       throw new CliError(
         `error: no model group found for \`${options.show}\``,
         2,
-        "run `btxml repair` to see available model groups",
+        "run `btxmlc repair` to see available model groups",
       );
     }
     if (options.output === "json") {
@@ -169,9 +169,9 @@ export async function runRepair(
   if (options.write) {
     if (process.stdin.isTTY !== true) {
       throw new CliError(
-        "error: `btxml repair --write` requires an interactive terminal",
+        "error: `btxmlc repair --write` requires an interactive terminal",
         2,
-        "run `btxml repair --json` to inspect model conflicts in non-interactive environments",
+        "run `btxmlc repair --json` to inspect model conflicts in non-interactive environments",
       );
     }
 

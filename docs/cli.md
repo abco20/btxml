@@ -1,16 +1,16 @@
 # CLI
 
-BTXML provides a command-line interface for checking, formatting, and repairing BehaviorTree.CPP XML files.
+BTXML Checker provides a command-line interface for checking, formatting, and repairing BehaviorTree.CPP XML files. The CLI command is `btxmlc`.
 
 ## Commands
 
-- `btxml check [files...]` — runs format check and lint together.
-- `btxml lint [files...]` — checks XML syntax and BT rules.
-- `btxml format [files...]` — rewrites XML into Groot-compatible layout.
-- `btxml repair` — interactively resolves conflicting node model definitions.
-- `btxml init` — creates a starter `btxml.config.json`.
-- `btxml explain <code>` — shows documentation for a diagnostic code.
-- `btxml doctor` — diagnoses workspace health.
+- `btxmlc check [files...]` — runs format check and lint together.
+- `btxmlc lint [files...]` — checks XML syntax and BT rules.
+- `btxmlc format [files...]` — rewrites XML into Groot-compatible layout.
+- `btxmlc repair` — interactively resolves conflicting node model definitions.
+- `btxmlc init` — creates a starter `btxml.config.json`.
+- `btxmlc explain <code>` — shows documentation for a diagnostic code.
+- `btxmlc doctor` — diagnoses workspace health.
 
 ## Runtime options
 
@@ -62,14 +62,14 @@ These options control the CLI at runtime and do **not** belong in `btxml.config.
 
 ```bash
 # Check all BT XML files
-btxml check "behavior_trees/**/*.xml"
+btxmlc check "behavior_trees/**/*.xml"
 
 # Lint with JSON output and fail on any warning
-btxml lint --output json --max-warnings 0
+btxmlc lint --output json --max-warnings 0
 
 # Update baseline
-btxml check --update-baseline btxml-baseline.json
+btxmlc check --update-baseline btxml-baseline.json
 
 # Format a single file to stdout
-btxml format --stdout behavior_trees/main.xml
+btxmlc format --stdout behavior_trees/main.xml
 ```
