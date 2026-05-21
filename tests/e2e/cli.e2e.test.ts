@@ -779,7 +779,7 @@ test("E2E-085 format does not rewrite malformed ampersand", () => {
 test("E2E-086 CLI help exits 0", () => {
   const result = runCli(["--help"]);
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /btxml <command>/);
+  assert.match(result.stdout, /btxmlc <command>/);
 });
 
 test("E2E-087 command help exits 0", () => {
