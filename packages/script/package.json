@@ -12,14 +12,7 @@
   "bugs": {
     "url": "https://github.com/abco20/btxml/issues"
   },
-  "keywords": [
-    "behaviortree",
-    "behaviortree.cpp",
-    "btcpp",
-    "xml",
-    "script",
-    "parser"
-  ],
+  "keywords": ["behaviortree", "behaviortree.cpp", "btcpp", "xml", "script", "parser"],
   "publishConfig": {
     "access": "public"
   },
@@ -38,10 +31,6 @@
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist/**", "README.md", "LICENSE"],
   "sideEffects": false
 }

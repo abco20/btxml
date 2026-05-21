@@ -70,13 +70,7 @@
     "./schemas/btxml.config.schema.json": "./schemas/btxml.config.schema.json",
     "./schemas/btxml.nodes.schema.json": "./schemas/btxml.nodes.schema.json"
   },
-  "files": [
-    "dist/**",
-    "schemas/**",
-    "README.md",
-    "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
-  ],
+  "files": ["dist/**", "schemas/**", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
   "dependencies": {
     "@btxml/analyzer": "0.1.0",
     "@btxml/config": "0.1.0",

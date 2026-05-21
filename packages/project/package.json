@@ -41,11 +41,7 @@
       "import": "./dist/node.js"
     }
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist/**", "README.md", "LICENSE"],
   "sideEffects": false,
   "dependencies": {
     "@btxml/foundation": "0.1.0",

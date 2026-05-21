@@ -42,11 +42,7 @@
       "import": "./dist/ast-view.js"
     }
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist/**", "README.md", "LICENSE"],
   "dependencies": {
     "@btxml/foundation": "0.1.0",
     "@btxml/syntax": "0.1.0",
