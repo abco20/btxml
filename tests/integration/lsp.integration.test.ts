@@ -571,6 +571,384 @@ test("LSP reloads watched config changes for non-first workspace folders", async
   }
 });
 
+test("LSP isolates subtree resolution by nearest config for nested projects", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lsp-nested-config-"));
+  const workspaceRoot = path.join(dir, "src");
+  const pkgA = path.join(workspaceRoot, "pkg_a", "behavior_trees");
+  const pkgB = path.join(workspaceRoot, "pkg_b", "behavior_trees");
+  fs.mkdirSync(pkgA, { recursive: true });
+  fs.mkdirSync(pkgB, { recursive: true });
+
+  const pkgAMain = path.join(pkgA, "main.xml");
+  const pkgARecovery = path.join(pkgA, "recovery.xml");
+  const pkgBMain = path.join(pkgB, "main.xml");
+  const pkgBRecovery = path.join(pkgB, "recovery.xml");
+  const mainText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><SubTree ID="Recovery"/></BehaviorTree>
+</root>`;
+  const recoveryText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Recovery"><AlwaysSuccess/></BehaviorTree>
+</root>`;
+
+  fs.writeFileSync(
+    path.join(pkgA, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["*.xml"] } }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(pkgB, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["*.xml"] } }),
+    "utf8",
+  );
+  fs.writeFileSync(pkgAMain, mainText, "utf8");
+  fs.writeFileSync(pkgARecovery, recoveryText, "utf8");
+  fs.writeFileSync(pkgBMain, mainText, "utf8");
+  fs.writeFileSync(pkgBRecovery, recoveryText, "utf8");
+
+  const proc = spawn(process.execPath, [cli, "language-server", "--stdio"], {
+    cwd: dir,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const nextMessage = createReader(proc);
+  try {
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { rootPath: workspaceRoot, capabilities: {} },
+      }),
+    );
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "initialized", params: {} }));
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        method: "textDocument/didOpen",
+        params: {
+          textDocument: { uri: `file://${pkgAMain}`, languageId: "xml", version: 1, text: mainText },
+        },
+      }),
+    );
+    const diagnostics = await nextMessage();
+    assert.equal(diagnostics.method, "textDocument/publishDiagnostics");
+    assert.deepEqual((diagnostics.params as { diagnostics: unknown[] }).diagnostics, []);
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "textDocument/definition",
+        params: {
+          textDocument: { uri: `file://${pkgAMain}` },
+          position: positionAt(mainText, 'ID="Recovery"', 4),
+        },
+      }),
+    );
+    const definition = await nextMessage();
+    assert.equal(definition.id, 2);
+    const locations = definition.result as Array<{ uri: string }>;
+    assert.equal(locations.length, 1);
+    assert.equal(locations[0]?.uri, `file://${pkgARecovery}`);
+
+    proc.stdin.write(encode({ jsonrpc: "2.0", id: 3, method: "shutdown", params: {} }));
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "exit", params: {} }));
+  } finally {
+    proc.kill();
+  }
+});
+
+test("LSP keeps multiple nearest-config projects isolated when both are open", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lsp-multi-project-open-"));
+  const workspaceRoot = path.join(dir, "src");
+  const pkgA = path.join(workspaceRoot, "pkg_a", "behavior_trees");
+  const pkgB = path.join(workspaceRoot, "pkg_b", "behavior_trees");
+  fs.mkdirSync(pkgA, { recursive: true });
+  fs.mkdirSync(pkgB, { recursive: true });
+
+  const pkgAMain = path.join(pkgA, "main.xml");
+  const pkgARecovery = path.join(pkgA, "recovery.xml");
+  const pkgBMain = path.join(pkgB, "main.xml");
+  const pkgBRecovery = path.join(pkgB, "recovery.xml");
+  const mainText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><SubTree ID="Recovery"/></BehaviorTree>
+</root>`;
+  const recoveryAText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Recovery"><AlwaysSuccess/></BehaviorTree>
+</root>`;
+  const recoveryBText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Recovery"><AlwaysFailure/></BehaviorTree>
+</root>`;
+
+  fs.writeFileSync(
+    path.join(pkgA, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["*.xml"] } }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(pkgB, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["*.xml"] } }),
+    "utf8",
+  );
+  fs.writeFileSync(pkgAMain, mainText, "utf8");
+  fs.writeFileSync(pkgARecovery, recoveryAText, "utf8");
+  fs.writeFileSync(pkgBMain, mainText, "utf8");
+  fs.writeFileSync(pkgBRecovery, recoveryBText, "utf8");
+
+  const proc = spawn(process.execPath, [cli, "language-server", "--stdio"], {
+    cwd: dir,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const nextMessage = createReader(proc);
+  try {
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { rootPath: workspaceRoot, capabilities: {} },
+      }),
+    );
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "initialized", params: {} }));
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        method: "textDocument/didOpen",
+        params: {
+          textDocument: { uri: `file://${pkgAMain}`, languageId: "xml", version: 1, text: mainText },
+        },
+      }),
+    );
+    const diagnosticsA = await nextMessage();
+    assert.equal(diagnosticsA.method, "textDocument/publishDiagnostics");
+    assert.deepEqual((diagnosticsA.params as { diagnostics: unknown[] }).diagnostics, []);
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        method: "textDocument/didOpen",
+        params: {
+          textDocument: { uri: `file://${pkgBMain}`, languageId: "xml", version: 1, text: mainText },
+        },
+      }),
+    );
+    const diagnosticsB = await nextMessage();
+    assert.equal(diagnosticsB.method, "textDocument/publishDiagnostics");
+    assert.deepEqual((diagnosticsB.params as { diagnostics: unknown[] }).diagnostics, []);
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "textDocument/definition",
+        params: {
+          textDocument: { uri: `file://${pkgAMain}` },
+          position: positionAt(mainText, 'ID="Recovery"', 4),
+        },
+      }),
+    );
+    const definitionA = await nextMessage();
+    assert.equal((definitionA.result as Array<{ uri: string }>)[0]?.uri, `file://${pkgARecovery}`);
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "textDocument/definition",
+        params: {
+          textDocument: { uri: `file://${pkgBMain}` },
+          position: positionAt(mainText, 'ID="Recovery"', 4),
+        },
+      }),
+    );
+    const definitionB = await nextMessage();
+    assert.equal((definitionB.result as Array<{ uri: string }>)[0]?.uri, `file://${pkgBRecovery}`);
+
+    proc.stdin.write(encode({ jsonrpc: "2.0", id: 4, method: "shutdown", params: {} }));
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "exit", params: {} }));
+  } finally {
+    proc.kill();
+  }
+});
+
+test("LSP falls back to workspace project when no config exists", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lsp-workspace-fallback-"));
+  const workspaceRoot = path.join(dir, "src");
+  const mainFile = path.join(workspaceRoot, "behavior_trees", "main.xml");
+  const recoveryFile = path.join(workspaceRoot, "behavior_trees", "recovery.xml");
+  fs.mkdirSync(path.dirname(mainFile), { recursive: true });
+
+  const mainText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><SubTree ID="Recovery"/></BehaviorTree>
+</root>`;
+  const recoveryText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Recovery"><AlwaysSuccess/></BehaviorTree>
+</root>`;
+  fs.writeFileSync(mainFile, mainText, "utf8");
+  fs.writeFileSync(recoveryFile, recoveryText, "utf8");
+
+  const proc = spawn(process.execPath, [cli, "language-server", "--stdio"], {
+    cwd: dir,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const nextMessage = createReader(proc);
+  try {
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { rootPath: workspaceRoot, capabilities: {} },
+      }),
+    );
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "initialized", params: {} }));
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        method: "textDocument/didOpen",
+        params: {
+          textDocument: { uri: `file://${mainFile}`, languageId: "xml", version: 1, text: mainText },
+        },
+      }),
+    );
+    const diagnostics = await nextMessage();
+    assert.equal(diagnostics.method, "textDocument/publishDiagnostics");
+    assert.deepEqual((diagnostics.params as { diagnostics: unknown[] }).diagnostics, []);
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "textDocument/definition",
+        params: {
+          textDocument: { uri: `file://${mainFile}` },
+          position: positionAt(mainText, 'ID="Recovery"', 4),
+        },
+      }),
+    );
+    const definition = await nextMessage();
+    assert.equal((definition.result as Array<{ uri: string }>)[0]?.uri, `file://${recoveryFile}`);
+
+    proc.stdin.write(encode({ jsonrpc: "2.0", id: 3, method: "shutdown", params: {} }));
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "exit", params: {} }));
+  } finally {
+    proc.kill();
+  }
+});
+
+test("LSP prefers explicit configPath over nearest document config", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lsp-explicit-config-"));
+  const workspaceRoot = path.join(dir, "src");
+  const pkgA = path.join(workspaceRoot, "pkg_a", "behavior_trees");
+  const pkgB = path.join(workspaceRoot, "pkg_b", "behavior_trees");
+  fs.mkdirSync(pkgA, { recursive: true });
+  fs.mkdirSync(pkgB, { recursive: true });
+
+  const pkgAMain = path.join(pkgA, "main.xml");
+  const pkgARecovery = path.join(pkgA, "recovery.xml");
+  const pkgBRecovery = path.join(pkgB, "recovery.xml");
+  const mainText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><SubTree ID="Recovery"/></BehaviorTree>
+</root>`;
+  const recoveryAText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Recovery"><AlwaysSuccess/></BehaviorTree>
+</root>`;
+  const recoveryBText = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Recovery"><AlwaysFailure/></BehaviorTree>
+</root>`;
+
+  fs.writeFileSync(
+    path.join(pkgA, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["*.xml"] } }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(pkgB, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["*.xml"] } }),
+    "utf8",
+  );
+  fs.writeFileSync(pkgAMain, mainText, "utf8");
+  fs.writeFileSync(pkgARecovery, recoveryAText, "utf8");
+  fs.writeFileSync(pkgBRecovery, recoveryBText, "utf8");
+
+  const proc = spawn(process.execPath, [cli, "language-server", "--stdio"], {
+    cwd: dir,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const nextMessage = createReader(proc);
+  try {
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          rootPath: workspaceRoot,
+          capabilities: {},
+          initializationOptions: {
+            btxml: {
+              configPath: path.relative(workspaceRoot, path.join(pkgB, "btxml.config.json")),
+            },
+          },
+        },
+      }),
+    );
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "initialized", params: {} }));
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        method: "textDocument/didOpen",
+        params: {
+          textDocument: { uri: `file://${pkgAMain}`, languageId: "xml", version: 1, text: mainText },
+        },
+      }),
+    );
+    const diagnostics = await nextMessage();
+    assert.equal(diagnostics.method, "textDocument/publishDiagnostics");
+    assert.deepEqual((diagnostics.params as { diagnostics: unknown[] }).diagnostics, []);
+
+    proc.stdin.write(
+      encode({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "textDocument/definition",
+        params: {
+          textDocument: { uri: `file://${pkgAMain}` },
+          position: positionAt(mainText, 'ID="Recovery"', 4),
+        },
+      }),
+    );
+    const definition = await nextMessage();
+    assert.equal((definition.result as Array<{ uri: string }>)[0]?.uri, `file://${pkgBRecovery}`);
+
+    proc.stdin.write(encode({ jsonrpc: "2.0", id: 3, method: "shutdown", params: {} }));
+    await nextMessage();
+    proc.stdin.write(encode({ jsonrpc: "2.0", method: "exit", params: {} }));
+  } finally {
+    proc.kill();
+  }
+});
+
 test("LSP preserves node-definition-file models for completion and hover", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lsp-node-def-"));
   const file = path.join(dir, "tree.xml");

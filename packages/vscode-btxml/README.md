@@ -24,6 +24,8 @@ VS Code support for BehaviorTree.CPP XML projects.
 
 The extension reads the same effective project configuration as the CLI, so diagnostics and formatting stay consistent between the editor and command line tools.
 
+When a document is open, the language server resolves the nearest `btxml.config.json` above that file first. If `btxml.configPath` is set, that explicit config still takes priority.
+
 ## Release
 
 The marketplace extension ID is `abco20.btxml-checker`.
