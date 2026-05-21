@@ -201,7 +201,7 @@ This creates:
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json"
+  "$schema": "https://unpkg.com/@abco20/btxml-checker/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -211,7 +211,7 @@ Example:
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
+  "$schema": "https://unpkg.com/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "files": {
     "include": ["behavior_trees/**/*.xml"],
     "ignore": ["**/build/**", "**/dist/**"]

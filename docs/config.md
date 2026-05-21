@@ -6,7 +6,7 @@ BTXML Checker is configured through a `btxml.config.json` file in your project r
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json"
+  "$schema": "https://unpkg.com/@abco20/btxml-checker/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -16,7 +16,7 @@ Enable strict mode with `strict: true`.
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
+  "$schema": "https://unpkg.com/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "strict": true
 }
 ```
@@ -25,7 +25,7 @@ Strict mode raises key diagnostics to stricter severities for CI-oriented workfl
 
 ```json
 {
-  "$schema": "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
+  "$schema": "https://unpkg.com/@abco20/btxml-checker/schemas/btxml.config.schema.json",
   "strict": true,
   "linter": {
     "rules": {
@@ -41,7 +41,7 @@ BTXML Checker searches for `btxml.config.json` starting from the current working
 
 ## `$schema`
 
-Pointing `$schema` to the bundled JSON schema gives you autocomplete and validation in editors that support JSON schemas.
+Pointing `$schema` to the published JSON schema gives you autocomplete and validation in editors that support JSON schemas.
 
 ## `files`
 

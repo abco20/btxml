@@ -45,7 +45,7 @@ test("btxmlc init writes minimal v1 config", () => {
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     assert.equal(
       config.$schema,
-      "./node_modules/@abco20/btxml-checker/schemas/btxml.config.schema.json",
+      "https://unpkg.com/@abco20/btxml-checker/schemas/btxml.config.schema.json",
     );
     assert.equal(Object.keys(config).length, 1);
   });
