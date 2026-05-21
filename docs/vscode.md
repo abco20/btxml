@@ -35,12 +35,14 @@ The VS Code extension resolves configuration using the same effective config API
 
 ## Distribution
 
-For v0.1, the VS Code extension is distributed as a VSIX.
+The VS Code extension is published as `abco20.btxml-checker` on the Visual Studio Marketplace and can also be packaged locally as a VSIX.
 
 ```bash
 pnpm package:vsix
-code --install-extension packages/vscode-btxml/btxml-checker-0.1.0.vsix
+code --install-extension packages/vscode-btxml/btxml-checker-<version>.vsix
 ```
 
-Marketplace publication is out of scope for v0.1.
-The VS Code publisher identifier used for the private VSIX is `btxml-checker`.
+Release automation is handled by GitHub Actions:
+
+- Run the `release` workflow to bump versions, refresh `pnpm-lock.yaml`, verify the workspace, and create a `vX.Y.Z` tag.
+- Pushing the release tag triggers the `publish-tag` workflow, which publishes npm and Marketplace artifacts and creates a GitHub release with the packaged VSIX attached.

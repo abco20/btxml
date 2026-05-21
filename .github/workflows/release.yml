@@ -1,0 +1,76 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Version bump type
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      version:
+        description: Exact version to release instead of bump type
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - id: version
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$RELEASE_VERSION" ]; then
+            RELEASE_INPUT="$RELEASE_VERSION"
+          else
+            RELEASE_INPUT="$RELEASE_TYPE"
+          fi
+          VERSION=$(node scripts/release-version.mjs bump "$RELEASE_INPUT")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - run: pnpm install --lockfile-only
+
+      - run: xvfb-run -a --server-args="-screen 0 1280x1024x24" pnpm release:verify
+
+      - name: Commit release version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package.json pnpm-lock.yaml packages/*/package.json
+          git commit -m "release: v$VERSION"
+          git tag "v$VERSION"
+
+      - name: Push release commit and tag
+        env:
+          BRANCH: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:$BRANCH"
+          git push origin "v$VERSION"

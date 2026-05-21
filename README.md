@@ -247,7 +247,7 @@ Use `btxmlc explain <rule>` to inspect a rule from the command line.
 
 ## VS Code extension
 
-The repository includes a VS Code extension package, `vscode-btxml-checker`.
+The repository includes a VS Code extension package, `btxml-checker`, published as `abco20.btxml-checker`.
 
 It provides:
 
@@ -268,6 +268,8 @@ pnpm package:vsix
 ```
 
 Then install the generated VSIX in VS Code.
+
+Release automation for npm and the Visual Studio Marketplace is documented in [`docs/releasing.md`](docs/releasing.md).
 
 ## Development
 

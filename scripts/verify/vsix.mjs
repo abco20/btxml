@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const extensionDir = path.resolve(root, "packages/vscode-btxml");
 const pkg = JSON.parse(fs.readFileSync(path.join(extensionDir, "package.json"), "utf8"));
-const vsixName = `btxml-${pkg.version}.vsix`;
+const vsixName = `${pkg.name}-${pkg.version}.vsix`;
 const vsixPath = process.argv[2] || path.join(extensionDir, vsixName);
 
 if (!fs.existsSync(vsixPath)) {
@@ -13,7 +13,7 @@ if (!fs.existsSync(vsixPath)) {
   process.exit(1);
 }
 
-const filenameVersion = path.basename(vsixPath).replace(/^btxml-/, "").replace(/\.vsix$/, "");
+const filenameVersion = path.basename(vsixPath).replace(new RegExp(`^${escapeRegExp(pkg.name)}-`), "").replace(/\.vsix$/, "");
 if (filenameVersion !== pkg.version) {
   console.error(`VSIX filename version ${filenameVersion} does not match package.json version ${pkg.version}`);
   process.exit(1);
@@ -76,6 +76,10 @@ async function listZipEntries(filePath) {
   } finally {
     await zip.file.close();
   }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function openZip(filePath) {

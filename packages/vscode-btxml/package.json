@@ -1,9 +1,9 @@
 {
-  "name": "vscode-btxml-checker",
+  "name": "btxml-checker",
   "displayName": "BTXML Checker",
   "version": "0.1.0",
-  "private": true,
   "publisher": "abco20",
+  "description": "Formatter, diagnostics, and language tooling for BehaviorTree.CPP XML in VS Code.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -30,7 +30,11 @@
     "verify:packages": "pnpm build && node scripts/verify/packages.mjs --no-build",
     "verify:vsix": "pnpm build && node ./scripts/package-vsix.mjs && node scripts/verify/vsix.mjs",
     "verify:runtime": "pnpm build && node scripts/verify/runtime.mjs",
-    "release:verify": "node scripts/release-verify.mjs"
+    "release:verify": "node scripts/release-verify.mjs",
+    "release:version:bump": "node scripts/release-version.mjs bump",
+    "release:version:verify-tag": "node scripts/release-version.mjs verify-tag",
+    "release:publish:npm": "node scripts/release-publish.mjs npm",
+    "release:publish:vsce": "node scripts/release-publish.mjs vsce"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
