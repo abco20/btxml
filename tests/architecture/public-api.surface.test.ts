@@ -454,7 +454,10 @@ describe("Public API Surface", () => {
     );
 
     for (const name of ["BtEditorService", "BtEditorServiceOptions"]) {
-      assert.ok(editorSource.includes(name), `Expected @abco20/btxml-checker/editor export: ${name}`);
+      assert.ok(
+        editorSource.includes(name),
+        `Expected @abco20/btxml-checker/editor export: ${name}`,
+      );
     }
     for (const name of ["BtProjectEditorService", "BtProjectEditorServiceOptions"]) {
       assert.ok(
