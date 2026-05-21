@@ -15,6 +15,10 @@ const allowedMissing = new Map([["vscode-btxml", new Set(["vscode"])]]);
 
 const skipPackages = new Set([]);
 
+function isBundledWorkspaceImport(packageName, importedPackage) {
+  return packageName === "@abco20/btxml" && importedPackage.startsWith("@btxml/");
+}
+
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
@@ -120,6 +124,7 @@ for (const packageDir of packageDirs) {
       const importedPackage = getPackageName(specifier);
 
       if (importedPackage === packageName) continue;
+      if (isBundledWorkspaceImport(packageName, importedPackage)) continue;
 
       const allowed = allowedMissing.get(packageName);
       if (allowed?.has(importedPackage)) continue;

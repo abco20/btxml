@@ -24,6 +24,9 @@ importers:
         specifier: ^4.0.0
         version: 4.4.3
     devDependencies:
+      '@abco20/btxml':
+        specifier: workspace:*
+        version: link:packages/btxml
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
@@ -45,9 +48,6 @@ importers:
       ajv:
         specifier: ^8.0.0
         version: 8.20.0
-      btxml:
-        specifier: workspace:*
-        version: link:packages/btxml
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(tsx@4.21.0)(typescript@5.9.3)
@@ -99,33 +99,15 @@ importers:
 
   packages/btxml:
     dependencies:
-      '@btxml/analyzer':
-        specifier: 0.1.0
-        version: link:../analyzer
-      '@btxml/config':
-        specifier: 0.1.0
-        version: link:../config
-      '@btxml/core':
-        specifier: 0.1.0
-        version: link:../core
-      '@btxml/foundation':
-        specifier: 0.1.0
-        version: link:../foundation
-      '@btxml/language-service':
-        specifier: 0.1.0
-        version: link:../language-service
-      '@btxml/model':
-        specifier: 0.1.0
-        version: link:../model
-      '@btxml/project':
-        specifier: 0.1.0
-        version: link:../project
-      '@btxml/semantic':
-        specifier: 0.1.0
-        version: link:../semantic
-      '@btxml/syntax':
-        specifier: 0.1.0
-        version: link:../syntax
+      ajv:
+        specifier: ^8.0.0
+        version: 8.20.0
+      ignore:
+        specifier: ^7.0.5
+        version: 7.0.5
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1

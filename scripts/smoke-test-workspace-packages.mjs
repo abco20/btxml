@@ -13,17 +13,7 @@ const pnpmCommand = getPnpmCommand();
 const npmCommand = getNpmCommand();
 
 const PUBLISHABLE_PACKAGE_NAMES = [
-  "btxml",
-  "@btxml/foundation",
-  "@btxml/script",
-  "@btxml/syntax",
-  "@btxml/model",
-  "@btxml/config",
-  "@btxml/semantic",
-  "@btxml/analyzer",
-  "@btxml/core",
-  "@btxml/project",
-  "@btxml/language-service",
+  "@abco20/btxml",
 ];
 
 const BT_XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -56,8 +46,8 @@ const MODEL_JSON = JSON.stringify(
 
 const README_EXAMPLE_MODULE = String.raw`
 import assert from "node:assert/strict";
-import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "btxml";
-import { createBtEditorService } from "btxml/editor";
+import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "@abco20/btxml";
+import { createBtEditorService } from "@abco20/btxml/editor";
 
 const workspaceXml = "<?xml version=\"1.0\"?>\n<root BTCPP_format=\"4\"><BehaviorTree ID=\"Main\"/></root>";
 const editorXml = "<root BTCPP_format=\"4\"><BehaviorTree ID=\"Main\"/></root>";
@@ -152,7 +142,7 @@ function getPublishableWorkspaces() {
   assert.deepEqual(
     workspaces.map((workspace) => workspace.name),
     PUBLISHABLE_PACKAGE_NAMES,
-    "publishable workspace set diverged from PR 9 baseline",
+    "publishable workspace set diverged from the single-package release baseline",
   );
 
   return workspaces;
@@ -194,13 +184,12 @@ function runSmokeAssertions(projectDir) {
   runNodeModule(
     String.raw`
       import assert from "node:assert/strict";
-      import { buildDocumentModel } from "@btxml/model";
-      import { buildSemanticIndex, buildSemanticDocumentView } from "@btxml/semantic";
-      import { createWorkspaceService as createLs } from "@btxml/language-service";
-      import { createNodeWorkspaceService } from "@btxml/language-service/node";
-      import { checkBtXml, normalizeBtxmlConfig } from "btxml";
-      import { createBtEditorService } from "btxml/editor";
-      import { parseBtXml } from "@btxml/syntax";
+      import { checkBtXml, normalizeBtxmlConfig } from "@abco20/btxml";
+      import { createBtEditorService } from "@abco20/btxml/editor";
+      import { createBtProjectEditorService } from "@abco20/btxml/editor/node";
+      import { buildDocumentModel } from "@abco20/btxml/model";
+      import { buildSemanticIndex, buildSemanticDocumentView } from "@abco20/btxml/semantic";
+      import { parseBtXml } from "@abco20/btxml/syntax";
 
       const xml = await import("node:fs/promises").then((fs) => fs.readFile(new URL("./main.xml", import.meta.url), "utf8"));
       const tempMainUri = new URL("./main.xml", import.meta.url).href;
@@ -229,11 +218,7 @@ function runSmokeAssertions(projectDir) {
       workspaceService.openDocument("memory:///tree.xml", xml);
       assert.ok(workspaceService.getSemanticDocumentView("memory:///tree.xml").view);
 
-      const languageServiceWorkspace = createLs();
-      languageServiceWorkspace.openDocument("memory:///language-service.xml", xml);
-      assert.ok(languageServiceWorkspace.getDiagnostics("memory:///language-service.xml"));
-
-      const nodeWorkspace = createNodeWorkspaceService({ cwd: process.cwd() });
+      const nodeWorkspace = createBtProjectEditorService({ cwd: process.cwd() });
       const loaded = await nodeWorkspace.loadProject();
       assert.equal(loaded.ok, true);
       nodeWorkspace.openDocument(tempMainUri, xml);

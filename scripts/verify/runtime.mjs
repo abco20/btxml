@@ -48,32 +48,19 @@ function verifyBundledVscodeRuntimes() {
 
 async function verifyPackedLanguageServer() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-pack-"));
-  const packageDirs = [
-    "foundation",
-    "script",
-    "syntax",
-    "model",
-    "config",
-    "semantic",
-    "analyzer",
-    "core",
-    "project",
-    "language-service",
-    "btxml",
-  ];
 
   try {
-    const tarballs = packageDirs.map((packageDir) => pack(path.join(root, "packages", packageDir), tempDir));
+    const tarballs = [pack(path.join(root, "packages", "btxml"), tempDir)];
     run(npmCommand, ["init", "-y"], tempDir);
     run(npmCommand, ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...tarballs], tempDir);
 
-    const serverPath = path.join(tempDir, "node_modules", "btxml", "dist", "server.cjs");
+    const serverPath = path.join(tempDir, "node_modules", "@abco20", "btxml", "dist", "server.cjs");
     if (!fs.existsSync(serverPath)) {
-      throw new Error(`Packed btxml language server is missing: ${serverPath}`);
+      throw new Error(`Packed @abco20/btxml language server is missing: ${serverPath}`);
     }
 
     await runLanguageServer(serverPath, tempDir);
-    console.log("Packed btxml language server loaded.");
+    console.log("Packed @abco20/btxml language server loaded.");
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

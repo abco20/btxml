@@ -34,7 +34,7 @@ function assertInvalid(config: unknown) {
 
 test("minimal config", () => {
   assertValid({
-    $schema: "./node_modules/btxml/schemas/btxml.config.schema.json",
+    $schema: "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
   });
 });
 
@@ -378,7 +378,7 @@ test("unknown rule key is rejected by schema", () => {
 
 test("config parsing accepts minimal v1 config", () => {
   const result = parseBtxmlConfig({
-    $schema: "./node_modules/btxml/schemas/btxml.config.schema.json",
+    $schema: "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
   });
   assert.equal(result.ok, true);
   if (result.ok) {

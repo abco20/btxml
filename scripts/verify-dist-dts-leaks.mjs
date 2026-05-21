@@ -113,7 +113,7 @@ const packagePolicies = [
     ],
   },
   {
-    packageName: "@btxml/btxml",
+    packageName: "@abco20/btxml",
     entries: [
       {
         subpath: ".",

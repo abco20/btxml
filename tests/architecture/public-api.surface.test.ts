@@ -128,7 +128,7 @@ const packageExportSnapshots = [
   { packageName: "@btxml/project", exportSubpaths: [".", "./node"] },
   { packageName: "@btxml/language-service", exportSubpaths: [".", "./node"] },
   {
-    packageName: "btxml",
+    packageName: "@abco20/btxml",
     exportSubpaths: [
       ".",
       "./config",
@@ -288,12 +288,12 @@ describe("Public API Surface", () => {
       },
       {
         path: join(process.cwd(), "packages/btxml/src/editor.ts"),
-        label: "btxml/editor",
+        label: "@abco20/btxml/editor",
         forbidden: ["WorkspaceService", "WorkspaceServiceOptions", "ProjectWorkspaceService"],
       },
       {
         path: join(process.cwd(), "packages/btxml/src/editor-node.ts"),
-        label: "btxml/editor/node",
+        label: "@abco20/btxml/editor/node",
         forbidden: ["WorkspaceService", "ProjectWorkspaceService"],
       },
       {
@@ -442,7 +442,7 @@ describe("Public API Surface", () => {
     );
   });
 
-  it("btxml editor facades use canonical editor and semantic entry points", () => {
+  it("@abco20/btxml editor facades use canonical editor and semantic entry points", () => {
     const editorSource = readFileSync(join(process.cwd(), "packages/btxml/src/editor.ts"), "utf-8");
     const editorNodeSource = readFileSync(
       join(process.cwd(), "packages/btxml/src/editor-node.ts"),
@@ -454,10 +454,13 @@ describe("Public API Surface", () => {
     );
 
     for (const name of ["BtEditorService", "BtEditorServiceOptions"]) {
-      assert.ok(editorSource.includes(name), `Expected btxml/editor export: ${name}`);
+      assert.ok(editorSource.includes(name), `Expected @abco20/btxml/editor export: ${name}`);
     }
     for (const name of ["BtProjectEditorService", "BtProjectEditorServiceOptions"]) {
-      assert.ok(editorNodeSource.includes(name), `Expected btxml/editor/node export: ${name}`);
+      assert.ok(
+        editorNodeSource.includes(name),
+        `Expected @abco20/btxml/editor/node export: ${name}`,
+      );
     }
     for (const name of [
       "getGenericNodeKindFromTag",

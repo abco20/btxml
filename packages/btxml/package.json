@@ -1,5 +1,5 @@
 {
-  "name": "btxml",
+  "name": "@abco20/btxml",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
@@ -72,17 +72,22 @@
   },
   "files": ["dist/**", "schemas/**", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
   "dependencies": {
-    "@btxml/analyzer": "0.1.0",
-    "@btxml/config": "0.1.0",
-    "@btxml/core": "0.1.0",
-    "@btxml/foundation": "0.1.0",
-    "@btxml/language-service": "0.1.0",
-    "@btxml/model": "0.1.0",
-    "@btxml/project": "0.1.0",
-    "@btxml/semantic": "0.1.0",
-    "@btxml/syntax": "0.1.0",
+    "ajv": "^8.0.0",
+    "ignore": "^7.0.5",
+    "jsonc-parser": "^3.3.1",
     "picocolors": "^1.1.1",
     "yargs": "^18.0.0",
     "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@btxml/analyzer": "workspace:*",
+    "@btxml/config": "workspace:*",
+    "@btxml/core": "workspace:*",
+    "@btxml/foundation": "workspace:*",
+    "@btxml/language-service": "workspace:*",
+    "@btxml/model": "workspace:*",
+    "@btxml/project": "workspace:*",
+    "@btxml/semantic": "workspace:*",
+    "@btxml/syntax": "workspace:*"
   }
 }

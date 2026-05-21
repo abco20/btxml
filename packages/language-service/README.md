@@ -4,7 +4,7 @@ Language service primitives for BTXML editors and servers.
 
 Root exports are browser-safe.
 
-External editor integrations should prefer the stable facade exports from `btxml/editor` and `btxml/editor/node`.
+External editor integrations should prefer the stable facade exports from `@abco20/btxml/editor` and `@abco20/btxml/editor/node`.
 
 Use `@btxml/language-service` directly only when working on internal monorepo layers or lower-level integrations.
 
@@ -13,8 +13,8 @@ In public documentation, use `BtEditorService` as the canonical service name.
 Facade example:
 
 ```ts
-import { createBtEditorService } from "btxml/editor";
-import { createBtProjectEditorService } from "btxml/editor/node";
+import { createBtEditorService } from "@abco20/btxml/editor";
+import { createBtProjectEditorService } from "@abco20/btxml/editor/node";
 
 const memoryService = createBtEditorService();
 const nodeService = createBtProjectEditorService({ cwd: process.cwd() });

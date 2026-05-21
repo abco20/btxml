@@ -43,7 +43,7 @@ test("btxml init writes minimal v1 config", () => {
     const configPath = path.join(dir, "btxml.config.json");
     assert.equal(fs.existsSync(configPath), true);
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    assert.equal(config.$schema, "./node_modules/btxml/schemas/btxml.config.schema.json");
+    assert.equal(config.$schema, "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json");
     assert.equal(Object.keys(config).length, 1);
   });
 });

@@ -6,7 +6,7 @@ BTXML is configured through a `btxml.config.json` file in your project root.
 
 ```json
 {
-  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json"
+  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -16,7 +16,7 @@ Enable strict mode with `strict: true`.
 
 ```json
 {
-  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
   "strict": true
 }
 ```
@@ -25,7 +25,7 @@ Strict mode raises key diagnostics to stricter severities for CI-oriented workfl
 
 ```json
 {
-  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
   "strict": true,
   "linter": {
     "rules": {

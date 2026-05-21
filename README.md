@@ -31,22 +31,32 @@ git clone https://github.com/abco20/btxml.git
 cd btxml
 pnpm install
 pnpm build
-````
+```
 
-After building, the CLI entry point is provided by the `btxml` package.
+After building, the CLI entry point is provided by the `@abco20/btxml` package.
 
 For local development, you can run commands through pnpm:
 
 ```bash
-pnpm --filter btxml exec btxml --help
+pnpm --filter ./packages/btxml exec btxml --help
 ```
 
-If the package is published to npm, it can be used as:
+Install it in a project with:
 
 ```bash
-pnpm add -D btxml
-# or
-npm install --save-dev btxml
+npm install --save-dev @abco20/btxml
+```
+
+For one-off usage without installing first:
+
+```bash
+npx @abco20/btxml check "behavior_trees/**/*.xml"
+```
+
+After installing in a project:
+
+```bash
+npx btxml check "behavior_trees/**/*.xml"
 ```
 
 ## Quick start
@@ -54,37 +64,37 @@ npm install --save-dev btxml
 Create a configuration file:
 
 ```bash
-btxml init
+npx btxml init
 ```
 
 Format XML files:
 
 ```bash
-btxml format "behavior_trees/**/*.xml" --write
+npx btxml format "behavior_trees/**/*.xml" --write
 ```
 
 Check formatting without writing changes:
 
 ```bash
-btxml format "behavior_trees/**/*.xml" --check
+npx btxml format "behavior_trees/**/*.xml" --check
 ```
 
 Lint XML files:
 
 ```bash
-btxml lint "behavior_trees/**/*.xml"
+npx btxml lint "behavior_trees/**/*.xml"
 ```
 
 Run format and lint checks together:
 
 ```bash
-btxml check "behavior_trees/**/*.xml"
+npx btxml check "behavior_trees/**/*.xml"
 ```
 
 Generate machine-readable output:
 
 ```bash
-btxml check "behavior_trees/**/*.xml" --output json
+npx btxml check "behavior_trees/**/*.xml" --output json
 ```
 
 ## CLI commands
@@ -94,13 +104,13 @@ btxml check "behavior_trees/**/*.xml" --output json
 Creates a `btxml.config.json` file in the current working directory.
 
 ```bash
-btxml init
+npx btxml init
 ```
 
 Use `--force` to overwrite an existing config file.
 
 ```bash
-btxml init --force
+npx btxml init --force
 ```
 
 ### `btxml format [files..]`
@@ -110,10 +120,10 @@ Formats BT/XML files.
 Common options:
 
 ```bash
-btxml format "behavior_trees/**/*.xml" --write
-btxml format "behavior_trees/**/*.xml" --check
-btxml format tree.xml --stdout
-btxml format "behavior_trees/**/*.xml" --diff
+npx btxml format "behavior_trees/**/*.xml" --write
+npx btxml format "behavior_trees/**/*.xml" --check
+npx btxml format tree.xml --stdout
+npx btxml format "behavior_trees/**/*.xml" --diff
 ```
 
 ### `btxml lint [files..]`
@@ -121,16 +131,16 @@ btxml format "behavior_trees/**/*.xml" --diff
 Runs semantic and structural diagnostics.
 
 ```bash
-btxml lint "behavior_trees/**/*.xml"
+npx btxml lint "behavior_trees/**/*.xml"
 ```
 
 Useful options:
 
 ```bash
-btxml lint "behavior_trees/**/*.xml" --fix
-btxml lint "behavior_trees/**/*.xml" --output json
-btxml lint "behavior_trees/**/*.xml" --warnings-as-errors
-btxml lint "behavior_trees/**/*.xml" --max-warnings 0
+npx btxml lint "behavior_trees/**/*.xml" --fix
+npx btxml lint "behavior_trees/**/*.xml" --output json
+npx btxml lint "behavior_trees/**/*.xml" --warnings-as-errors
+npx btxml lint "behavior_trees/**/*.xml" --max-warnings 0
 ```
 
 ### `btxml check [files..]`
@@ -138,17 +148,17 @@ btxml lint "behavior_trees/**/*.xml" --max-warnings 0
 Runs formatting and lint checks together.
 
 ```bash
-btxml check "behavior_trees/**/*.xml"
+npx btxml check "behavior_trees/**/*.xml"
 ```
 
 Useful options:
 
 ```bash
-btxml check "behavior_trees/**/*.xml" --diff
-btxml check "behavior_trees/**/*.xml" --fix
-btxml check "behavior_trees/**/*.xml" --format-only
-btxml check "behavior_trees/**/*.xml" --lint-only
-btxml check "behavior_trees/**/*.xml" --output json
+npx btxml check "behavior_trees/**/*.xml" --diff
+npx btxml check "behavior_trees/**/*.xml" --fix
+npx btxml check "behavior_trees/**/*.xml" --format-only
+npx btxml check "behavior_trees/**/*.xml" --lint-only
+npx btxml check "behavior_trees/**/*.xml" --output json
 ```
 
 ### `btxml explain [rule]`
@@ -156,8 +166,8 @@ btxml check "behavior_trees/**/*.xml" --output json
 Shows documentation for a diagnostic rule.
 
 ```bash
-btxml explain model/no-unknown-port
-btxml explain tree/no-unknown-subtree
+npx btxml explain model/no-unknown-port
+npx btxml explain tree/no-unknown-subtree
 ```
 
 ### `btxml doctor [files..]`
@@ -165,8 +175,8 @@ btxml explain tree/no-unknown-subtree
 Reports workspace health, including selected files, ignored files, configured external models, node definitions, include graph status, and missing includes.
 
 ```bash
-btxml doctor
-btxml doctor --output json
+npx btxml doctor
+npx btxml doctor --output json
 ```
 
 ### `btxml repair [files..]`
@@ -174,9 +184,9 @@ btxml doctor --output json
 Inspects and repairs supported model conflicts interactively.
 
 ```bash
-btxml repair
-btxml repair --json
-btxml repair --write
+npx btxml repair
+npx btxml repair --json
+npx btxml repair --write
 ```
 
 ## Configuration
@@ -184,14 +194,14 @@ btxml repair --write
 Initialize a project config with:
 
 ```bash
-btxml init
+npx btxml init
 ```
 
 This creates:
 
 ```json
 {
-  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json"
+  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -201,7 +211,7 @@ Example:
 
 ```json
 {
-  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
   "files": {
     "include": ["behavior_trees/**/*.xml"],
     "ignore": ["**/build/**", "**/dist/**"]

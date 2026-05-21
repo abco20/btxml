@@ -4,23 +4,17 @@ BehaviorTree.CPP XML checker and formatter.
 
 ## Installation
 
-Install globally for local CLI use:
+Install in a project:
 
 ```bash
-npm install -g btxml
-btxml check "behavior_trees/**/*.xml"
-```
-
-Use from CI without a global install:
-
-```bash
+npm install --save-dev @abco20/btxml
 npx btxml check "behavior_trees/**/*.xml"
 ```
 
-Or install in a project:
+Use once without installing first:
 
 ```bash
-npm install --save-dev btxml
+npx @abco20/btxml check "behavior_trees/**/*.xml"
 ```
 
 ## CLI Usage
@@ -42,21 +36,21 @@ By default, `btxml format` formats only BehaviorTree.CPP XML files. Generic XML 
 Use `lint --fix` for safe automatic fixes:
 
 ```bash
-btxml lint --fix
+npx btxml lint --fix
 ```
 
 Use `repair` for node model conflicts that require a choice:
 
 ```bash
-btxml repair
-btxml repair --write
+npx btxml repair
+npx btxml repair --write
 ```
 
 `btxml check` and `btxml lint` support `--output human` and `--output json`.
 
 ```bash
-btxml check --output json
-btxml lint --output json
+npx btxml check --output json
+npx btxml lint --output json
 ```
 
 ## Configuration
@@ -67,7 +61,7 @@ Minimal config:
 
 ```json
 {
-  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json"
+  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json"
 }
 ```
 
@@ -75,7 +69,7 @@ Common project config:
 
 ```json
 {
-  "$schema": "./node_modules/btxml/schemas/btxml.config.schema.json",
+  "$schema": "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
   "files": {
     "include": ["behavior_trees/**/*.xml"]
   },
@@ -115,9 +109,9 @@ Disable bundled BT.CPP built-in node models if your project provides its own def
 Use the public package exports only:
 
 ```ts
-import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "btxml";
-import { createBtEditorService, type BtEditorService } from "btxml/editor";
-import { getNodeTypeFromElement, isGenericNodeTag } from "btxml/semantic";
+import { checkBtWorkspace, formatBtXml, normalizeBtxmlConfig } from "@abco20/btxml";
+import { createBtEditorService, type BtEditorService } from "@abco20/btxml/editor";
+import { getNodeTypeFromElement, isGenericNodeTag } from "@abco20/btxml/semantic";
 
 const { config, ok, diagnostics } = normalizeBtxmlConfig({
   strict: true,
@@ -128,15 +122,17 @@ if (!ok) {
 }
 
 const result = await checkBtWorkspace(
-  [
-    {
-      uri: "file:///workspace/behavior_trees/main.xml",
-      path: "behavior_trees/main.xml",
-      kind: "bt-xml",
-      text: `<?xml version="1.0"?>\n<root BTCPP_format="4"><BehaviorTree ID="Main"/></root>`,
-    },
-  ],
-  { config },
+  {
+    inputs: [
+      {
+        uri: "file:///workspace/behavior_trees/main.xml",
+        path: "behavior_trees/main.xml",
+        kind: "bt-xml",
+        text: `<?xml version="1.0"?>\n<root BTCPP_format="4"><BehaviorTree ID="Main"/></root>`,
+      },
+    ],
+    config,
+  },
 );
 
 console.log(result.ok, result.summary.errors);

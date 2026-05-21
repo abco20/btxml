@@ -7,7 +7,7 @@ import { assertInvalidRuntimeConfig, assertValidRuntimeConfig } from "./helpers.
 
 test("runtime validation accepts minimal v1 config", () => {
   assertValidRuntimeConfig({
-    $schema: "./node_modules/btxml/schemas/btxml.config.schema.json",
+    $schema: "./node_modules/@abco20/btxml/schemas/btxml.config.schema.json",
     strict: true,
   });
 });
