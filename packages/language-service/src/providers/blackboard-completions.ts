@@ -55,23 +55,28 @@ export function createBlackboardCompletionItem(args: {
   cursorOffset: number;
   symbol: BlackboardSymbol;
   detail: string;
-}): CompletionItem {
+}): CompletionItem | undefined {
   const { document, attribute, cursorOffset, symbol, detail } = args;
   const replacement = getBlackboardReplacementRange(document, attribute, cursorOffset);
   const wrapsReference = replacement?.wrapsReference ?? false;
   const hasScopeMarker = replacement?.hasScopeMarker ?? false;
-  const label = replacement?.wrapsReference
-    ? formatBlackboardReference(symbol)
-    : symbol.scope === "global"
-      ? `@${symbol.key}`
-      : symbol.key;
-  const newText = wrapsReference
-    ? formatBlackboardReference(symbol)
-    : symbol.scope === "global"
-      ? hasScopeMarker
-        ? symbol.key
-        : `@${symbol.key}`
-      : symbol.key;
+  if (hasScopeMarker && symbol.scope !== "global") return undefined;
+  let label = symbol.key;
+  if (wrapsReference) {
+    label = formatBlackboardReference(symbol);
+  } else if (symbol.scope === "global") {
+    label = `@${symbol.key}`;
+  }
+
+  let newText = symbol.key;
+  if (wrapsReference) {
+    newText = formatBlackboardReference(symbol);
+  } else if (symbol.scope === "global") {
+    newText = hasScopeMarker ? symbol.key : `@${symbol.key}`;
+  }
+
+  const scopeFilterText = symbol.scope === "global" ? ` @${symbol.key}` : "";
+  const filterText = `${symbol.key} ${label}${scopeFilterText}`.trim();
 
   return completion(
     label,
@@ -84,8 +89,7 @@ export function createBlackboardCompletionItem(args: {
         }
       : undefined,
     {
-      filterText:
-        `${symbol.key} ${label} ${symbol.scope === "global" ? `@${symbol.key}` : ""}`.trim(),
+      filterText,
       insertText: newText,
     },
   );

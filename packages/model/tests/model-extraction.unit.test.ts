@@ -16,7 +16,16 @@ test("buildDocumentModelResult extracts behavior trees, subtree refs, and blackb
     ["main"],
   );
   assert.equal(result.model.subtreeReferences[0].id, "child");
-  assert.equal(result.model.blackboardReferences[0].name, "goal");
+  assert.deepEqual(result.model.blackboardReferences[0], {
+    raw: "{goal}",
+    key: "goal",
+    scope: "local",
+    identity: "local:goal",
+    syntax: "braced",
+    attributeName: "target",
+    uri: parsed.document.uri,
+    range: result.model.blackboardReferences[0]?.range,
+  });
   assert.deepEqual(result.diagnostics, []);
 });
 

@@ -318,8 +318,8 @@ function attributeValueItems(
   const unknownTypeSymbols = symbols.filter(
     (symbol) => !symbol.conflict && !normalizeType(symbol.type) && normalizedCurrentType,
   );
-  const matchingKeyItems = matchingSymbols.map((symbol) => ({
-    ...createBlackboardCompletionItem({
+  const matchingKeyItems = matchingSymbols.flatMap((symbol) => {
+    const item = createBlackboardCompletionItem({
       document: input.document,
       attribute,
       cursorOffset: input.position.offset,
@@ -328,11 +328,18 @@ function attributeValueItems(
         symbol.scope === "global"
           ? `${symbol.type || "unknown"} global blackboard key from ${symbol.nodeType}.${symbol.portName}`
           : `${symbol.type || "unknown"} blackboard key from ${symbol.nodeType}.${symbol.portName}`,
-    }),
-    sortText: `${BLACKBOARD_SORT_TEXT.matchingKey}-${symbol.scope === "global" ? symbol.identity : symbol.key}`,
-  }));
-  const unknownKeyItems = unknownTypeSymbols.map((symbol) => ({
-    ...createBlackboardCompletionItem({
+    });
+    return item
+      ? [
+          {
+            ...item,
+            sortText: `${BLACKBOARD_SORT_TEXT.matchingKey}-${symbol.scope === "global" ? symbol.identity : symbol.key}`,
+          },
+        ]
+      : [];
+  });
+  const unknownKeyItems = unknownTypeSymbols.flatMap((symbol) => {
+    const item = createBlackboardCompletionItem({
       document: input.document,
       attribute,
       cursorOffset: input.position.offset,
@@ -341,12 +348,18 @@ function attributeValueItems(
         symbol.scope === "global"
           ? `unknown-type global blackboard key from ${symbol.nodeType}.${symbol.portName}`
           : `unknown-type blackboard key from ${symbol.nodeType}.${symbol.portName}`,
-    }),
-    sortText: `${BLACKBOARD_SORT_TEXT.unknownKey}-${symbol.scope === "global" ? symbol.identity : symbol.key}`,
-  }));
+    });
+    return item
+      ? [
+          {
+            ...item,
+            sortText: `${BLACKBOARD_SORT_TEXT.unknownKey}-${symbol.scope === "global" ? symbol.identity : symbol.key}`,
+          },
+        ]
+      : [];
+  });
 
-  items.push(...matchingKeyItems);
-  items.push(...unknownKeyItems);
+  items.push(...matchingKeyItems, ...unknownKeyItems);
 
   if (items.length > 0) {
     return uniqueItems(items);
@@ -384,7 +397,9 @@ export function getCompletions(
     };
   }
   if (inspect.kind === "tag-name") {
-    return { items: uniqueItems(elementNameItems(context.semantic, inspect.element?.nameRange)) };
+    return {
+      items: uniqueItems(elementNameItems(context.semantic, inspect.element?.nameRange)),
+    };
   }
   if (inspect.kind === "closing-tag-name") {
     return { items: uniqueItems(closingTagItems(inspect)) };

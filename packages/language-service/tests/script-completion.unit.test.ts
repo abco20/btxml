@@ -32,7 +32,10 @@ test("script attribute completion suggests blackboard locals booleans and operat
   const identifierPos = doc.positionAt(
     text.indexOf('code="local := 1; ') + 'code="local := 1; '.length,
   );
-  const identifierResult = ls.getCompletions({ document: doc, position: identifierPos });
+  const identifierResult = ls.getCompletions({
+    document: doc,
+    position: identifierPos,
+  });
   assert.ok(
     identifierResult.items.some(
       (item) => item.label === "target" && item.detail === "Pose2D from ReadPose.pose",
@@ -45,7 +48,10 @@ test("script attribute completion suggests blackboard locals booleans and operat
   const operatorPos = doc.positionAt(
     text.indexOf('_successIf="target ') + '_successIf="target '.length,
   );
-  const operatorResult = ls.getCompletions({ document: doc, position: operatorPos });
+  const operatorResult = ls.getCompletions({
+    document: doc,
+    position: operatorPos,
+  });
   assert.ok(operatorResult.items.some((item) => item.label === "=="));
   assert.ok(operatorResult.items.some((item) => item.label === ".."));
   assert.ok(operatorResult.items.some((item) => item.label === ":="));
@@ -63,7 +69,10 @@ test("script code completion suggests assignment operators and snippets at state
   const ls = createLanguageService({ config: defaultEffectiveConfig });
 
   const operatorPos = doc.positionAt(text.indexOf('code="value ') + 'code="value '.length);
-  const operatorResult = ls.getCompletions({ document: doc, position: operatorPos });
+  const operatorResult = ls.getCompletions({
+    document: doc,
+    position: operatorPos,
+  });
   assert.ok(operatorResult.items.some((item) => item.label === ":="));
   assert.ok(operatorResult.items.some((item) => item.label === "="));
   assert.ok(operatorResult.items.some((item) => item.label === "+="));
@@ -72,7 +81,10 @@ test("script code completion suggests assignment operators and snippets at state
   assert.ok(operatorResult.items.some((item) => item.label === "/="));
 
   const snippetPos = doc.positionAt(text.indexOf('code=""') + 'code="'.length);
-  const snippetResult = ls.getCompletions({ document: doc, position: snippetPos });
+  const snippetResult = ls.getCompletions({
+    document: doc,
+    position: snippetPos,
+  });
   assert.ok(
     snippetResult.items.some((item) => item.label === "name := value" && item.kind === "Snippet"),
   );
@@ -108,7 +120,7 @@ test("script completion reuses BT.CPP-compatible remap parsing", () => {
 
   assert.equal(
     result.items.some((item) => item.label === "pose"),
-    false,
+    true,
   );
   assert.equal(
     result.items.some((item) => item.label === "embedded"),
@@ -192,4 +204,44 @@ test("script completion includes global blackboard identifiers", () => {
         item.label === "@value" && item.detail === "number from global blackboard PrintNumber.val",
     ),
   );
+});
+
+test("script completion replays global assignment in the same script", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Script code="@x := 1; @"/>
+  </BehaviorTree>
+</root>`;
+  const doc = createTextDocument("file:///test.xml", text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+
+  const pos = doc.positionAt(text.indexOf('code="@x := 1; @') + 'code="@x := 1; @'.length);
+  const result = ls.getCompletions({ document: doc, position: pos });
+
+  assert.ok(result.items.some((item) => item.label === "@x"));
+});
+
+test("script completion includes global remaps from other behavior trees", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Writer">
+    <ReadInt value="{@count}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Checker">
+    <AlwaysSuccess _successIf="@c"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="ReadInt">
+      <output_port name="value" type="int"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createTextDocument("file:///test.xml", text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+
+  const pos = doc.positionAt(text.indexOf('_successIf="@c') + '_successIf="'.length + 2);
+  const result = ls.getCompletions({ document: doc, position: pos });
+
+  assert.ok(result.items.some((item) => item.label === "@count"));
 });

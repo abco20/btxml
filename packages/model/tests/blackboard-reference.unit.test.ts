@@ -48,10 +48,40 @@ test("parsePortBlackboardReference parses valid port remaps", () => {
       syntax: "shorthand",
     },
   });
+
+  assert.deepEqual(parsePortBlackboardReference({ portName: "value", rawValue: " {@foo} " }), {
+    ok: true,
+    reference: {
+      scope: "global",
+      key: "foo",
+      raw: "{@foo}",
+      syntax: "braced",
+    },
+  });
+
+  assert.deepEqual(parsePortBlackboardReference({ portName: "value", rawValue: "{ @foo }" }), {
+    ok: true,
+    reference: {
+      scope: "global",
+      key: "foo",
+      raw: "{ @foo }",
+      syntax: "braced",
+    },
+  });
+
+  assert.deepEqual(parsePortBlackboardReference({ portName: "value", rawValue: " {=} " }), {
+    ok: true,
+    reference: {
+      scope: "local",
+      key: "value",
+      raw: "{=}",
+      syntax: "shorthand",
+    },
+  });
 });
 
 test("parsePortBlackboardReference rejects invalid port remaps", () => {
-  for (const rawValue of ["{@}", "{@@foo}", "{foo@bar}", "{", "}", "{foo", "foo}"]) {
+  for (const rawValue of ["{@}", "{ @ }", "{@@foo}", "{foo@bar}", "{", "}", "{foo", "foo}"]) {
     assert.equal(parsePortBlackboardReference({ portName: "value", rawValue }).ok, false, rawValue);
   }
 });

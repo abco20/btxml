@@ -91,7 +91,8 @@ export function parsePortBlackboardReference(input: {
   portName: string;
   rawValue: string;
 }): ParseBlackboardReferenceResult {
-  const { portName, rawValue } = input;
+  const { portName } = input;
+  const rawValue = input.rawValue.trim();
 
   if (rawValue === "=" || rawValue === "{=}") {
     return ok({
@@ -114,7 +115,7 @@ export function parsePortBlackboardReference(input: {
     );
   }
 
-  const body = rawValue.slice(1, -1);
+  const body = rawValue.slice(1, -1).trim();
   const parsed = parseScopedKey(body);
   if (!parsed.ok) {
     return parsed;

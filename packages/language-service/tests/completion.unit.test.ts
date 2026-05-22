@@ -120,7 +120,10 @@ test("generic ID value completion filters node models by matching kind", () => {
   const ls = createLanguageService({ config: defaultEffectiveConfig });
 
   const actionPos = doc.positionAt(text.indexOf('<Action ID=""/>') + '<Action ID="'.length);
-  const actionResult = ls.getCompletions({ document: doc, position: actionPos });
+  const actionResult = ls.getCompletions({
+    document: doc,
+    position: actionPos,
+  });
   assert.ok(actionResult.items.some((item) => item.label === "MoveBase"));
   assert.equal(
     actionResult.items.some((item) => item.label === "PipelineSequence"),
@@ -128,7 +131,10 @@ test("generic ID value completion filters node models by matching kind", () => {
   );
 
   const controlPos = doc.positionAt(text.indexOf('<Control ID=""/>') + '<Control ID="'.length);
-  const controlResult = ls.getCompletions({ document: doc, position: controlPos });
+  const controlResult = ls.getCompletions({
+    document: doc,
+    position: controlPos,
+  });
   assert.ok(controlResult.items.some((item) => item.label === "PipelineSequence"));
   assert.equal(
     controlResult.items.some((item) => item.label === "MoveBase"),
@@ -138,7 +144,10 @@ test("generic ID value completion filters node models by matching kind", () => {
   const conditionPos = doc.positionAt(
     text.indexOf('<Condition ID=""/>') + '<Condition ID="'.length,
   );
-  const conditionResult = ls.getCompletions({ document: doc, position: conditionPos });
+  const conditionResult = ls.getCompletions({
+    document: doc,
+    position: conditionPos,
+  });
   assert.ok(conditionResult.items.some((item) => item.label === "IsReady"));
   assert.equal(
     conditionResult.items.some((item) => item.label === "MoveBase"),
@@ -156,7 +165,10 @@ test("generic ID value completion filters node models by matching kind", () => {
   const decoratorPos = doc.positionAt(
     text.indexOf('<Decorator ID=""/>') + '<Decorator ID="'.length,
   );
-  const decoratorResult = ls.getCompletions({ document: doc, position: decoratorPos });
+  const decoratorResult = ls.getCompletions({
+    document: doc,
+    position: decoratorPos,
+  });
   assert.ok(decoratorResult.items.some((item) => item.label === "Timeout"));
   assert.equal(
     decoratorResult.items.some((item) => item.label === "MoveBase"),
@@ -192,13 +204,19 @@ test("generic tag attribute completion uses resolved node model ports", () => {
   const ls = createLanguageService({ config: defaultEffectiveConfig });
 
   const actionPos = doc.positionAt(text.indexOf('ID="MoveBase" />') + 'ID="MoveBase" '.length);
-  const actionResult = ls.getCompletions({ document: doc, position: actionPos });
+  const actionResult = ls.getCompletions({
+    document: doc,
+    position: actionPos,
+  });
   assert.ok(actionResult.items.some((item) => item.label === "goal"));
 
   const decoratorPos = doc.positionAt(
     text.indexOf('ID="CustomTimeout" />') + 'ID="CustomTimeout" '.length,
   );
-  const decoratorResult = ls.getCompletions({ document: doc, position: decoratorPos });
+  const decoratorResult = ls.getCompletions({
+    document: doc,
+    position: decoratorPos,
+  });
   assert.ok(decoratorResult.items.some((item) => item.label === "msec"));
 });
 
@@ -854,10 +872,17 @@ test("blackboard completion suggests bare scoped identifiers inside braces", () 
   assert.equal(localItem?.textEdit?.newText, "goal");
 
   const globalPos = doc.positionAt(text.indexOf('global_input="{@}"') + 'global_input="{@'.length);
-  const globalResult = ls.getCompletions({ document: doc, position: globalPos });
+  const globalResult = ls.getCompletions({
+    document: doc,
+    position: globalPos,
+  });
   const globalItem = globalResult.items.find((item) => item.label === "@value");
   assert.ok(globalItem);
   assert.equal(globalItem?.textEdit?.newText, "value");
+  assert.equal(
+    globalResult.items.some((item) => item.label === "goal"),
+    false,
+  );
 });
 
 test("typed blackboard completion excludes extracted keys that still contain braces", () => {

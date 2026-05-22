@@ -1,4 +1,5 @@
 import type { SourceRange } from "@btxml/foundation";
+import type { BlackboardReferenceSyntax, BlackboardScope } from "./blackboard-reference.js";
 
 export type ModelSourceRef = {
   readonly uri?: string;
@@ -155,7 +156,11 @@ export type SubTreeReference = {
 };
 
 export type DocumentBlackboardReference = {
-  readonly name: string;
+  readonly raw: string;
+  readonly key: string;
+  readonly scope: BlackboardScope;
+  readonly identity: string;
+  readonly syntax: BlackboardReferenceSyntax;
   readonly attributeName: string;
   readonly uri: string;
   readonly range?: SourceRange;

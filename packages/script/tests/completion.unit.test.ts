@@ -26,7 +26,12 @@ test("getScriptCompletions suggests enums blackboard locals booleans and operato
       {
         name: "target",
         type: { kind: "custom", name: "Pose2D", canonical: "robot/Pose2D" },
-        source: { kind: "port-remap", nodeType: "ReadPose", portName: "pose", direction: "output" },
+        source: {
+          kind: "port-remap",
+          nodeType: "ReadPose",
+          portName: "pose",
+          direction: "output",
+        },
         readable: true,
         writable: true,
       },
@@ -89,6 +94,32 @@ test("getScriptCompletions suggests assignment snippets only for ignored-result 
   });
   assert.equal(
     boolItems.some((item) => item.label === "name := value"),
+    false,
+  );
+});
+
+test("getScriptCompletions replays global assignments before cursor", () => {
+  const items = getScriptCompletions({
+    source: "@x := 1; @",
+    cursorOffset: "@x := 1; @".length,
+    attributeName: "code",
+  });
+
+  assert.ok(items.some((item) => item.label === "@x"));
+});
+
+test("getScriptCompletions parse-error fallback keeps @x as global", () => {
+  const source = "@x := 1; @z ==";
+  const cursorOffset = source.indexOf("@z") + 1;
+  const items = getScriptCompletions({
+    source,
+    cursorOffset,
+    attributeName: "code",
+  });
+
+  assert.ok(items.some((item) => item.label === "@x"));
+  assert.equal(
+    items.some((item) => item.label === "x"),
     false,
   );
 });

@@ -1,5 +1,6 @@
 import { type Diagnostic, DiagnosticSeverity, createDiagnostic } from "@btxml/foundation";
 import type { BtDocument, BtXmlElement } from "@btxml/syntax";
+import { makeBlackboardIdentity, parsePortBlackboardReference } from "./blackboard-reference.js";
 import type {
   ExtractedBehaviorTreeDef,
   ExtractedBlackboardReference,
@@ -76,25 +77,61 @@ function collectBlackboardReferences(
   uri: string,
 ) {
   for (const attr of element.attributes || []) {
-    const matches = [...String(attr.value).matchAll(/\{([^}]+)\}/g)];
-    for (const match of matches) {
-      const index = match.index ?? 0;
-      const start = attr.valueRange.start;
-      const end = {
-        ...start,
-        character: start.character + match[0].length,
-        offset: start.offset + index + match[0].length,
-      };
+    const valueRange = attr.valueContentRange ?? attr.valueRange;
+    const rawValue = String(attr.value);
+
+    const collectParsedReference = (input: {
+      parsedRaw: string;
+      parsedOffset: number;
+    }) => {
+      const parsed = parsePortBlackboardReference({
+        portName: attr.name,
+        rawValue: input.parsedRaw,
+      });
+      if (!parsed.ok) return;
+
+      const referenceLength = parsed.reference.raw.length;
       refs.push({
-        name: match[1],
+        raw: parsed.reference.raw,
+        key: parsed.reference.key,
+        scope: parsed.reference.scope,
+        identity: makeBlackboardIdentity(parsed.reference),
+        syntax: parsed.reference.syntax,
         attributeName: attr.name,
         element,
         uri,
         range: {
-          start: { ...start, character: start.character + index, offset: start.offset + index },
-          end,
+          start: {
+            ...valueRange.start,
+            character: valueRange.start.character + input.parsedOffset,
+            offset: valueRange.start.offset + input.parsedOffset,
+          },
+          end: {
+            ...valueRange.start,
+            character: valueRange.start.character + input.parsedOffset + referenceLength,
+            offset: valueRange.start.offset + input.parsedOffset + referenceLength,
+          },
         },
       });
+    };
+
+    const parsedWhole = parsePortBlackboardReference({
+      portName: attr.name,
+      rawValue,
+    });
+    if (parsedWhole.ok) {
+      const parsedOffset = Math.max(0, rawValue.indexOf(parsedWhole.reference.raw));
+      collectParsedReference({
+        parsedRaw: parsedWhole.reference.raw,
+        parsedOffset,
+      });
+      continue;
+    }
+
+    for (const match of rawValue.matchAll(/\{[^}]*\}/g)) {
+      const parsedRaw = match[0];
+      const parsedOffset = match.index ?? 0;
+      collectParsedReference({ parsedRaw, parsedOffset });
     }
   }
   for (const child of element.children || []) {
@@ -287,7 +324,11 @@ function stripBlackboardReferenceAst(
   def: ExtractedBlackboardReference,
 ): DocumentBlackboardReference {
   return {
-    name: def.name,
+    raw: def.raw,
+    key: def.key,
+    scope: def.scope,
+    identity: def.identity,
+    syntax: def.syntax,
     attributeName: def.attributeName,
     uri: def.uri,
     range: def.range,
@@ -377,7 +418,13 @@ function extractDocumentModel(
     const blockModels = extractTreeNodesModel(block, uri, source, editable);
     const seenInBlock = new Map<string, ExtractedTreeNodeModelDef>();
     for (const model of blockModels) {
-      if (addTreeNodeModelToCollections({ node: model, treeNodesModel, genericSubTreePorts })) {
+      if (
+        addTreeNodeModelToCollections({
+          node: model,
+          treeNodesModel,
+          genericSubTreePorts,
+        })
+      ) {
         continue;
       }
       if (seenInBlock.has(model.id)) diagnostics.push(createDuplicateNodeModelDiagnostic(model));
@@ -404,7 +451,11 @@ function extractDocumentModel(
     treeNodesModel,
     genericSubTreePorts,
     rootMainTreeToExecute: rootMainTreeToExecute
-      ? { uri, range: rootMainTreeToExecute.range, value: rootMainTreeToExecute.value }
+      ? {
+          uri,
+          range: rootMainTreeToExecute.range,
+          value: rootMainTreeToExecute.value,
+        }
       : undefined,
   });
 

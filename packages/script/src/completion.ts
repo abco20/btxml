@@ -1,3 +1,4 @@
+import { classifyScriptIdentifier } from "./analysis/blackboard.js";
 import { cloneScriptEnvironment } from "./analysis/environment.js";
 import { analyzeScript } from "./analysis/infer.js";
 import type { ScriptEnvironment, ScriptSymbol, ScriptType } from "./analysis/types.js";
@@ -157,7 +158,10 @@ export function getScriptCursorContext(input: {
       containing.type === "String" ||
       containing.type === "Boolean")
   ) {
-    return { kind: "literal", range: { start: containing.start, end: containing.end } };
+    return {
+      kind: "literal",
+      range: { start: containing.start, end: containing.end },
+    };
   }
 
   const operatorRange = scanOperatorRange(source, cursorOffset);
@@ -330,6 +334,33 @@ function environmentBeforeCursor(input: ScriptCompletionInput): ScriptEnvironmen
       next.symbols.set(symbol.name, symbol);
     }
 
+    for (const access of analyzed.globalBlackboardAccesses) {
+      if (access.kind === "read") continue;
+      if (access.range.end > input.cursorOffset) continue;
+
+      const analyzedSymbol = analyzed.environment.globalBlackboard.get(access.key);
+      const existing = next.globalBlackboard.get(access.key);
+      let symbol: ScriptSymbol;
+      if (analyzedSymbol) {
+        symbol = { ...analyzedSymbol };
+      } else if (existing) {
+        symbol = { ...existing, type: access.inferredType };
+      } else {
+        symbol = {
+          name: access.key,
+          type: access.inferredType,
+          source: {
+            kind: "global-blackboard",
+            key: access.key,
+            range: access.range,
+          },
+          readable: true,
+          writable: true,
+        };
+      }
+      next.globalBlackboard.set(access.key, symbol);
+    }
+
     return next;
   }
 
@@ -339,9 +370,28 @@ function environmentBeforeCursor(input: ScriptCompletionInput): ScriptEnvironmen
     const next = nextToken(tokens, token.end);
     if (next?.type !== "ColonEqual") continue;
     if (next.end > input.cursorOffset) continue;
-    if (environment.symbols.has(token.text)) continue;
-    environment.symbols.set(token.text, {
-      name: token.text,
+    const classified = classifyScriptIdentifier(token.text);
+    if (classified.kind === "invalid-global-blackboard") continue;
+
+    if (classified.kind === "global-blackboard") {
+      if (environment.globalBlackboard.has(classified.key)) continue;
+      environment.globalBlackboard.set(classified.key, {
+        name: classified.key,
+        type: { kind: "unknown" },
+        source: {
+          kind: "global-blackboard",
+          key: classified.key,
+          range: { start: token.start, end: token.end },
+        },
+        readable: true,
+        writable: true,
+      });
+      continue;
+    }
+
+    if (environment.symbols.has(classified.name)) continue;
+    environment.symbols.set(classified.name, {
+      name: classified.name,
       type: { kind: "unknown" },
       source: {
         kind: "script-assignment",

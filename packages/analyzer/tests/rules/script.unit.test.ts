@@ -151,6 +151,18 @@ test("script/no-unknown-variable supports global remap inference without local l
   );
 });
 
+test("script analysis seeds global remap types across behavior trees", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Writer"><ReadInt value="{@count}"/></BehaviorTree><BehaviorTree ID="Checker"><AlwaysSuccess _successIf="@count + 'x'"/></BehaviorTree><TreeNodesModel><Action ID="ReadInt"><output_port name="value" type="int"/></Action></TreeNodesModel></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT407_INVALID_SCRIPT_OPERAND_TYPE"),
+    true,
+  );
+});
+
 test("script/valid-assignment supports BT.CPP-style global blackboard scripts", () => {
   const result = validateBtXml(
     `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="MainTree"><Sequence><PrintNumber val="{@value}"/><SubTree ID="MySub"/></Sequence></BehaviorTree><BehaviorTree ID="MySub"><Sequence><PrintNumber val="{@value}"/><Script code="@value_sqr := @value * @value"/></Sequence></BehaviorTree><TreeNodesModel><Action ID="PrintNumber"><input_port name="val" type="int"/></Action></TreeNodesModel></root>`,

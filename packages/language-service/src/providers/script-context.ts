@@ -360,55 +360,41 @@ function buildBaseScriptEnvironment(
   }
 
   for (const node of nodes) {
-    const nodeType =
-      node.usage.model.status === "resolved" ? node.usage.model.model.id : node.usage.nodeType;
     for (const binding of node.portBindings) {
       if (binding.declaredPort.status !== "resolved") continue;
       const reference = getBlackboardReferenceFromBinding(binding);
       if (!reference) continue;
+      if (reference.scope === "global") continue;
 
       const resolvedTypeName = binding.declaredPort.port.type;
       const resolvedDefinition = getTypeDefinition(context.semantic, resolvedTypeName);
       const compatibilityKey = resolvedDefinition?.canonical ?? resolvedTypeName;
       const direction = binding.declaredPort.port.direction;
+      const nodeType =
+        node.usage.model.status === "resolved" ? node.usage.model.model.id : node.usage.nodeType;
 
-      const symbolInput: ScriptEnvironmentSymbolInput =
-        reference.scope === "global"
-          ? {
-              name: reference.key,
-              type: scriptTypeFromTypeName(registry, resolvedTypeName),
-              source: {
-                kind: "global-blackboard-remap",
-                nodeType,
-                portName: binding.declaredPort.port.name,
-                direction,
-                key: reference.key,
-              },
-              readable: direction === "input" || direction === "output" || direction === "inout",
-              writable: direction === "output" || direction === "inout",
-              compatibilityKey,
-            }
-          : {
-              name: reference.key,
-              type: scriptTypeFromTypeName(registry, resolvedTypeName),
-              source: {
-                kind: "port-remap",
-                nodeType,
-                portName: binding.declaredPort.port.name,
-                direction,
-              },
-              readable: direction === "input" || direction === "output" || direction === "inout",
-              writable: direction === "output" || direction === "inout",
-              compatibilityKey,
-            };
-
-      if (reference.scope === "global") {
-        globalBlackboardSymbols.push(symbolInput);
-      } else {
-        portSymbols.push(symbolInput);
-      }
+      portSymbols.push({
+        name: reference.key,
+        type: scriptTypeFromTypeName(registry, resolvedTypeName),
+        source: {
+          kind: "port-remap",
+          nodeType,
+          portName: binding.declaredPort.port.name,
+          direction,
+        },
+        readable: direction === "input" || direction === "output" || direction === "inout",
+        writable: direction === "output" || direction === "inout",
+        compatibilityKey,
+      });
     }
   }
+
+  const workspaceNodes = getDocumentTrees(context).flatMap(({ trees }) =>
+    trees.flatMap((tree) => tree.nodes),
+  );
+  globalBlackboardSymbols.push(
+    ...collectGlobalBlackboardSeedSymbols(context, registry, workspaceNodes),
+  );
 
   return createScriptEnvironment({
     symbols: portSymbols,
@@ -417,6 +403,46 @@ function buildBaseScriptEnvironment(
     areTypesCompatible: (left, right) =>
       left && right ? areTypesCompatible(context.semantic, left, right) : true,
   });
+}
+
+function collectGlobalBlackboardSeedSymbols(
+  context: LanguageRequestContext,
+  registry: ReturnType<typeof getTypeRegistry>,
+  nodes: readonly TreeNodeView[],
+): ScriptEnvironmentSymbolInput[] {
+  const symbols: ScriptEnvironmentSymbolInput[] = [];
+
+  for (const node of nodes) {
+    const nodeType =
+      node.usage.model.status === "resolved" ? node.usage.model.model.id : node.usage.nodeType;
+    for (const binding of node.portBindings) {
+      if (binding.declaredPort.status !== "resolved") continue;
+      const reference = getBlackboardReferenceFromBinding(binding);
+      if (!reference || reference.scope !== "global") continue;
+
+      const resolvedTypeName = binding.declaredPort.port.type;
+      const resolvedDefinition = getTypeDefinition(context.semantic, resolvedTypeName);
+      const compatibilityKey = resolvedDefinition?.canonical ?? resolvedTypeName;
+      const direction = binding.declaredPort.port.direction;
+
+      symbols.push({
+        name: reference.key,
+        type: scriptTypeFromTypeName(registry, resolvedTypeName),
+        source: {
+          kind: "global-blackboard-remap",
+          nodeType,
+          portName: binding.declaredPort.port.name,
+          direction,
+          key: reference.key,
+        },
+        readable: direction === "input" || direction === "output" || direction === "inout",
+        writable: direction === "output" || direction === "inout",
+        compatibilityKey,
+      });
+    }
+  }
+
+  return symbols;
 }
 
 function collectResolvedOccurrences(
@@ -550,7 +576,10 @@ function collectResolvedOccurrencesByUri(
   uri: string,
   state: ScriptAttributeFlowState,
 ): ScriptResolvedOccurrence[] {
-  return collectResolvedOccurrences(context, state).map((occurrence) => ({ ...occurrence, uri }));
+  return collectResolvedOccurrences(context, state).map((occurrence) => ({
+    ...occurrence,
+    uri,
+  }));
 }
 
 function getDocumentTrees(
