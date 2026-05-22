@@ -78,7 +78,10 @@ export async function buildProjectIndex(
   const externalDocs = input.externalModelDocuments;
   const augmentations = input.augmentations;
 
-  const nodeDefinitions = await loadProjectNodeModels({ project: input.project, host: input.host });
+  const nodeDefinitions = await loadProjectNodeModels({
+    project: input.project,
+    host: input.host,
+  });
   diagnostics.push(...nodeDefinitions.diagnostics);
   const nodeDefinitionModels = nodeDefinitions.nodeModels;
 

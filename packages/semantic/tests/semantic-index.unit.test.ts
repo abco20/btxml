@@ -550,7 +550,10 @@ test("semantic queries expose all node usages", () => {
   });
 
   assert.deepEqual(
-    getAllNodeUsages(index).map((usage) => ({ id: usage.id, kind: usage.kind })),
+    getAllNodeUsages(index).map((usage) => ({
+      id: usage.id,
+      kind: usage.kind,
+    })),
     [
       { id: "Sequence", kind: "node" },
       { id: "MoveBase", kind: "node" },

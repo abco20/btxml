@@ -79,7 +79,10 @@ export type {
   WorkspaceInput,
 } from "./types.js";
 
-export type { ModelDefinitionFact, ModelDefinitionKey } from "./model-definition-facts.js";
+export type {
+  ModelDefinitionFact,
+  ModelDefinitionKey,
+} from "./model-definition-facts.js";
 
 export type { BlackboardScope } from "./queries.js";
 

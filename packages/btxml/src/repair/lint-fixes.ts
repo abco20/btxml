@@ -14,9 +14,7 @@ function mergeWorkspaceEdits(edits: WorkspaceEdit[]): WorkspaceEdit[] {
 
   return [...byUri.entries()].map(([uri, uriEdits]) => ({
     uri,
-    edits: [...uriEdits].sort(
-      (left, right) => right.range.start.offset - left.range.start.offset,
-    ),
+    edits: [...uriEdits].sort((left, right) => right.range.start.offset - left.range.start.offset),
   }));
 }
 
@@ -61,7 +59,9 @@ function getBtcppFormatFixes(input: {
   return [...editsByUri.values()];
 }
 
-function getModelConventionFixes(input: { diagnostics: Diagnostic[] }): WorkspaceEdit[] {
+function getModelConventionFixes(input: {
+  diagnostics: Diagnostic[];
+}): WorkspaceEdit[] {
   const edits: WorkspaceEdit[] = [];
 
   for (const diagnostic of input.diagnostics) {

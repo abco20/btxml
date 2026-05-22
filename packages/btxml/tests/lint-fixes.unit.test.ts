@@ -97,7 +97,10 @@ test("getSafeLintFixes applies BT122 delete-non-canonical-definitions metadata",
 
   assert.ok(treeA);
   assert.equal(treeA?.edits.length, 2);
-  assert.equal((treeA?.edits[0]?.range.start.offset ?? 0) > (treeA?.edits[1]?.range.start.offset ?? 0), true);
+  assert.equal(
+    (treeA?.edits[0]?.range.start.offset ?? 0) > (treeA?.edits[1]?.range.start.offset ?? 0),
+    true,
+  );
 
   assert.ok(treeB);
   assert.equal(treeB?.edits.length, 1);

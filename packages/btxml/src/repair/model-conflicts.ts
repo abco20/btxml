@@ -190,7 +190,10 @@ function buildGroupRepairActions(params: {
         targetSignatureId: signature.id,
         workspaceEdits: targetEdits,
         editSummary: buildEditSummary(targetEdits),
-        usageImpact: computeUsageImpact({ signature, usageEvidence: group.usageEvidence }),
+        usageImpact: computeUsageImpact({
+          signature,
+          usageEvidence: group.usageEvidence,
+        }),
       });
     }
   } else if (group.kind === "duplicate-model-id") {
@@ -507,7 +510,11 @@ function createModelGroup(params: {
           definitions.flatMap((definition) => definition.model.ports.map((port) => port.name)),
         ),
       ];
-      const usageEvidence = collectNodeModelUsageEvidence({ nodeId, documents, candidatePorts });
+      const usageEvidence = collectNodeModelUsageEvidence({
+        nodeId,
+        documents,
+        candidatePorts,
+      });
       const groupBase: Omit<ModelConflictGroup, "actions" | "usageImpacts"> = {
         id: `model-group:${nodeId}:equivalent`,
         kind: params.kind ?? "model-signature-conflict",
@@ -519,7 +526,10 @@ function createModelGroup(params: {
         signatures,
         differences: [],
         usageEvidence,
-        differencePattern: { key: "equivalent", label: "equivalent signatures" },
+        differencePattern: {
+          key: "equivalent",
+          label: "equivalent signatures",
+        },
         pairwiseConflictCount,
       };
 
@@ -531,7 +541,10 @@ function createModelGroup(params: {
           options: params.options,
         }),
         usageImpacts: signatures.map((signature) =>
-          computeUsageImpact({ signature, usageEvidence: groupBase.usageEvidence }),
+          computeUsageImpact({
+            signature,
+            usageEvidence: groupBase.usageEvidence,
+          }),
         ),
       };
     }
@@ -548,7 +561,11 @@ function createModelGroup(params: {
       definitions.flatMap((definition) => definition.model.ports.map((port) => port.name)),
     ),
   ];
-  const usageEvidence = collectNodeModelUsageEvidence({ nodeId, documents, candidatePorts });
+  const usageEvidence = collectNodeModelUsageEvidence({
+    nodeId,
+    documents,
+    candidatePorts,
+  });
   const differences = buildSignatureDifferences(signatures);
   const allDiffs = differences.flatMap((difference) => difference.differences);
   const patternKey = getDifferencePatternKey(allDiffs);
@@ -575,7 +592,11 @@ function createModelGroup(params: {
 
   return {
     ...groupBase,
-    actions: buildGroupRepairActions({ group: groupBase, documents, options: params.options }),
+    actions: buildGroupRepairActions({
+      group: groupBase,
+      documents,
+      options: params.options,
+    }),
     usageImpacts: signatures.map((signature) => computeUsageImpact({ signature, usageEvidence })),
   };
 }
@@ -741,7 +762,12 @@ function buildDuplicatePortGroups(
       }
       for (const [portName, ports] of portsByName) {
         if (ports.length < 2) continue;
-        const group = createDuplicatePortGroup({ model, portName, ports, documents });
+        const group = createDuplicatePortGroup({
+          model,
+          portName,
+          ports,
+          documents,
+        });
         if (group) groups.push(group);
       }
     }

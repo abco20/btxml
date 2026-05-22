@@ -23,7 +23,11 @@ function createConventionDiagnostic(input: {
   rule: string;
   severity: DiagnosticSeverity;
   data: Record<string, unknown>;
-  relatedInformation?: Array<{ uri: string; range: SourceRange; message: string }>;
+  relatedInformation?: Array<{
+    uri: string;
+    range: SourceRange;
+    message: string;
+  }>;
 }) {
   const diagnostic = createDiagnostic(
     input.code,
@@ -246,6 +250,8 @@ export function validateModelConventions(input: {
   config: ResolvedBtxmlConfig;
   index: SemanticIndex;
 }) {
+  if (input.config.linter.enabled === false) return [];
+
   const facts = getModelDefinitionFacts(input.index);
 
   return [

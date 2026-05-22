@@ -128,11 +128,14 @@ export async function runRepair(
   }
 
   const canonicalSource = options.source;
-  const explicitMode = options.mode === "dedupe" || options.mode === "sync" ? options.mode : undefined;
+  const explicitMode =
+    options.mode === "dedupe" || options.mode === "sync" ? options.mode : undefined;
   const canonicalMode =
     canonicalSource === "model-files"
-      ? explicitMode ?? (resolvedConfig.models.convention === "single-source" ? "dedupe" : "sync")
+      ? (explicitMode ?? (resolvedConfig.models.convention === "single-source" ? "dedupe" : "sync"))
       : undefined;
+  const includeConventionGroups =
+    resolvedConfig.models.convention === "single-source" || canonicalMode === "dedupe";
 
   const loaded = await loadProjectDocuments(project, host);
   let { documents } = loaded;
@@ -156,8 +159,7 @@ export async function runRepair(
     workspace: semantic.semanticIndex,
     project,
     options: {
-      includeConventionGroups:
-        resolvedConfig.models.convention === "single-source" || canonicalSource === "model-files",
+      includeConventionGroups,
       convention: resolvedConfig.models.convention,
       canonicalSource,
       canonicalMode,
@@ -214,9 +216,7 @@ export async function runRepair(
         workspace: semantic.semanticIndex,
         project,
         options: {
-          includeConventionGroups:
-            resolvedConfig.models.convention === "single-source" ||
-            canonicalSource === "model-files",
+          includeConventionGroups,
           convention: resolvedConfig.models.convention,
           canonicalSource,
           canonicalMode,
@@ -230,7 +230,10 @@ export async function runRepair(
 
       if (options.output === "human" && !options.quiet) {
         console.log(
-          printRepairGroupDetail(group, { index: groups.indexOf(group) + 1, total: groups.length }),
+          printRepairGroupDetail(group, {
+            index: groups.indexOf(group) + 1,
+            total: groups.length,
+          }),
         );
       }
 
@@ -297,7 +300,11 @@ export async function runRepair(
 
       // Confirm before applying
       const confirmChoices = [
-        { label: "Apply", value: "apply", description: formatEditSummary(action.editSummary) },
+        {
+          label: "Apply",
+          value: "apply",
+          description: formatEditSummary(action.editSummary),
+        },
         { label: "Show edit preview", value: "preview", description: "" },
         { label: "Back", value: "back", description: "" },
       ];
@@ -336,8 +343,7 @@ export async function runRepair(
       workspace: semantic.semanticIndex,
       project,
       options: {
-        includeConventionGroups:
-          resolvedConfig.models.convention === "single-source" || canonicalSource === "model-files",
+        includeConventionGroups,
         convention: resolvedConfig.models.convention,
         canonicalSource,
         canonicalMode,

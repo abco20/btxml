@@ -106,8 +106,14 @@ test("buildDocumentModelResult extracts node usages and skips TreeNodesModel def
       { id: "Child", kind: "SubTree" },
     ],
   );
-  assert.equal(usages.every((usage) => usage.parentBehaviorTreeId === "Main"), true);
-  assert.equal(usages.some((usage) => usage.id === "DefinedOnly"), false);
+  assert.equal(
+    usages.every((usage) => usage.parentBehaviorTreeId === "Main"),
+    true,
+  );
+  assert.equal(
+    usages.some((usage) => usage.id === "DefinedOnly"),
+    false,
+  );
 });
 
 test("buildDocumentModelResult keeps node usages empty for pure model documents", () => {
@@ -135,6 +141,12 @@ test("buildDocumentModelResult ignores top-level include as node usage", () => {
   const result = buildDocumentModelResult(parsed.document);
   const usages = result.model.nodeUsages;
 
-  assert.equal(usages.some((usage) => usage.id === "include"), false);
-  assert.equal(usages.some((usage) => usage.id === "Used"), true);
+  assert.equal(
+    usages.some((usage) => usage.id === "include"),
+    false,
+  );
+  assert.equal(
+    usages.some((usage) => usage.id === "Used"),
+    true,
+  );
 });
