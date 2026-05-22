@@ -122,3 +122,19 @@ test("buildDocumentModelResult keeps node usages empty for pure model documents"
   const result = buildDocumentModelResult(parsed.document);
   assert.deepEqual(result.model.nodeUsages, []);
 });
+
+test("buildDocumentModelResult ignores top-level include as node usage", () => {
+  const parsed = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><include path="subtree.xml"/><BehaviorTree ID="Main"><Used/></BehaviorTree><TreeNodesModel><Action ID="include"/></TreeNodesModel></root>`,
+    { uri: "main.xml" },
+  );
+
+  assert.ok(parsed.document);
+  if (!parsed.document) throw new Error("parsed.document is null");
+
+  const result = buildDocumentModelResult(parsed.document);
+  const usages = result.model.nodeUsages;
+
+  assert.equal(usages.some((usage) => usage.id === "include"), false);
+  assert.equal(usages.some((usage) => usage.id === "Used"), true);
+});

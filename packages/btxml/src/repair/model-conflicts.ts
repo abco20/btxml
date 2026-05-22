@@ -260,6 +260,32 @@ function buildGroupRepairActions(params: {
   }
 
   if (params.options?.canonicalSource === "model-files") {
+    const kinds = new Set(group.definitions.map((definition) => definition.kind));
+    if (kinds.size > 1) {
+      // same ID with different kinds must remain manual (no deterministic canonical action)
+      return [
+        ...actions,
+        {
+          id: "manual",
+          title: "Manual update required",
+          description: "No editable definitions are available for automatic repair.",
+          kind: "manual",
+          applicable: false,
+          workspaceEdits: [],
+          editSummary: { files: 0, definitions: 0, edits: 0, affectedUris: [] },
+        },
+        {
+          id: "skip",
+          title: "Skip this model group",
+          description: "Do not change any definitions for this node model.",
+          kind: "skip",
+          applicable: false,
+          workspaceEdits: [],
+          editSummary: { files: 0, definitions: 0, edits: 0, affectedUris: [] },
+        },
+      ];
+    }
+
     const canonicalDefinitions = group.definitions.filter(
       (definition) => definition.sourceKind === "external-tree-nodes-model",
     );
@@ -769,7 +795,10 @@ export function buildModelConflictRepairGroups(input: {
       nodeId,
       models,
       documents: input.documents,
-      code: "BT012_CONFLICTING_NODE_MODEL",
+      code:
+        input.options?.includeConventionGroups === true
+          ? "BT122_DUPLICATE_MODEL_DEFINITION"
+          : "BT012_CONFLICTING_NODE_MODEL",
       forceIncludeEquivalent: input.options?.includeConventionGroups === true,
       options: input.options,
     });

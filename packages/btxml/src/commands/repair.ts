@@ -123,19 +123,17 @@ export async function runRepair(
 ): Promise<RepairResult> {
   const host = createNodeProjectHost(getNodeProjectRootDir(project));
   const resolvedConfig = getProjectResolvedConfig(project);
-    const canonicalSource = options.source;
-    const canonicalMode =
-      canonicalSource === "model-files"
-        ? options.mode === "dedupe" || options.mode === "sync"
-          ? options.mode
-          : resolvedConfig.models.convention === "single-source"
-            ? "dedupe"
-            : "sync"
-        : undefined;
-
   if (!resolvedConfig) {
     throw new Error("Invariant: resolvedConfig is required");
   }
+
+  const canonicalSource = options.source;
+  const explicitMode = options.mode === "dedupe" || options.mode === "sync" ? options.mode : undefined;
+  const canonicalMode =
+    canonicalSource === "model-files"
+      ? explicitMode ?? (resolvedConfig.models.convention === "single-source" ? "dedupe" : "sync")
+      : undefined;
+
   const loaded = await loadProjectDocuments(project, host);
   let { documents } = loaded;
   let { externalModelDocuments } = loaded;

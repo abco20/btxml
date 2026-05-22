@@ -85,6 +85,30 @@ test("used-only requires usage in the same file", async () => {
   );
 });
 
+test("used-only does not count top-level include element as node usage", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-convention-used-only-include-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["*.xml"] }, models: { convention: "used-only" } }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><include path="subtree.xml"/><BehaviorTree ID="Main"><Used/></BehaviorTree><TreeNodesModel><Action ID="include"/><Action ID="Used"/></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+
+  const unused = allDiagnostics(result).filter(
+    (diagnostic) => diagnostic.code === "BT121_UNUSED_MODEL_DEFINITION",
+  );
+  assert.equal(unused.length, 1);
+  assert.equal((unused[0]?.data as { nodeId?: string })?.nodeId, "include");
+});
+
 test("single-source reports duplicate user definitions", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-convention-single-source-"));
   fs.writeFileSync(
@@ -193,6 +217,69 @@ test("single-source prefers BT120 for kind conflict and does not emit BT122", as
   );
   assert.equal(
     diagnostics.some((diagnostic) => diagnostic.code === "BT122_DUPLICATE_MODEL_DEFINITION"),
+    false,
+  );
+});
+
+test("model convention diagnostics follow linter rule severity overrides", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-convention-severity-override-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only" },
+      linter: {
+        rules: {
+          "model/no-unused-definition": "warn",
+        },
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><AlwaysSuccess/></BehaviorTree><TreeNodesModel><Action ID="Unused"/></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const diagnostic = allDiagnostics(result).find(
+    (entry) => entry.code === "BT121_UNUSED_MODEL_DEFINITION",
+  );
+
+  assert.ok(diagnostic);
+  assert.equal(diagnostic?.severity, "warning");
+});
+
+test("model convention diagnostics can be disabled via linter rule override", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-convention-disable-override-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only" },
+      linter: {
+        rules: {
+          "model/no-unused-definition": "off",
+        },
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><AlwaysSuccess/></BehaviorTree><TreeNodesModel><Action ID="Unused"/></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+
+  assert.equal(
+    allDiagnostics(result).some((entry) => entry.code === "BT121_UNUSED_MODEL_DEFINITION"),
     false,
   );
 });

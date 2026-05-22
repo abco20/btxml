@@ -1,4 +1,5 @@
 import { DiagnosticSeverity, createDiagnostic } from "@btxml/foundation";
+import { getRuleSeverity, type RuleName } from "@btxml/analyzer/rules";
 import type { ResolvedBtxmlConfig } from "@btxml/config";
 import type { SourceRange } from "@btxml/foundation";
 import {
@@ -20,24 +21,33 @@ function createConventionDiagnostic(input: {
   uri?: string;
   range?: SourceRange;
   rule: string;
+  severity: DiagnosticSeverity;
   data: Record<string, unknown>;
   relatedInformation?: Array<{ uri: string; range: SourceRange; message: string }>;
 }) {
   const diagnostic = createDiagnostic(
     input.code,
-    DiagnosticSeverity.Error,
+    input.severity,
     input.message,
     input.range,
     input.uri,
     undefined,
     input.data,
-    input.relatedInformation,
   );
 
   return {
     ...diagnostic,
     rule: input.rule,
+    ...(input.relatedInformation ? { relatedInformation: input.relatedInformation } : {}),
   };
+}
+
+function resolveConventionSeverity(config: ResolvedBtxmlConfig, rule: RuleName) {
+  const severity = getRuleSeverity(config.linter.rules, rule);
+  if (severity === "off") return undefined;
+  if (severity === "info") return DiagnosticSeverity.Info;
+  if (severity === "warn") return DiagnosticSeverity.Warning;
+  return DiagnosticSeverity.Error;
 }
 
 function definitionRange(definition: ModelDefinitionFact) {
@@ -53,9 +63,15 @@ function definitionInfo(definition: ModelDefinitionFact) {
   };
 }
 
-function validateConflictingKinds(facts: readonly ModelDefinitionFact[]) {
+function validateConflictingKinds(input: {
+  config: ResolvedBtxmlConfig;
+  facts: readonly ModelDefinitionFact[];
+}) {
+  const severity = resolveConventionSeverity(input.config, RULE_CONFLICTING_KIND);
+  if (!severity) return [];
+
   const diagnostics = [];
-  const groupedById = groupModelDefinitionsById(facts.filter((fact) => !fact.isBuiltin));
+  const groupedById = groupModelDefinitionsById(input.facts.filter((fact) => !fact.isBuiltin));
 
   for (const [id, definitions] of groupedById) {
     const kinds = new Set(definitions.map((definition) => definition.kind));
@@ -74,6 +90,7 @@ function validateConflictingKinds(facts: readonly ModelDefinitionFact[]) {
           uri: definition.uri,
           range: definitionRange(definition),
           rule: RULE_CONFLICTING_KIND,
+          severity,
           data: {
             kind: "conflicting-model-kind",
             nodeId: id,
@@ -104,6 +121,9 @@ function validateUsedOnly(input: {
 }) {
   if (input.config.models.convention !== "used-only") return [];
 
+  const severity = resolveConventionSeverity(input.config, RULE_UNUSED_DEFINITION);
+  if (!severity) return [];
+
   const diagnostics = [];
   const usagesByUri = getNodeUsagesByUri(input.index);
 
@@ -125,6 +145,7 @@ function validateUsedOnly(input: {
         uri: definition.uri,
         range: definitionRange(definition),
         rule: RULE_UNUSED_DEFINITION,
+        severity,
         data: {
           kind: "unused-model-definition",
           nodeId: definition.id,
@@ -169,8 +190,8 @@ function duplicateFix(definitions: readonly ModelDefinitionFact[]) {
       range: definitionRange(keep),
     },
     delete: deleteTargets.map((definition) => ({
-      uri: definition.uri as string,
-      range: definitionRange(definition) as SourceRange,
+      uri: definition.uri,
+      range: definitionRange(definition),
     })),
   };
 }
@@ -180,6 +201,9 @@ function validateSingleSource(input: {
   facts: readonly ModelDefinitionFact[];
 }) {
   if (input.config.models.convention !== "single-source") return [];
+
+  const severity = resolveConventionSeverity(input.config, RULE_DUPLICATE_DEFINITION);
+  if (!severity) return [];
 
   const diagnostics = [];
   const groupedByKey = groupModelDefinitionsByKey(input.facts.filter((fact) => !fact.isBuiltin));
@@ -197,6 +221,7 @@ function validateSingleSource(input: {
         uri: primary.uri,
         range: definitionRange(primary),
         rule: RULE_DUPLICATE_DEFINITION,
+        severity,
         data: {
           kind: "duplicate-model-definition",
           nodeId: primary.id,
@@ -224,7 +249,7 @@ export function validateModelConventions(input: {
   const facts = getModelDefinitionFacts(input.index);
 
   return [
-    ...validateConflictingKinds(facts),
+    ...validateConflictingKinds({ config: input.config, facts }),
     ...validateUsedOnly({ config: input.config, index: input.index, facts }),
     ...validateSingleSource({ config: input.config, facts }),
   ];

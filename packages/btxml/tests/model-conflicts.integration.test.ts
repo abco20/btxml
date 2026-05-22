@@ -572,7 +572,45 @@ test("single-source equivalent duplicates are included with canonical dedupe act
 
   const group = groups.find((entry) => entry.nodeId === "Move");
   assert.ok(group);
+  assert.ok(group.codes.includes("BT122_DUPLICATE_MODEL_DEFINITION"));
   assert.ok(
     group.actions.some((action) => action.kind === "keep-canonical-model-file-definition"),
+  );
+});
+
+test("canonical source does not add canonical actions for kind conflicts", () => {
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Foo/></BehaviorTree><TreeNodesModel><Condition ID="Foo"/></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+  const canonicalDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Foo"/></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(inlineDoc.document);
+  assert.ok(canonicalDoc.document);
+
+  const documents = [inlineDoc.document, canonicalDoc.document];
+  const workspace = buildSemanticIndex(documents, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      canonicalSource: "model-files",
+      canonicalMode: "sync",
+      includeConventionGroups: true,
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Foo");
+  assert.ok(group);
+  assert.equal(
+    group.actions.some(
+      (action) =>
+        action.kind === "match-canonical-model-file" ||
+        action.kind === "keep-canonical-model-file-definition",
+    ),
+    false,
   );
 });

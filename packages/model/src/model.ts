@@ -411,10 +411,11 @@ function extractNodeUsages(root: BtXmlElement, uri: string): NodeUsageDef[] {
       node.name === "BehaviorTree"
         ? (getAttr(node, "ID")?.value ?? parentBehaviorTreeId)
         : parentBehaviorTreeId;
+    const isInsideBehaviorTree = currentBehaviorTreeId !== undefined;
 
     if (node.name === "SubTree") {
       const idAttr = getAttr(node, "ID");
-      if (idAttr) {
+      if (idAttr && isInsideBehaviorTree) {
         usages.push({
           id: idAttr.value,
           kind: "SubTree",
@@ -425,6 +426,7 @@ function extractNodeUsages(root: BtXmlElement, uri: string): NodeUsageDef[] {
         });
       }
     } else if (
+      isInsideBehaviorTree &&
       node.name !== "root" &&
       node.name !== "BehaviorTree" &&
       node.name !== "TreeNodesModel"
