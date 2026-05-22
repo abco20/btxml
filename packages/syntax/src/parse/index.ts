@@ -633,6 +633,16 @@ export function parseBtXml(text: string, options: ParseOptions = {}): ParseResul
   }
 
   const root = document.root;
+  const looksLikeBtXml =
+    root?.name === "BehaviorTree" ||
+    root?.name === "TreeNodesModel" ||
+    (root?.name === "root" &&
+      (root.attributes.some((a) => a.name === "BTCPP_format" && a.value === "4") ||
+        root.children.some(
+          (child) =>
+            child.kind === "element" &&
+            (child.name === "BehaviorTree" || child.name === "TreeNodesModel"),
+        )));
   if (root) {
     for (const node of document.nodes) {
       if (node === root) continue;
@@ -652,7 +662,7 @@ export function parseBtXml(text: string, options: ParseOptions = {}): ParseResul
     }
   }
 
-  if (!document.xmlDeclaration) {
+  if (!document.xmlDeclaration && !looksLikeBtXml) {
     addOptionalDiagnostic(
       "XML008_MISSING_DECLARATION",
       DiagnosticSeverity.Warning,
@@ -667,7 +677,7 @@ export function parseBtXml(text: string, options: ParseOptions = {}): ParseResul
       },
     );
   } else if (
-    document.xmlDeclaration.encoding &&
+    document.xmlDeclaration?.encoding &&
     document.xmlDeclaration.encoding.toUpperCase() !== "UTF-8"
   ) {
     const encoding = document.xmlDeclaration.encoding;

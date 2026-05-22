@@ -1,6 +1,6 @@
+import { TOOL_VERSION } from "./output.ts";
 import { formatEditSummary } from "./repair/model-conflicts.ts";
 import type { GroupRepairAction, ModelConflictGroup, UsageImpact } from "./repair/types.ts";
-import { TOOL_VERSION } from "./output.ts";
 
 export type RepairResult = {
   ok: boolean;

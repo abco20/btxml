@@ -290,6 +290,53 @@ test("external model with BehaviorTree content still uses external model precede
   );
 });
 
+test("external exported generic SubTree model does not conflict with builtins", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-external-exported-subtree-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["tree.xml"] },
+      models: { files: ["model.xml"] },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><SubTree ID="child" _autoremap="true"/></BehaviorTree><BehaviorTree ID="child"><AlwaysSuccess/></BehaviorTree></root>',
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "model.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><SubTree ID="SubTree"><input_port name="_autoremap" type="bool" default="false">If true, all the ports with the same name will be remapped</input_port></SubTree></TreeNodesModel>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+
+  const semantic = await loadProjectSemanticIndex({ project: discovered.project });
+  assert.deepEqual(getNodeModelDefinitions(semantic.semanticIndex, "SubTree"), []);
+
+  const result = await checkProject({ project: discovered.project });
+  const diagnostics = [
+    ...result.projectDiagnostics,
+    ...result.files.flatMap((file) => file.diagnostics),
+  ];
+
+  assert.equal(
+    diagnostics.some((diag) => diag.code === "BT012_CONFLICTING_NODE_MODEL"),
+    false,
+  );
+  assert.equal(
+    diagnostics.some((diag) => diag.code === "BT006_DUPLICATE_NODE_MODEL_ID"),
+    false,
+  );
+  assert.equal(
+    diagnostics.some((diag) => diag.code === "BT116_INVALID_PORT_NAME"),
+    false,
+  );
+});
+
 test("wrapped external model file-level suppressions remain visible after rerooting", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-external-rerooted-suppression-"));
   fs.writeFileSync(

@@ -185,6 +185,18 @@ test("unresolved SubTree does not produce port noise by default", () => {
   );
 });
 
+test("generic SubTree model definition is not treated as a subtree reference", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><SubTree ID="SubTree"><input_port name="_autoremap" type="bool" default="false">If true, all the ports with the same name will be remapped</input_port></SubTree></TreeNodesModel>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((d) => d.code === "BT005_UNKNOWN_SUBTREE"),
+    false,
+  );
+});
+
 test("unresolved SubTree reports ports in strict mode", () => {
   const result = validateBtXml(
     `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><SubTree ID="Missing" target="{goal}"/></BehaviorTree></root>`,

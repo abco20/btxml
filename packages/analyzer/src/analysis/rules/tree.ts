@@ -12,6 +12,21 @@ function getAttr(element: BtXmlElement, name: string) {
   return element.attributes.find((attr) => attr.name === name);
 }
 
+function isInsideTreeNodesModel(root: BtXmlElement | undefined, target: BtXmlElement) {
+  if (!root) return false;
+
+  const walk = (element: BtXmlElement, inTreeNodesModel: boolean): boolean => {
+    const nextInTreeNodesModel = inTreeNodesModel || element.name === "TreeNodesModel";
+    if (element === target) return nextInTreeNodesModel;
+    for (const child of element.children) {
+      if (child.kind === "element" && walk(child, nextInTreeNodesModel)) return true;
+    }
+    return false;
+  };
+
+  return walk(root, false);
+}
+
 export const treeRules = [
   makeRuleModule({
     name: "tree/require-id",
@@ -88,6 +103,7 @@ export const treeRules = [
       return {
         Element(element) {
           if (element.name !== "SubTree") return;
+          if (isInsideTreeNodesModel(context.document.root, element)) return;
           const call = context.getSubTreeCallView(element);
           const idAttr =
             call?.node.element.attributes.find((attr) => attr.name === "ID") ??
@@ -110,6 +126,7 @@ export const treeRules = [
       return {
         Element(element) {
           if (element.name !== "SubTree") return;
+          if (isInsideTreeNodesModel(context.document.root, element)) return;
           const idAttr = getAttr(element, "ID");
           if (!idAttr) return;
           const call = context.getSubTreeCallView(element);

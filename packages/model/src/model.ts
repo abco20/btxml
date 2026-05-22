@@ -191,11 +191,13 @@ function extractBehaviorTrees(root: BtXmlElement, uri: string): ExtractedBehavio
 
 function extractSubTreeReferences(root: BtXmlElement, uri: string): ExtractedSubTreeReference[] {
   const refs: ExtractedSubTreeReference[] = [];
-  const walk = (node: BtXmlElement, parentBehaviorTreeId?: string) => {
+  const walk = (node: BtXmlElement, parentBehaviorTreeId?: string, inTreeNodesModel = false) => {
+    if (inTreeNodesModel) return;
     const currentBehaviorTreeId =
       node.name === "BehaviorTree"
         ? (getAttr(node, "ID")?.value ?? parentBehaviorTreeId)
         : parentBehaviorTreeId;
+    const nextInTreeNodesModel = node.name === "TreeNodesModel";
     if (node.name === "SubTree") {
       const idAttr = getAttr(node, "ID");
       if (idAttr) {
@@ -212,9 +214,10 @@ function extractSubTreeReferences(root: BtXmlElement, uri: string): ExtractedSub
       }
     }
     for (const child of node.children || []) {
-      if (child.kind === "element") walk(child, currentBehaviorTreeId);
+      if (child.kind === "element") walk(child, currentBehaviorTreeId, nextInTreeNodesModel);
     }
   };
+  if (root.name === "TreeNodesModel") return refs;
   for (const child of root.children || []) {
     if (child.kind === "element") walk(child);
   }
