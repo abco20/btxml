@@ -183,6 +183,18 @@ test("script/no-unknown-variable is flow-sensitive across behavior tree order", 
   assert.equal(unknowns.length, 1);
 });
 
+test("script analysis is flow-sensitive for global assignments across behavior tree order", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Sequence><Script code="@x := 'str'"/><AlwaysSuccess _successIf="@x + 2"/></Sequence></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT407_INVALID_SCRIPT_OPERAND_TYPE"),
+    true,
+  );
+});
+
 test("script/no-unknown-variable respects strict preset severity", () => {
   const strictConfig = getEffectiveConfigForFile(
     normalizeBtxmlConfig({ strict: true }).config,
@@ -354,6 +366,22 @@ test("script environment seeds matching SubTree model ports", () => {
   );
   assert.equal(
     result.diagnostics.some((diag) => diag.code === "BT410_SCRIPT_VARIABLE_TYPE_MISMATCH"),
+    false,
+  );
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT407_INVALID_SCRIPT_OPERAND_TYPE"),
+    false,
+  );
+});
+
+test("script environment keeps SubTree model ports local when parent remap is global", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><TreeNodesModel><SubTree ID="Child"><input_port name="position" type="float"/></SubTree></TreeNodesModel><BehaviorTree ID="Main"><SubTree ID="Child" position="{@robot_position}"/></BehaviorTree><BehaviorTree ID="Child"><AlwaysSuccess _successIf="position &gt; 0"/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE"),
     false,
   );
   assert.equal(
