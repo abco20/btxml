@@ -57,6 +57,10 @@ test("getRuleNameForCode returns correct name", () => {
     getRuleNameForCode("BT410_SCRIPT_VARIABLE_TYPE_MISMATCH"),
     "script/valid-assignment",
   );
+  assert.equal(
+    getRuleNameForCode("BT411_INVALID_GLOBAL_BLACKBOARD_IDENTIFIER"),
+    "script/valid-assignment",
+  );
 });
 
 test("normalizeRuleConfig handles various formats", () => {

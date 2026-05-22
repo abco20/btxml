@@ -53,6 +53,21 @@ export function getHover(context: LanguageRequestContext, input: InternalHoverIn
       };
     }
 
+    if (scriptTarget.reference.kind === "global-blackboard") {
+      const symbol = scriptTarget.reference.symbol;
+      return {
+        range: scriptTarget.range,
+        contents: symbol
+          ? [
+              `**Global Blackboard** \`@${scriptTarget.reference.key}\``,
+              "",
+              `Type: \`${formatScriptType(symbol.type)}\``,
+              `Source: ${describeScriptSymbol(symbol)}`,
+            ].join("\n")
+          : `**Global Blackboard** \`@${scriptTarget.reference.key}\``,
+      };
+    }
+
     const symbol = scriptTarget.reference.symbol;
     return {
       range: scriptTarget.range,

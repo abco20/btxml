@@ -348,10 +348,14 @@ function describeScriptSymbol(symbol: ScriptSymbol): string {
   switch (symbol.source.kind) {
     case "port-remap":
       return `${typeLabel} from ${symbol.source.nodeType ?? "node"}.${symbol.source.portName}`;
+    case "global-blackboard-remap":
+      return `${typeLabel} from global blackboard ${symbol.source.nodeType ?? "node"}.${symbol.source.portName}`;
     case "subtree-port":
       return `${typeLabel} from ${symbol.source.nodeType ?? "SubTree"}.${symbol.source.portName}`;
     case "script-assignment":
       return `${typeLabel} from earlier ${symbol.source.attributeName} declaration`;
+    case "global-blackboard":
+      return `${typeLabel} from global blackboard @${symbol.source.key}`;
     case "augmentation":
       return `${typeLabel} from augmentation`;
     case "enum":

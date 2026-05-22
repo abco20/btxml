@@ -5,6 +5,7 @@ import {
   isScriptTypeAssignable,
   isScriptTypeBoolCompatible,
 } from "./environment.js";
+import { classifyScriptIdentifier } from "./blackboard.js";
 import type {
   AnalyzeScriptInput,
   AnalyzeScriptResult,
@@ -27,6 +28,8 @@ export function analyzeScript(input: AnalyzeScriptInput): AnalyzeScriptResult {
   const identifiers: ScriptIdentifierAccess[] = [];
   const resolvedIdentifiers: ResolvedScriptIdentifier[] = [];
   const unknownIdentifiers: ScriptIdentifierAccess[] = [];
+  const globalBlackboardAccesses: AnalyzeScriptResult["globalBlackboardAccesses"] = [];
+  const invalidGlobalBlackboardIdentifiers: AnalyzeScriptResult["invalidGlobalBlackboardIdentifiers"] = [];
   const introducedSymbols: ScriptSymbol[] = [];
   const diagnostics: ScriptAnalysisDiagnostic[] = [];
   const statementTypes: ScriptType[] = [];
@@ -40,6 +43,8 @@ export function analyzeScript(input: AnalyzeScriptInput): AnalyzeScriptResult {
         identifiers,
         resolvedIdentifiers,
         unknownIdentifiers,
+        globalBlackboardAccesses,
+        invalidGlobalBlackboardIdentifiers,
         introducedSymbols,
         diagnostics,
         attributeName: input.attributeName ?? "code",
@@ -53,6 +58,8 @@ export function analyzeScript(input: AnalyzeScriptInput): AnalyzeScriptResult {
     identifiers,
     resolvedIdentifiers,
     unknownIdentifiers,
+    globalBlackboardAccesses,
+    invalidGlobalBlackboardIdentifiers,
     introducedSymbols,
     diagnostics,
     statementTypes,
@@ -67,6 +74,8 @@ type AnalyzeExpressionContext = {
   identifiers: ScriptIdentifierAccess[];
   resolvedIdentifiers: ResolvedScriptIdentifier[];
   unknownIdentifiers: ScriptIdentifierAccess[];
+  globalBlackboardAccesses: AnalyzeScriptResult["globalBlackboardAccesses"];
+  invalidGlobalBlackboardIdentifiers: AnalyzeScriptResult["invalidGlobalBlackboardIdentifiers"];
   introducedSymbols: ScriptSymbol[];
   diagnostics: ScriptAnalysisDiagnostic[];
   attributeName: string;
@@ -258,6 +267,80 @@ function analyzeAssignment(context: AnalyzeExpressionContext): ScriptType {
   };
   identifiers.push(access);
 
+  const classified = classifyScriptIdentifier(left.name);
+
+  if (classified.kind === "invalid-global-blackboard") {
+    context.invalidGlobalBlackboardIdentifiers.push(access);
+    reportInvalidGlobalBlackboardIdentifier(context, left.range, classified.raw, classified.message);
+    return ERROR_TYPE;
+  }
+
+  if (classified.kind === "global-blackboard") {
+    const existingSymbol = environment.globalBlackboard.get(classified.key);
+    const accessType =
+      expression.operator === ":="
+        ? rightType
+        : expression.operator === "="
+          ? existingSymbol && isScriptTypeAssignable(existingSymbol.type, rightType)
+            ? rightType
+            : !existingSymbol
+              ? rightType
+              : undefined
+          : compoundAssignmentResult(existingSymbol?.type ?? UNKNOWN_TYPE, rightType, expression.operator);
+
+    if (expression.operator !== ":=" && expression.operator !== "=" && !accessType) {
+      reportDiagnostic(
+        context,
+        "invalid-compound-assignment",
+        expression.range,
+        `operator \`${expression.operator}\` is not valid for these operand types`,
+        `compound assignment \`${expression.operator}\` is not allowed here`,
+        expression.operator === "+="
+          ? "use number += number or string += string"
+          : "use numeric operands for this compound assignment",
+      );
+      return ERROR_TYPE;
+    }
+
+    if (
+      (expression.operator === ":=" || expression.operator === "=") &&
+      existingSymbol &&
+      !isScriptTypeAssignable(existingSymbol.type, rightType)
+    ) {
+      reportTypeMismatch(context, left, existingSymbol.type, rightType);
+      return ERROR_TYPE;
+    }
+
+    const symbol: ScriptSymbol = existingSymbol
+      ? { ...existingSymbol }
+      : {
+          name: classified.key,
+          type: rightType,
+          source: {
+            kind: "global-blackboard",
+            key: classified.key,
+            range: left.range,
+            originId: context.originId,
+          },
+          readable: true,
+          writable: true,
+        };
+    symbol.type = accessType ?? rightType;
+    environment.globalBlackboard.set(classified.key, symbol);
+    context.resolvedIdentifiers.push({
+      access,
+      resolution: { kind: "global-blackboard", key: classified.key, symbol },
+    });
+    context.globalBlackboardAccesses.push({
+      key: classified.key,
+      rawName: left.name,
+      kind: accessKind,
+      range: left.range,
+      inferredType: symbol.type,
+    });
+    return symbol.type;
+  }
+
   const existingSymbol = environment.symbols.get(left.name);
 
   if (expression.operator === ":=" && !existingSymbol) {
@@ -350,6 +433,29 @@ function analyzeReadIdentifier(
     statementIndex: context.statementIndex,
   };
   context.identifiers.push(access);
+
+  const classified = classifyScriptIdentifier(name);
+  if (classified.kind === "invalid-global-blackboard") {
+    context.invalidGlobalBlackboardIdentifiers.push(access);
+    reportInvalidGlobalBlackboardIdentifier(context, range, classified.raw, classified.message);
+    return ERROR_TYPE;
+  }
+
+  if (classified.kind === "global-blackboard") {
+    const symbol = context.environment.globalBlackboard.get(classified.key);
+    context.globalBlackboardAccesses.push({
+      key: classified.key,
+      rawName: name,
+      kind: "read",
+      range,
+      inferredType: symbol?.type ?? UNKNOWN_TYPE,
+    });
+    context.resolvedIdentifiers.push({
+      access,
+      resolution: { kind: "global-blackboard", key: classified.key, ...(symbol ? { symbol } : {}) },
+    });
+    return symbol?.type ?? UNKNOWN_TYPE;
+  }
 
   const enumValue = context.environment.enums.get(name);
   if (enumValue !== undefined) {
@@ -455,6 +561,22 @@ function reportTypeMismatch(
     `cannot assign ${formatScriptType(sourceType)} to variable \`${identifier.name}\` of type ${formatScriptType(targetType)}`,
     `\`${identifier.name}\` expects ${formatScriptType(targetType)} here`,
     "assign a compatible value or change the variable's source type",
+  );
+}
+
+function reportInvalidGlobalBlackboardIdentifier(
+  context: AnalyzeExpressionContext,
+  range: ScriptExpression["range"],
+  rawName: string,
+  message: string,
+) {
+  reportDiagnostic(
+    context,
+    "invalid-global-blackboard-identifier",
+    range,
+    message,
+    `\`${rawName}\` is not a valid global blackboard identifier`,
+    "use `@name` with a valid blackboard key that starts with a letter or underscore",
   );
 }
 

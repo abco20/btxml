@@ -1,4 +1,5 @@
 import type { SourcePosition, SourceRange } from "@btxml/foundation";
+import { parsePortBlackboardReference } from "@btxml/model";
 import {
   type ScriptEnvironment,
   type ScriptEnvironmentSymbolInput,
@@ -17,7 +18,6 @@ import {
   areTypesCompatible,
   getModelAugmentations,
   getNodeModel,
-  getRemappedKey,
   getTypeDefinition,
   getTypeRegistry,
 } from "@btxml/semantic";
@@ -42,6 +42,7 @@ export type ScriptAttributeContext = {
 
 export type ScriptSymbolReference =
   | { kind: "symbol"; symbol: ScriptSymbol }
+  | { kind: "global-blackboard"; key: string; symbol?: ScriptSymbol }
   | { kind: "enum"; name: string; value: number };
 
 export type ScriptResolvedOccurrence = {
@@ -136,7 +137,10 @@ export function getScriptReferencesForSymbol(
       target.reference.kind === "enum"
         ? occurrence.reference.kind === "enum" &&
           occurrence.reference.name === target.reference.name
-        : sameResolvedSymbol(target.reference.symbol, occurrence.reference),
+        : target.reference.kind === "global-blackboard"
+          ? occurrence.reference.kind === "global-blackboard" &&
+            occurrence.reference.key === target.reference.key
+          : sameResolvedSymbol(target.reference.symbol, occurrence.reference),
     ),
   );
 }
@@ -164,10 +168,14 @@ export function describeScriptSymbol(symbol: ScriptSymbol): string {
   switch (symbol.source.kind) {
     case "port-remap":
       return `${typeLabel} from ${symbol.source.nodeType ?? "node"}.${symbol.source.portName}`;
+    case "global-blackboard-remap":
+      return `${typeLabel} from global blackboard ${symbol.source.nodeType ?? "node"}.${symbol.source.portName}`;
     case "subtree-port":
       return `${typeLabel} from ${symbol.source.nodeType ?? "SubTree"}.${symbol.source.portName}`;
     case "script-assignment":
       return `${typeLabel} from earlier ${symbol.source.attributeName} declaration`;
+    case "global-blackboard":
+      return `${typeLabel} from global blackboard @${symbol.source.key}`;
     case "augmentation":
       return `${typeLabel} from augmentation`;
     case "enum":
@@ -269,6 +277,7 @@ function buildBaseScriptEnvironment(
 ): ScriptEnvironment {
   const registry = getTypeRegistry(context.semantic);
   const portSymbols: ScriptEnvironmentSymbolInput[] = [];
+  const globalBlackboardSymbols: ScriptEnvironmentSymbolInput[] = [];
   const behaviorTreeId = nodes[0]?.behaviorTree.id;
 
   if (behaviorTreeId) {
@@ -309,24 +318,47 @@ function buildBaseScriptEnvironment(
       const compatibilityKey = resolvedDefinition?.canonical ?? resolvedTypeName;
       const direction = binding.declaredPort.port.direction;
 
-      portSymbols.push({
-        name: remappedKey,
-        type: scriptTypeFromTypeName(registry, resolvedTypeName),
-        source: {
-          kind: "port-remap",
-          nodeType,
-          portName: binding.declaredPort.port.name,
-          direction,
-        },
-        readable: direction === "input" || direction === "output" || direction === "inout",
-        writable: direction === "output" || direction === "inout",
-        compatibilityKey,
-      });
+      const symbolInput: ScriptEnvironmentSymbolInput =
+        remappedKey.scope === "global"
+          ? {
+              name: remappedKey.key,
+              type: scriptTypeFromTypeName(registry, resolvedTypeName),
+              source: {
+                kind: "global-blackboard-remap",
+                nodeType,
+                portName: binding.declaredPort.port.name,
+                direction,
+                key: remappedKey.key,
+              },
+              readable: direction === "input" || direction === "output" || direction === "inout",
+              writable: direction === "output" || direction === "inout",
+              compatibilityKey,
+            }
+          : {
+              name: remappedKey.key,
+              type: scriptTypeFromTypeName(registry, resolvedTypeName),
+              source: {
+                kind: "port-remap",
+                nodeType,
+                portName: binding.declaredPort.port.name,
+                direction,
+              },
+              readable: direction === "input" || direction === "output" || direction === "inout",
+              writable: direction === "output" || direction === "inout",
+              compatibilityKey,
+            };
+
+      if (remappedKey.scope === "global") {
+        globalBlackboardSymbols.push(symbolInput);
+      } else {
+        portSymbols.push(symbolInput);
+      }
     }
   }
 
   return createScriptEnvironment({
     symbols: portSymbols,
+    globalBlackboardSymbols,
     augmentations: getModelAugmentations(context.semantic),
     areTypesCompatible: (left, right) =>
       left && right ? areTypesCompatible(context.semantic, left, right) : true,
@@ -435,5 +467,9 @@ export function mapDecodedOffsetToRawAttributeOffset(
 
 function getRemappedKeyFromBinding(binding: PortBindingView) {
   if (binding.declaredPort.status !== "resolved") return undefined;
-  return getRemappedKey(binding.declaredPort.port.name, binding.value);
+  const parsed = parsePortBlackboardReference({
+    portName: binding.declaredPort.port.name,
+    rawValue: binding.value,
+  });
+  return parsed.ok ? { key: parsed.reference.key, scope: parsed.reference.scope } : undefined;
 }

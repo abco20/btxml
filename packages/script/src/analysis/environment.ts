@@ -13,6 +13,7 @@ import type {
   ScriptEnvironmentSymbolInput,
   ScriptFlowEntry,
   ScriptFlowEntryResult,
+  ScriptSymbol,
   ScriptType,
 } from "./types.js";
 
@@ -58,13 +59,24 @@ export function createScriptEnvironment(
     ((left: string | undefined, right: string | undefined) =>
       areModelTypesCompatible(registry, left, right));
   const compatibilityKeys = new Map<string, string | undefined>();
+  const globalCompatibilityKeys = new Map<string, string | undefined>();
   const environment: ScriptEnvironment = {
     symbols: new Map(),
+    globalBlackboard: new Map(),
     enums: normalizeEnums(input.enums, input.augmentations ?? []),
   };
 
   for (const symbol of input.symbols ?? []) {
-    mergeScriptSymbol(environment, compatibilityKeys, symbol, areTypesCompatible);
+    mergeScriptSymbol(environment.symbols, compatibilityKeys, symbol, areTypesCompatible);
+  }
+
+  for (const symbol of input.globalBlackboardSymbols ?? []) {
+    mergeScriptSymbol(
+      environment.globalBlackboard,
+      globalCompatibilityKeys,
+      symbol,
+      areTypesCompatible,
+    );
   }
 
   return environment;
@@ -74,6 +86,12 @@ export function cloneScriptEnvironment(environment?: ScriptEnvironment): ScriptE
   return {
     symbols: new Map(
       [...(environment?.symbols.entries() ?? [])].map(([name, symbol]) => [name, { ...symbol }]),
+    ),
+    globalBlackboard: new Map(
+      [...(environment?.globalBlackboard.entries() ?? [])].map(([name, symbol]) => [
+        name,
+        { ...symbol },
+      ]),
     ),
     enums: new Map(environment?.enums ?? []),
   };
@@ -111,9 +129,13 @@ export function analyzeScriptFlow<TId = string>(input: {
     });
 
     environment.symbols.clear();
+    environment.globalBlackboard.clear();
     environment.enums.clear();
     for (const [name, symbol] of environmentAfter.symbols) {
       environment.symbols.set(name, { ...symbol });
+    }
+    for (const [name, symbol] of environmentAfter.globalBlackboard) {
+      environment.globalBlackboard.set(name, { ...symbol });
     }
     for (const [name, value] of environmentAfter.enums) {
       environment.enums.set(name, value);
@@ -233,14 +255,14 @@ function normalizeEnums(
 }
 
 function mergeScriptSymbol(
-  environment: ScriptEnvironment,
+  target: Map<string, ScriptSymbol>,
   compatibilityKeys: Map<string, string | undefined>,
   next: ScriptEnvironmentSymbolInput,
   areTypesCompatible: (left: string | undefined, right: string | undefined) => boolean,
 ) {
-  const existing = environment.symbols.get(next.name);
+  const existing = target.get(next.name);
   if (!existing) {
-    environment.symbols.set(next.name, {
+    target.set(next.name, {
       name: next.name,
       type: next.type,
       source: next.source,
@@ -259,7 +281,7 @@ function mergeScriptSymbol(
       !areTypesCompatible(existingCompatibilityKey, next.compatibilityKey)) ||
     !areScriptTypesCompatible(existing.type, next.type);
 
-  environment.symbols.set(next.name, {
+  target.set(next.name, {
     ...existing,
     readable: existing.readable || next.readable,
     writable: existing.writable || next.writable,

@@ -1,5 +1,5 @@
 import type { SourceRange } from "@btxml/foundation";
-import { getRemappedKey } from "@btxml/model";
+import { parsePortBlackboardReference } from "@btxml/model";
 import {
   type AnalyzeScriptResult,
   type ParseScriptResult,
@@ -151,6 +151,7 @@ function buildBaseScriptEnvironment(
 ): ScriptEnvironment {
   const registry = getTypeRegistry(context.semantic);
   const portSymbols: ScriptEnvironmentSymbolInput[] = [];
+  const globalBlackboardSymbols: ScriptEnvironmentSymbolInput[] = [];
   const behaviorTreeId = nodes[0]?.behaviorTree.id;
 
   if (behaviorTreeId) {
@@ -183,32 +184,58 @@ function buildBaseScriptEnvironment(
       node.usage.model.status === "resolved" ? node.usage.model.model.id : node.usage.nodeType;
     for (const binding of node.portBindings) {
       if (binding.usage.status !== "resolved") continue;
-      const remappedKey = getRemappedKey(binding.usage.port.name, binding.usage.value);
-      if (!remappedKey) continue;
+      const parsed = parsePortBlackboardReference({
+        portName: binding.usage.port.name,
+        rawValue: binding.usage.value,
+      });
+      if (!parsed.ok) continue;
 
       const resolvedTypeName = getResolvedPortType(binding.usage.port);
       const resolvedDefinition = getTypeDefinition(context.semantic, resolvedTypeName);
       const compatibilityKey = resolvedDefinition?.canonical ?? resolvedTypeName;
       const direction = binding.usage.port.direction;
 
-      portSymbols.push({
-        name: remappedKey,
-        type: scriptTypeFromTypeName(registry, resolvedTypeName),
-        source: {
-          kind: "port-remap",
-          nodeType,
-          portName: binding.usage.port.name,
-          direction,
-        },
-        readable: direction === "input" || direction === "output" || direction === "inout",
-        writable: direction === "output" || direction === "inout",
-        compatibilityKey,
-      });
+      const symbolInput: ScriptEnvironmentSymbolInput =
+        parsed.reference.scope === "global"
+          ? {
+              name: parsed.reference.key,
+              type: scriptTypeFromTypeName(registry, resolvedTypeName),
+              source: {
+                kind: "global-blackboard-remap",
+                nodeType,
+                portName: binding.usage.port.name,
+                direction,
+                key: parsed.reference.key,
+              },
+              readable: direction === "input" || direction === "output" || direction === "inout",
+              writable: direction === "output" || direction === "inout",
+              compatibilityKey,
+            }
+          : {
+              name: parsed.reference.key,
+              type: scriptTypeFromTypeName(registry, resolvedTypeName),
+              source: {
+                kind: "port-remap",
+                nodeType,
+                portName: binding.usage.port.name,
+                direction,
+              },
+              readable: direction === "input" || direction === "output" || direction === "inout",
+              writable: direction === "output" || direction === "inout",
+              compatibilityKey,
+            };
+
+      if (parsed.reference.scope === "global") {
+        globalBlackboardSymbols.push(symbolInput);
+      } else {
+        portSymbols.push(symbolInput);
+      }
     }
   }
 
   return createScriptEnvironment({
     symbols: portSymbols,
+    globalBlackboardSymbols,
     augmentations: getModelAugmentations(context.semantic),
     areTypesCompatible: (left, right) =>
       left && right ? areTypesCompatible(context.semantic, left, right) : true,

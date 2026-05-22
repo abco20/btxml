@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseScript } from "@btxml/script";
+import { parseScript, tokenizeScript } from "@btxml/script";
 
 test("parseScript parses statements, precedence, ternary, chains, and unary operators", () => {
   const cases = [
@@ -41,4 +41,22 @@ test("parseScript allows full expressions on assignment right-hand sides", () =>
     const result = parseScript(source);
     assert.equal(result.ok, true, source);
   }
+});
+
+test("parseScript keeps @foo tokens as identifiers", () => {
+  const source = "@value_sqr := @value * @value";
+  const result = parseScript(source);
+  assert.equal(result.ok, true);
+
+  const tokens = tokenizeScript(source)
+    .filter((token) => token.type !== "EndOfInput")
+    .map((token) => [token.type, token.text]);
+
+  assert.deepEqual(tokens, [
+    ["Identifier", "@value_sqr"],
+    ["ColonEqual", ":="],
+    ["Identifier", "@value"],
+    ["Star", "*"],
+    ["Identifier", "@value"],
+  ]);
 });

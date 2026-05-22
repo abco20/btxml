@@ -8,6 +8,7 @@ export const RuleCodes = {
   InvalidScriptOperandType: "BT407_INVALID_SCRIPT_OPERAND_TYPE",
   ScriptResultNotBoolCompatible: "BT408_SCRIPT_RESULT_NOT_BOOL_COMPATIBLE",
   ScriptVariableTypeMismatch: "BT410_SCRIPT_VARIABLE_TYPE_MISMATCH",
+  InvalidGlobalBlackboardIdentifier: "BT411_INVALID_GLOBAL_BLACKBOARD_IDENTIFIER",
   InvalidRootElement: "BT001_INVALID_ROOT_ELEMENT",
   MissingBTCPPFormat: "BT002_MISSING_BTCPP_FORMAT",
   MissingBehaviorTreeID: "BT003_MISSING_BEHAVIOR_TREE_ID",

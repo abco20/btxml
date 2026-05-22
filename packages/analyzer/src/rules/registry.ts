@@ -47,6 +47,7 @@ export const RULES = {
       RuleCodes.AssignmentToUnknownVariable,
       RuleCodes.InvalidCompoundAssignment,
       RuleCodes.ScriptVariableTypeMismatch,
+      RuleCodes.InvalidGlobalBlackboardIdentifier,
     ],
     defaultSeverity: "error" as Severity,
     description: "Script assignments must target known variables and use compatible types.",

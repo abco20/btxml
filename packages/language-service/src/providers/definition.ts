@@ -206,7 +206,7 @@ export function getDefinition(
       };
     }
 
-    if (symbol.source.kind === "port-remap") {
+    if (symbol.source.kind === "port-remap" || symbol.source.kind === "global-blackboard-remap") {
       const source = symbol.source;
       const binding = context.documentView?.nodes
         .filter((node) => node.behaviorTree === scriptTarget.attributeContext.behaviorTree)
@@ -222,7 +222,8 @@ export function getDefinition(
           (binding) =>
             binding.declaredPort.port.name === source.portName &&
             binding.declaredPort.port.direction === source.direction &&
-            getRemappedKey(binding.declaredPort.port.name, binding.value) === symbol.name,
+            getRemappedKey(binding.declaredPort.port.name, binding.value) ===
+              (source.kind === "global-blackboard-remap" ? `@${source.key}` : symbol.name),
         );
 
       const location = binding?.declaredPort.port.nameRange;

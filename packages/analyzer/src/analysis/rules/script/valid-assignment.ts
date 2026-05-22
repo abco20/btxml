@@ -19,6 +19,8 @@ export const scriptValidAssignmentRule: RuleModule = makeRuleModule({
                   ? RuleCodes.InvalidCompoundAssignment
                   : diagnostic.code === "variable-type-mismatch"
                     ? RuleCodes.ScriptVariableTypeMismatch
+                    : diagnostic.code === "invalid-global-blackboard-identifier"
+                      ? RuleCodes.InvalidGlobalBlackboardIdentifier
                     : undefined;
             if (!code) continue;
 

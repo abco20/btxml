@@ -1,5 +1,6 @@
 export { classifyScriptAttribute } from "./classifier.js";
 export { analyzeScript } from "./analysis/infer.js";
+export { classifyScriptIdentifier } from "./analysis/blackboard.js";
 export { getScriptCompletions, getScriptCursorContext } from "./completion.js";
 export {
   analyzeScriptFlow,
@@ -27,6 +28,7 @@ export type {
   AnalyzeScriptInput,
   AnalyzeScriptResult,
   CreateScriptEnvironmentInput,
+  ScriptGlobalBlackboardAccess,
   ScriptAnalysisDiagnostic,
   ScriptAnalysisDiagnosticCode,
   ScriptEnvironment,
@@ -40,6 +42,7 @@ export type {
   ScriptSymbolSource,
   ScriptType,
 } from "./analysis/types.js";
+export type { ScriptIdentifierClassification } from "./analysis/blackboard.js";
 
 export type {
   ParseScriptResult,

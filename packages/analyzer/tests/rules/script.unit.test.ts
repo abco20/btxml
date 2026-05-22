@@ -119,6 +119,58 @@ test("script/no-unknown-variable uses remap environment and script enums", () =>
   );
 });
 
+test("script/no-unknown-variable does not treat global blackboard reads as unknown locals", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><AlwaysSuccess _successIf="@value &gt; 0"/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE"),
+    false,
+  );
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT401_INVALID_SCRIPT_SYNTAX"),
+    false,
+  );
+});
+
+test("script/no-unknown-variable supports global remap inference without local leakage", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Sequence><ReadInt value="{@count}"/><AlwaysSuccess _successIf="@count &gt; 0"/></Sequence></BehaviorTree><TreeNodesModel><Action ID="ReadInt"><output_port name="value" type="int"/></Action></TreeNodesModel></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE"),
+    false,
+  );
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT407_INVALID_SCRIPT_OPERAND_TYPE"),
+    false,
+  );
+});
+
+test("script/valid-assignment supports BT.CPP-style global blackboard scripts", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="MainTree"><Sequence><PrintNumber val="{@value}"/><SubTree ID="MySub"/></Sequence></BehaviorTree><BehaviorTree ID="MySub"><Sequence><PrintNumber val="{@value}"/><Script code="@value_sqr := @value * @value"/></Sequence></BehaviorTree><TreeNodesModel><Action ID="PrintNumber"><input_port name="val" type="int"/></Action></TreeNodesModel></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE"),
+    false,
+  );
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT405_ASSIGNMENT_TO_UNKNOWN_VARIABLE"),
+    false,
+  );
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT401_INVALID_SCRIPT_SYNTAX"),
+    false,
+  );
+});
+
 test("script/no-unknown-variable is flow-sensitive across behavior tree order", () => {
   const result = validateBtXml(
     `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Sequence><AlwaysSuccess _successIf="later == 1"/><Script code="later:=1"/><AlwaysSuccess _successIf="later == 1"/></Sequence></BehaviorTree></root>`,
@@ -161,6 +213,93 @@ test("script/valid-assignment reports unknown assignments and type mismatches", 
     result.diagnostics.some((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE"),
     false,
   );
+});
+
+test("script/valid-assignment does not create a local symbol for @x := 1", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Script code="@x := 1; x == 1"/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  const unknown = result.diagnostics.find((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE");
+  assert.ok(unknown);
+  assert.match(unknown.message, /`x`/);
+});
+
+test("script/valid-assignment allows @x := 1; @x == 1", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Script code="@x := 1; @x == 1"/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE"),
+    false,
+  );
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT405_ASSIGNMENT_TO_UNKNOWN_VARIABLE"),
+    false,
+  );
+});
+
+test("script analysis keeps local and global x distinct", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Script code="x := 1; @x := 'str'; x + 2"/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT407_INVALID_SCRIPT_OPERAND_TYPE"),
+    false,
+  );
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT410_SCRIPT_VARIABLE_TYPE_MISMATCH"),
+    false,
+  );
+});
+
+test("script global assignment drives later global type checking", () => {
+  const ok = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Script code="@x := 1; @x + 2"/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+  assert.equal(
+    ok.diagnostics.some((diag) => diag.code === "BT407_INVALID_SCRIPT_OPERAND_TYPE"),
+    false,
+  );
+
+  const bad = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Script code="@x := 'str'; @x + 2"/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+  assert.equal(
+    bad.diagnostics.some((diag) => diag.code === "BT407_INVALID_SCRIPT_OPERAND_TYPE"),
+    true,
+  );
+});
+
+test("script invalid global identifiers report without becoming unknown locals", () => {
+  for (const source of ["@ := 1", "@@foo := 1", "@1foo := 1"]) {
+    const result = validateBtXml(
+      `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Script code="${source}"/></BehaviorTree></root>`,
+      { config: defaultEffectiveConfig },
+    );
+
+    assert.equal(
+      result.diagnostics.some((diag) => diag.code === "BT404_UNKNOWN_SCRIPT_VARIABLE"),
+      false,
+      source,
+    );
+    assert.equal(
+      result.diagnostics.some(
+        (diag) =>
+          diag.code === "BT401_INVALID_SCRIPT_SYNTAX" ||
+          diag.code === "BT411_INVALID_GLOBAL_BLACKBOARD_IDENTIFIER",
+      ),
+      true,
+      source,
+    );
+  }
 });
 
 test("script/valid-assignment reports invalid compound assignments", () => {
