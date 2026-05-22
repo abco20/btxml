@@ -23,6 +23,8 @@ permissions:
 jobs:
   prepare-release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,3 +78,13 @@ jobs:
           set -euo pipefail
           git push origin "HEAD:$BRANCH"
           git push origin "v$VERSION"
+
+  publish:
+    needs: prepare-release
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/publish-tag.yml
+    with:
+      release_tag: v${{ needs.prepare-release.outputs.version }}
+    secrets: inherit
