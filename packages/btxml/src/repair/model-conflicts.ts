@@ -4,7 +4,8 @@ import type { BtxmlProject } from "@btxml/project";
 import {
   type SemanticIndex,
   getAllDocumentModels,
-  getAllNodeModelDefinitions,
+  getModelDefinitionFacts,
+  groupModelDefinitionsById,
 } from "@btxml/semantic";
 import type { BtDocument } from "@btxml/syntax";
 import {
@@ -620,12 +621,16 @@ function collectNodeIdsWithDuplicateModels(workspace: SemanticIndex): Set<string
 }
 
 function collectAllLayerModelsById(workspace: SemanticIndex): Map<string, TreeNodeModelDef[]> {
+  const groupedFacts = groupModelDefinitionsById(getModelDefinitionFacts(workspace));
   const byId = new Map<string, TreeNodeModelDef[]>();
-  for (const model of getAllNodeModelDefinitions(workspace)) {
-    const list = byId.get(model.id) ?? [];
-    list.push(model);
-    byId.set(model.id, list);
+
+  for (const [id, facts] of groupedFacts) {
+    byId.set(
+      id,
+      facts.map((fact) => fact.model),
+    );
   }
+
   return byId;
 }
 
