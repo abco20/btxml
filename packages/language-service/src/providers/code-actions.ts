@@ -12,6 +12,9 @@ import type { InternalCodeActionsInput } from "../internal-types.js";
 import type { CodeAction, CodeActionsResult } from "../public-types.js";
 import { fullDocumentRange } from "../ranges.js";
 
+type Diagnostic = NonNullable<InternalCodeActionsInput["diagnostics"]>[number];
+type DiagnosticWithRange = Diagnostic & { range: NonNullable<Diagnostic["range"]> };
+
 export function getCodeActions(
   context: LanguageRequestContext,
   input: InternalCodeActionsInput,
@@ -28,7 +31,7 @@ export function getCodeActions(
   }
 
   for (const diag of diagnostics) {
-    if (!diag.range) continue;
+    if (!hasRange(diag)) continue;
     const inspect = inspectXmlCursor({
       document: input.document,
       parsed: context.parsed,
@@ -46,6 +49,16 @@ export function getCodeActions(
 }
 
 type InspectResult = ReturnType<typeof inspectXmlCursor>;
+type PortUsage = ReturnType<typeof resolveUsage>["portUsages"][number];
+type ResolvedPortUsage = Extract<PortUsage, { status: "resolved" }>;
+
+function hasRange(diag: Diagnostic): diag is DiagnosticWithRange {
+  return !!diag.range;
+}
+
+function isResolvedPortUsage(binding: PortUsage): binding is ResolvedPortUsage {
+  return binding.status === "resolved";
+}
 
 function resolveUsage(
   context: LanguageRequestContext,
@@ -68,7 +81,7 @@ function inspectElement(inspect: InspectResult) {
 function resolveTargetElement(
   context: LanguageRequestContext,
   input: InternalCodeActionsInput,
-  diag: NonNullable<InternalCodeActionsInput["diagnostics"]>[number],
+  diag: DiagnosticWithRange,
   inspect: InspectResult,
 ) {
   const fallback = inspectElement(inspect);
@@ -84,7 +97,7 @@ function addMissingRequiredPortAction(
   context: LanguageRequestContext,
   input: InternalCodeActionsInput,
   code: string,
-  diag: NonNullable<InternalCodeActionsInput["diagnostics"]>[number],
+  diag: DiagnosticWithRange,
   target: ReturnType<typeof resolveTargetElement>,
 ) {
   if (code !== "BT101_MISSING_REQUIRED_PORT") return;
@@ -113,7 +126,7 @@ function addOutputRemapAction(
   context: LanguageRequestContext,
   input: InternalCodeActionsInput,
   code: string,
-  diag: NonNullable<InternalCodeActionsInput["diagnostics"]>[number],
+  diag: DiagnosticWithRange,
   inspect: InspectResult,
   target: ReturnType<typeof resolveTargetElement>,
 ) {
@@ -126,8 +139,8 @@ function addOutputRemapAction(
   const attribute = "attribute" in inspect ? inspect.attribute : undefined;
   if (attribute) {
     const binding = usage.portUsages.find(
-      (candidate) =>
-        candidate.status === "resolved" &&
+      (candidate): candidate is ResolvedPortUsage =>
+        isResolvedPortUsage(candidate) &&
         candidate.port.direction === "output" &&
         candidate.attribute === attribute &&
         (!outputPortName || candidate.port.name === outputPortName),
@@ -178,7 +191,7 @@ function addUnknownPortAction(
   context: LanguageRequestContext,
   input: InternalCodeActionsInput,
   code: string,
-  diag: NonNullable<InternalCodeActionsInput["diagnostics"]>[number],
+  diag: DiagnosticWithRange,
   inspect: InspectResult,
 ) {
   if (code !== "BT102_UNKNOWN_PORT") return;
@@ -208,7 +221,7 @@ function addMissingBtcppFormatAction(
   context: LanguageRequestContext,
   input: InternalCodeActionsInput,
   code: string,
-  diag: NonNullable<InternalCodeActionsInput["diagnostics"]>[number],
+  diag: DiagnosticWithRange,
 ) {
   if (code !== "BT002_MISSING_BTCPP_FORMAT") return;
   if (!context.parsed?.root) return;
@@ -232,7 +245,7 @@ function addMissingBtcppFormatAction(
 function addSuppressionAction(
   actions: CodeAction[],
   input: InternalCodeActionsInput,
-  diag: NonNullable<InternalCodeActionsInput["diagnostics"]>[number],
+  diag: DiagnosticWithRange,
 ) {
   actions.push({
     title: `Suppress ${diag.code} for next line`,
