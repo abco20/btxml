@@ -63,7 +63,9 @@ export const modelRules = [
   }),
   makeRuleModule({
     name: "model/valid-port-name",
-    meta: { description: "Port names must be valid XML attribute names for BT nodes." },
+    meta: {
+      description: "Port names must be valid XML attribute names for BT nodes.",
+    },
     create(context) {
       return {
         TreeNodeModel(node) {
@@ -110,7 +112,9 @@ export const modelRules = [
   }),
   makeRuleModule({
     name: "model/valid-port-default-value",
-    meta: { description: "TreeNodesModel port defaults must match the declared type." },
+    meta: {
+      description: "TreeNodesModel port defaults must match the declared type.",
+    },
     create(context) {
       return {
         Element(element) {
@@ -240,7 +244,8 @@ export const modelRules = [
   makeRuleModule({
     name: "model/require-output-port-remap",
     meta: {
-      description: "Resolved output ports must write to a blackboard remap.",
+      description:
+        "Resolved output ports must be explicitly or default-remapped to a blackboard entry.",
     },
     create(context) {
       return {
@@ -250,20 +255,42 @@ export const modelRules = [
           const usage = context.getNodeUsage(element);
           if (usage.model.status !== "resolved" && usage.tagForm !== "subtree") return;
 
-          for (const attr of element.attributes) {
-            const portUsage = context.getPortUsage(element, attr.name);
-            if (portUsage?.status !== "resolved") continue;
-            if (portUsage.port.direction !== "output") continue;
-            if (getExactBlackboardReference(portUsage.port.name, attr.value) !== undefined)
+          for (const port of usage.ports) {
+            if (port.direction !== "output") continue;
+
+            const binding = usage.portUsages.find(
+              (candidate) => candidate.name === port.name && candidate.status === "resolved",
+            );
+
+            if (binding) {
+              if (getExactBlackboardReference(port.name, binding.value) !== undefined) continue;
+
+              context.report({
+                code: RuleCodes.OutputPortRequiresRemap,
+                message: `output port \`${port.name}\` must be remapped to a blackboard entry`,
+                range: binding.attribute.range,
+                details: {
+                  primaryLabel: `output port \`${port.name}\` requires a blackboard remap`,
+                  help: `use \`${port.name}="{${port.name}}"\` or \`${port.name}="{some_key}"\``,
+                },
+              });
               continue;
+            }
+
+            if (
+              port.defaultValue !== undefined &&
+              getExactBlackboardReference(port.name, port.defaultValue) !== undefined
+            ) {
+              continue;
+            }
 
             context.report({
               code: RuleCodes.OutputPortRequiresRemap,
-              message: `output port \`${portUsage.port.name}\` must be remapped to a blackboard entry`,
-              range: attr.range,
+              message: `output port \`${port.name}\` must be remapped to a blackboard entry`,
+              range: element.range,
               details: {
-                primaryLabel: `output port \`${portUsage.port.name}\` requires a blackboard remap`,
-                help: `use \`${portUsage.port.name}="{${portUsage.port.name}}"\` or \`${portUsage.port.name}="{some_key}"\``,
+                primaryLabel: `output port \`${port.name}\` requires a blackboard remap`,
+                help: `use \`${port.name}="{${port.name}}"\` or \`${port.name}="{some_key}"\``,
               },
             });
           }

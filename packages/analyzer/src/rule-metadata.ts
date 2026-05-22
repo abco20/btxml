@@ -404,7 +404,8 @@ const RuleMetadataDetailsByCode: Record<string, Omit<RuleMetadata, "defaultSever
   [RuleCodes.OutputPortRequiresRemap]: {
     code: RuleCodes.OutputPortRequiresRemap,
     title: "Output port requires remap",
-    description: "Resolved output ports must write to a blackboard remap.",
+    description:
+      "Resolved output ports must be explicitly or default-remapped to a blackboard entry.",
     suppressible: true,
     invalidExample: '<Action ID="Producer" result="value"/>',
     validExample: '<Action ID="Producer" result="{value}"/>',
