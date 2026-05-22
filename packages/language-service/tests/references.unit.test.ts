@@ -198,3 +198,30 @@ test("references keep script locals scoped to the current behavior tree when IDs
 
   assert.deepEqual(result.locations, []);
 });
+
+test("references treat global script and port remap identifiers as the same identity", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Sequence>
+      <PrintNumber val="{@value}"/>
+      <AlwaysSuccess _successIf="@value &gt; 0"/>
+      <PrintNumber val="{value}"/>
+    </Sequence>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="PrintNumber">
+      <input_port name="val" type="double"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const pos = doc.positionAt(text.indexOf('_successIf="@value') + '_successIf="'.length + 3);
+  const result = ls.getReferences({ document: doc, position: pos });
+
+  assert.deepEqual(result.locations.map((location) => doc.getText(location.range)).sort(), [
+    "@value",
+    "{@value}",
+  ]);
+});

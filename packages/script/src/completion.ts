@@ -234,6 +234,20 @@ function identifierCompletionItems(
     });
   }
 
+  for (const symbol of environment.globalBlackboard.values()) {
+    if (symbol.conflict) continue;
+    if (!symbol.readable) continue;
+    const label = `@${symbol.name}`;
+    if (!matchesPrefix(label, prefix)) continue;
+    items.push({
+      label,
+      kind: "identifier",
+      detail: describeScriptSymbol(symbol),
+      replaceRange: cursor.range,
+      sortText: `2-${label}`,
+    });
+  }
+
   for (const value of ["true", "false"]) {
     if (!matchesPrefix(value, prefix)) continue;
     items.push({

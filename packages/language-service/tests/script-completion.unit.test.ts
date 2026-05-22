@@ -164,3 +164,31 @@ test("script completion includes matching SubTree interface ports", () => {
   const writeResult = ls.getCompletions({ document: doc, position: writePos });
   assert.ok(writeResult.items.some((item) => item.label === "done"));
 });
+
+test("script completion includes global blackboard identifiers", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Sequence>
+      <PrintNumber val="{@value}"/>
+      <AlwaysSuccess _successIf="@v"/>
+    </Sequence>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="PrintNumber">
+      <input_port name="val" type="double"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createTextDocument("file:///test.xml", text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+
+  const pos = doc.positionAt(text.indexOf('_successIf="@v') + '_successIf="'.length + 2);
+  const result = ls.getCompletions({ document: doc, position: pos });
+
+  assert.ok(
+    result.items.some(
+      (item) => item.label === "@value" && item.detail === "number from global blackboard PrintNumber.val",
+    ),
+  );
+});

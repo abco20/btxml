@@ -639,7 +639,7 @@ test("attribute value completion suggests blackboard keys from semantic document
   const ls = createLanguageService({ config: defaultEffectiveConfig });
   const pos = doc.positionAt(text.indexOf('input="{"') + 8);
   const result = ls.getCompletions({ document: doc, position: pos });
-  assert.ok(result.items.some((i) => i.label === "{goal}"));
+  assert.ok(result.items.some((i) => i.label === "goal"));
 });
 
 test("blackboard completion detail uses effective node type for generic tags", () => {
@@ -690,7 +690,7 @@ test("blackboard completion filters empty and brace-only keys", () => {
   const ls = createLanguageService({ config: defaultEffectiveConfig });
   const pos = doc.positionAt(text.indexOf('input="{"') + 8);
   const result = ls.getCompletions({ document: doc, position: pos });
-  assert.ok(result.items.some((item) => item.label === "{goal}"));
+  assert.ok(result.items.some((item) => item.label === "goal"));
   assert.equal(
     result.items.some((item) => item.label === "{}"),
     false,
@@ -721,7 +721,7 @@ test("blackboard completion inserts bare key inside braces", () => {
   const ls = createLanguageService({ config: defaultEffectiveConfig });
   const pos = doc.positionAt(text.indexOf('input="{"') + 8);
   const result = ls.getCompletions({ document: doc, position: pos });
-  const item = result.items.find((candidate) => candidate.label === "{goal}");
+  const item = result.items.find((candidate) => candidate.label === "goal");
   assert.equal(item?.insertText, "goal");
   assert.equal(item?.textEdit?.newText, "goal");
 });
@@ -746,7 +746,7 @@ test("blackboard completion inserts bare key inside existing braces with prefix"
   const ls = createLanguageService({ config: defaultEffectiveConfig });
   const pos = doc.positionAt(text.indexOf('input="{go}"') + 10);
   const result = ls.getCompletions({ document: doc, position: pos });
-  const item = result.items.find((candidate) => candidate.label === "{goal}");
+  const item = result.items.find((candidate) => candidate.label === "goal");
   assert.equal(item?.insertText, "goal");
   assert.equal(item?.textEdit?.newText, "goal");
 });
@@ -774,6 +774,66 @@ test("blackboard completion inserts wrapped key inside quotes without braces", (
   const item = result.items.find((candidate) => candidate.label === "{goal}");
   assert.equal(item?.insertText, "{goal}");
   assert.equal(item?.textEdit?.newText, "{goal}");
+});
+
+test("attribute value completion suggests scoped local and global blackboard keys", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Action ID="Writer" local_out="{goal}" global_out="{@value}"/>
+    <Action ID="Reader" input=""/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Writer">
+      <output_port name="local_out" type="std::string"/>
+      <output_port name="global_out" type="std::string"/>
+    </Action>
+    <Action ID="Reader">
+      <input_port name="input" type="std::string"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const pos = doc.positionAt(text.indexOf('input=""') + 'input="'.length);
+  const result = ls.getCompletions({ document: doc, position: pos });
+
+  assert.ok(result.items.some((item) => item.label === "{goal}"));
+  assert.ok(result.items.some((item) => item.label === "{@value}"));
+});
+
+test("blackboard completion suggests bare scoped identifiers inside braces", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Action ID="Writer" local_out="{goal}" global_out="{@value}"/>
+    <Action ID="Reader" local_input="{" global_input="{@}"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Writer">
+      <output_port name="local_out" type="std::string"/>
+      <output_port name="global_out" type="std::string"/>
+    </Action>
+    <Action ID="Reader">
+      <input_port name="local_input" type="std::string"/>
+      <input_port name="global_input" type="std::string"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+
+  const localPos = doc.positionAt(text.indexOf('local_input="{"') + 'local_input="{'.length);
+  const localResult = ls.getCompletions({ document: doc, position: localPos });
+  const localItem = localResult.items.find((item) => item.label === "goal");
+  assert.ok(localItem);
+  assert.equal(localItem?.textEdit?.newText, "goal");
+
+  const globalPos = doc.positionAt(text.indexOf('global_input="{@}"') + 'global_input="{@'.length);
+  const globalResult = ls.getCompletions({ document: doc, position: globalPos });
+  const globalItem = globalResult.items.find((item) => item.label === "@value");
+  assert.ok(globalItem);
+  assert.equal(globalItem?.textEdit?.newText, "value");
 });
 
 test("typed blackboard completion excludes extracted keys that still contain braces", () => {

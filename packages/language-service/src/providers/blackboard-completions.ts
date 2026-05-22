@@ -28,10 +28,16 @@ function getBlackboardReplacementRange(
 
   if (startsInBraces && cursorOffset > valueStart) {
     const innerStart = valueStart + 1;
+    const innerValueStart = value[1] === "@" ? innerStart + 1 : innerStart;
     const innerEnd = endsInBraces ? valueEnd - 1 : valueEnd;
     return {
-      replacementRange: rangeFromOffsets(document, innerStart, Math.max(innerStart, innerEnd)),
+      replacementRange: rangeFromOffsets(
+        document,
+        innerValueStart,
+        Math.max(innerValueStart, innerEnd),
+      ),
       wrapsReference: false,
+      hasScopeMarker: value[1] === "@",
     };
   }
 
@@ -39,6 +45,7 @@ function getBlackboardReplacementRange(
     insertText: attribute.value,
     replacementRange: valueContentRange,
     wrapsReference: true,
+    hasScopeMarker: false,
   };
 }
 
@@ -51,8 +58,18 @@ export function createBlackboardCompletionItem(args: {
 }): CompletionItem {
   const { document, attribute, cursorOffset, symbol, detail } = args;
   const replacement = getBlackboardReplacementRange(document, attribute, cursorOffset);
-  const label = formatBlackboardReference(symbol.key);
-  const newText = replacement?.wrapsReference ? label : symbol.key;
+  const label = replacement?.wrapsReference
+    ? formatBlackboardReference(symbol)
+    : symbol.scope === "global"
+      ? `@${symbol.key}`
+      : symbol.key;
+  const newText = replacement?.wrapsReference
+    ? formatBlackboardReference(symbol)
+    : symbol.scope === "global"
+      ? replacement.hasScopeMarker
+        ? symbol.key
+        : `@${symbol.key}`
+      : symbol.key;
 
   return completion(
     label,
@@ -65,7 +82,7 @@ export function createBlackboardCompletionItem(args: {
         }
       : undefined,
     {
-      filterText: `${symbol.key} ${label}`,
+      filterText: `${symbol.key} ${label} ${symbol.scope === "global" ? `@${symbol.key}` : ""}`.trim(),
       insertText: newText,
     },
   );

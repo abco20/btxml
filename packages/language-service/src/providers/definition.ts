@@ -1,11 +1,11 @@
 import type { EffectiveFileConfig } from "@btxml/config";
 import type { SourcePosition } from "@btxml/foundation";
+import { makeBlackboardIdentity } from "@btxml/model";
 import {
   type SemanticIndex,
   getBehaviorTrees,
   getNodeModel,
   getNodeModelDefinitions,
-  getRemappedKey,
   resolveNodeUsage,
 } from "@btxml/semantic";
 import { type BtDocumentView, findPortBindingAtPosition } from "@btxml/semantic/ast-view";
@@ -208,6 +208,10 @@ export function getDefinition(
 
     if (symbol.source.kind === "port-remap" || symbol.source.kind === "global-blackboard-remap") {
       const source = symbol.source;
+      const targetIdentity = makeBlackboardIdentity({
+        scope: source.kind === "global-blackboard-remap" ? "global" : "local",
+        key: symbol.name,
+      });
       const binding = context.documentView?.nodes
         .filter((node) => node.behaviorTree === scriptTarget.attributeContext.behaviorTree)
         .flatMap((node) => node.portBindings)
@@ -222,8 +226,7 @@ export function getDefinition(
           (binding) =>
             binding.declaredPort.port.name === source.portName &&
             binding.declaredPort.port.direction === source.direction &&
-            getRemappedKey(binding.declaredPort.port.name, binding.value) ===
-              (source.kind === "global-blackboard-remap" ? `@${source.key}` : symbol.name),
+            binding.blackboardReferences.some((reference) => reference.identity === targetIdentity),
         );
 
       const location = binding?.declaredPort.port.nameRange;
@@ -258,6 +261,33 @@ export function getDefinition(
           ],
         };
       }
+    }
+  }
+
+  if (scriptTarget?.reference.kind === "global-blackboard") {
+    const targetIdentity = makeBlackboardIdentity({
+      scope: "global",
+      key: scriptTarget.reference.key,
+    });
+    const binding = context.documentView?.nodes
+      .filter((node) => node.behaviorTree === scriptTarget.attributeContext.behaviorTree)
+      .flatMap((node) => node.portBindings)
+      .find((candidate) =>
+        candidate.blackboardReferences.some((reference) => reference.identity === targetIdentity),
+      );
+    const reference = binding?.blackboardReferences.find(
+      (candidate) => candidate.identity === targetIdentity,
+    );
+
+    if (binding && reference) {
+      return {
+        locations: [
+          {
+            uri: context.document.uri,
+            range: reference.range,
+          },
+        ],
+      };
     }
   }
 

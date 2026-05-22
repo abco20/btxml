@@ -1,7 +1,14 @@
+import {
+  type BlackboardScope,
+  formatBlackboardReference as formatModelBlackboardReference,
+  makeBlackboardIdentity,
+} from "@btxml/model";
 import type { LanguageRequestContext } from "../context.js";
 
 export type BlackboardSymbol = {
+  identity: string;
   key: string;
+  scope: BlackboardScope;
   type?: string;
   direction: "input" | "output" | "inout";
   nodeType: string;
@@ -9,27 +16,8 @@ export type BlackboardSymbol = {
   conflict?: boolean;
 };
 
-const BLACKBOARD_KEY_RE = /^[A-Za-z_][A-Za-z0-9_./:-]*$/;
-
-export function validateExtractedBlackboardKey(raw?: string) {
-  const key = raw?.trim();
-  if (!key) return undefined;
-  if (key.includes("{") || key.includes("}")) return undefined;
-  return BLACKBOARD_KEY_RE.test(key) ? key : undefined;
-}
-
-export function normalizeBlackboardKey(raw?: string) {
-  const value = raw?.trim();
-  if (!value) return undefined;
-
-  const extracted =
-    value.startsWith("{") && value.endsWith("}") ? value.slice(1, -1).trim() : value;
-
-  return validateExtractedBlackboardKey(extracted);
-}
-
-export function formatBlackboardReference(key: string) {
-  return `{${key}}`;
+export function formatBlackboardReference(symbol: Pick<BlackboardSymbol, "scope" | "key">) {
+  return formatModelBlackboardReference(symbol);
 }
 
 export function normalizeType(type?: string) {
@@ -55,26 +43,27 @@ export function collectBlackboardSymbols(context: LanguageRequestContext): Black
 
       const port = binding.declaredPort.port;
       for (const ref of binding.blackboardReferences) {
-        const key = normalizeBlackboardKey(ref.key);
-        if (!key) continue;
+        if (ref.syntax === "invalid") continue;
 
         const next: BlackboardSymbol = {
-          key,
+          identity: ref.identity,
+          key: ref.key,
+          scope: ref.scope,
           type: port.type,
           direction: port.direction,
           nodeType: node.usage.nodeType || node.tagName,
           portName: port.name,
         };
-        const current = grouped.get(key);
+        const current = grouped.get(ref.identity);
         if (!current) {
-          grouped.set(key, next);
+          grouped.set(ref.identity, next);
           continue;
         }
 
         const currentType = normalizeType(current.type);
         const nextType = normalizeType(next.type);
         if (currentType && nextType && currentType !== nextType) {
-          grouped.set(key, {
+          grouped.set(ref.identity, {
             ...current,
             conflict: true,
           });
@@ -82,7 +71,7 @@ export function collectBlackboardSymbols(context: LanguageRequestContext): Black
         }
 
         if (!currentType && nextType) {
-          grouped.set(key, {
+          grouped.set(ref.identity, {
             ...current,
             type: next.type,
           });
@@ -92,4 +81,11 @@ export function collectBlackboardSymbols(context: LanguageRequestContext): Black
   }
 
   return [...grouped.values()];
+}
+
+export function getBlackboardIdentity(input: {
+  key: string;
+  scope: BlackboardScope;
+}) {
+  return makeBlackboardIdentity(input);
 }

@@ -324,9 +324,12 @@ function attributeValueItems(
       attribute,
       cursorOffset: input.position.offset,
       symbol,
-      detail: `${symbol.type || "unknown"} blackboard key from ${symbol.nodeType}.${symbol.portName}`,
+      detail:
+        symbol.scope === "global"
+          ? `${symbol.type || "unknown"} global blackboard key from ${symbol.nodeType}.${symbol.portName}`
+          : `${symbol.type || "unknown"} blackboard key from ${symbol.nodeType}.${symbol.portName}`,
     }),
-    sortText: `${BLACKBOARD_SORT_TEXT.matchingKey}-${symbol.key}`,
+    sortText: `${BLACKBOARD_SORT_TEXT.matchingKey}-${symbol.scope === "global" ? symbol.identity : symbol.key}`,
   }));
   const unknownKeyItems = unknownTypeSymbols.map((symbol) => ({
     ...createBlackboardCompletionItem({
@@ -334,9 +337,12 @@ function attributeValueItems(
       attribute,
       cursorOffset: input.position.offset,
       symbol,
-      detail: `unknown-type blackboard key from ${symbol.nodeType}.${symbol.portName}`,
+      detail:
+        symbol.scope === "global"
+          ? `unknown-type global blackboard key from ${symbol.nodeType}.${symbol.portName}`
+          : `unknown-type blackboard key from ${symbol.nodeType}.${symbol.portName}`,
     }),
-    sortText: `${BLACKBOARD_SORT_TEXT.unknownKey}-${symbol.key}`,
+    sortText: `${BLACKBOARD_SORT_TEXT.unknownKey}-${symbol.scope === "global" ? symbol.identity : symbol.key}`,
   }));
 
   items.push(...matchingKeyItems);

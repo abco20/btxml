@@ -42,7 +42,7 @@ export type ScriptAttributeContext = {
 
 export type ScriptSymbolReference =
   | { kind: "symbol"; symbol: ScriptSymbol }
-  | { kind: "global-blackboard"; key: string; symbol?: ScriptSymbol }
+  | { kind: "global-blackboard"; key: string; symbol?: ScriptSymbol; origin?: "script" | "port-remap" }
   | { kind: "enum"; name: string; value: number };
 
 export type ScriptResolvedOccurrence = {
@@ -110,7 +110,9 @@ export function getScriptIdentifierTarget(
   const reference: ScriptSymbolReference =
     resolved.resolution.kind === "symbol"
       ? { kind: "symbol", symbol: resolved.resolution.symbol }
-      : resolved.resolution;
+      : resolved.resolution.kind === "global-blackboard"
+        ? { ...resolved.resolution, origin: "script" }
+        : resolved.resolution;
 
   return {
     attributeContext: scriptContext,
@@ -132,7 +134,7 @@ export function getScriptReferencesForSymbol(
 ): ScriptResolvedOccurrence[] {
   const states = getBehaviorTreeScriptFlow(context, target.attributeContext.behaviorTree);
 
-  return states.flatMap((state) =>
+  const occurrences = states.flatMap((state) =>
     collectResolvedOccurrences(context, state).filter((occurrence) =>
       target.reference.kind === "enum"
         ? occurrence.reference.kind === "enum" &&
@@ -143,6 +145,18 @@ export function getScriptReferencesForSymbol(
           : sameResolvedSymbol(target.reference.symbol, occurrence.reference),
     ),
   );
+
+  if (target.reference.kind === "global-blackboard") {
+    return uniqueScriptOccurrences([
+      ...occurrences,
+      ...collectGlobalBlackboardRemapOccurrences(
+        target.attributeContext.behaviorTree,
+        target.reference.key,
+      ),
+    ]);
+  }
+
+  return occurrences;
 }
 
 export function getBehaviorTreeScriptFlowStates(
@@ -376,7 +390,9 @@ function collectResolvedOccurrences(
     const reference: ScriptSymbolReference =
       entry.resolution.kind === "symbol"
         ? { kind: "symbol", symbol: entry.resolution.symbol }
-        : entry.resolution;
+        : entry.resolution.kind === "global-blackboard"
+          ? { ...entry.resolution, origin: "script" }
+          : entry.resolution;
     return [
       {
         attributeContext: state.context,
@@ -415,6 +431,57 @@ function sameResolvedSymbol(symbol: ScriptSymbol, reference: ScriptSymbolReferen
   }
 
   return symbol.name === candidate.name && symbol.source.kind === candidate.source.kind;
+}
+
+function uniqueScriptOccurrences(
+  occurrences: readonly ScriptResolvedOccurrence[],
+): ScriptResolvedOccurrence[] {
+  const seen = new Set<string>();
+  const result: ScriptResolvedOccurrence[] = [];
+
+  for (const occurrence of occurrences) {
+    const key = `${occurrence.documentRange.start.offset}:${occurrence.documentRange.end.offset}:${occurrence.reference.kind}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(occurrence);
+  }
+
+  return result;
+}
+
+function collectGlobalBlackboardRemapOccurrences(
+  behaviorTree: BehaviorTreeView,
+  key: string,
+): ScriptResolvedOccurrence[] {
+  return behaviorTree.nodes.flatMap((node) =>
+    node.portBindings.flatMap((binding) =>
+      binding.blackboardReferences
+        .filter((reference) => reference.scope === "global" && reference.key === key)
+        .map((reference) => ({
+          attributeContext: {
+            id: `${node.path.join(".")}:${binding.attribute.name}:${node.element.attributes.indexOf(binding.attribute)}`,
+            node,
+            element: node.element,
+            attribute: binding.attribute,
+            source: binding.attribute.value,
+            behaviorTree: node.behaviorTree,
+          },
+          identifier: {
+            name: `@${reference.key}`,
+            kind: "read",
+            range: { start: 0, end: 0 },
+            identifier: { kind: "Identifier", name: `@${reference.key}`, range: { start: 0, end: 0 } },
+            statementIndex: -1,
+          },
+          reference: {
+            kind: "global-blackboard",
+            key: reference.key,
+            origin: "port-remap",
+          } as const,
+          documentRange: reference.range,
+        })),
+    ),
+  );
 }
 
 function toDocumentRange(
