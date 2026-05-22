@@ -11,8 +11,8 @@ import type {
 import type {
   AttributeValueRef,
   BehaviorTreeDef,
-  BlackboardReference,
   BtDocumentModel,
+  DocumentBlackboardReference,
   NodeModelSourceKind,
   PortDef,
   SubTreeReference,
@@ -283,7 +283,7 @@ function stripSubTreeReferenceAst(def: ExtractedSubTreeReference): SubTreeRefere
   };
 }
 
-function stripBlackboardReferenceAst(def: ExtractedBlackboardReference): BlackboardReference {
+function stripBlackboardReferenceAst(def: ExtractedBlackboardReference): DocumentBlackboardReference {
   return {
     name: def.name,
     attributeName: def.attributeName,

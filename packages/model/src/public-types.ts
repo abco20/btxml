@@ -154,7 +154,7 @@ export type SubTreeReference = {
   readonly parentBehaviorTreeId?: string;
 };
 
-export type BlackboardReference = {
+export type DocumentBlackboardReference = {
   readonly name: string;
   readonly attributeName: string;
   readonly uri: string;
@@ -176,7 +176,7 @@ export type BtDocumentModel = {
   readonly kind: BtDocumentModelKind;
   readonly behaviorTrees: readonly BehaviorTreeDef[];
   readonly subtreeReferences: readonly SubTreeReference[];
-  readonly blackboardReferences: readonly BlackboardReference[];
+  readonly blackboardReferences: readonly DocumentBlackboardReference[];
   readonly treeNodesModel: readonly TreeNodeModelDef[];
   readonly genericSubTreePorts: readonly PortDef[];
   readonly rootMainTreeToExecute?: AttributeValueRef;

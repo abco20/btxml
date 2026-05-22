@@ -22,6 +22,14 @@ export {
 } from "./type-registry.js";
 
 export {
+  formatBlackboardReference,
+  formatScriptBlackboardIdentifier,
+  makeBlackboardIdentity,
+  parsePortBlackboardReference,
+  parseScriptBlackboardIdentifier,
+} from "./blackboard-reference.js";
+
+export {
   DEFAULT_BTCPP_V4_MODEL_SET,
   SUPPORTED_BUILTIN_MODEL_SETS,
   SUPPORTED_VERSIONED_BTCPP_MODEL_SETS,
@@ -43,10 +51,10 @@ export {
 export type {
   AttributeValueRef,
   BehaviorTreeDef,
-  BlackboardReference,
   BtDocumentModel,
   BtDocumentModelKind,
   BuiltinNodeDef,
+  DocumentBlackboardReference,
   EffectivePortTypeSource,
   ModelSourceRef,
   NodeModelSource,
@@ -58,6 +66,15 @@ export type {
   TreeNodeKind,
   TreeNodeModelDef,
 } from "./public-types.js";
+
+export type {
+  BlackboardReference,
+  BlackboardReferenceParseError,
+  BlackboardReferenceParseErrorKind,
+  BlackboardReferenceSyntax,
+  BlackboardScope,
+  ParseBlackboardReferenceResult,
+} from "./blackboard-reference.js";
 
 export type { ResolvedTypeDefinition, TypeRegistry } from "./type-registry.js";
 

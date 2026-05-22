@@ -1,8 +1,8 @@
 import type { BtXmlAttribute, BtXmlElement } from "@btxml/syntax";
 import type {
   BehaviorTreeDef,
-  BlackboardReference,
   BtDocumentModel,
+  DocumentBlackboardReference,
   PortDef,
   SubTreeReference,
   TreeNodeModelDef,
@@ -26,7 +26,7 @@ export type ExtractedSubTreeReference = SubTreeReference & {
   readonly attributes?: readonly BtXmlAttribute[];
 };
 
-export type ExtractedBlackboardReference = BlackboardReference & {
+export type ExtractedBlackboardReference = DocumentBlackboardReference & {
   readonly element: BtXmlElement;
 };
 

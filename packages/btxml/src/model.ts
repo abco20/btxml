@@ -29,6 +29,7 @@ export type {
   BuiltinNodeDef,
   ConfigNodeModel,
   ConfigPortDef,
+  DocumentBlackboardReference,
   ModelSourceRef,
   NodeDefinitionsFile,
   NodeModelDifferenceKind,
