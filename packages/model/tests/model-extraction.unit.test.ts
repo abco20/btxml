@@ -150,3 +150,25 @@ test("buildDocumentModelResult ignores top-level include as node usage", () => {
     true,
   );
 });
+
+test("buildDocumentModelResult ignores arbitrary top-level elements as node usage", () => {
+  const parsed = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><custom_node/><BehaviorTree ID="Main"><Used/></BehaviorTree><TreeNodesModel><Action ID="custom_node"/></TreeNodesModel></root>`,
+    { uri: "main.xml" },
+  );
+
+  assert.ok(parsed.document);
+  if (!parsed.document) throw new Error("parsed.document is null");
+
+  const result = buildDocumentModelResult(parsed.document);
+  const usages = result.model.nodeUsages;
+
+  assert.equal(
+    usages.some((usage) => usage.id === "custom_node"),
+    false,
+  );
+  assert.equal(
+    usages.some((usage) => usage.id === "Used"),
+    true,
+  );
+});

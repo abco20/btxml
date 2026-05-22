@@ -157,7 +157,7 @@ test("CLI --no-color output contains no ANSI escapes", () => {
     diagnostics: [{ code: "A", message: "m", severity: "error", uri: "" }],
     noColor: true,
   });
-  assert.doesNotMatch(text, new RegExp(`${String.fromCharCode(0x1b)}\\[`));
+  assert.doesNotMatch(text, new RegExp(String.raw`${String.fromCodePoint(0x1b)}\[`));
 });
 
 test("CLI NO_COLOR=1 output contains no ANSI escapes", () => {
@@ -168,7 +168,7 @@ test("CLI NO_COLOR=1 output contains no ANSI escapes", () => {
       diagnostics: [{ code: "A", message: "m", severity: "error", uri: "" }],
       stream: { isTTY: true } as NodeJS.WriteStream,
     });
-    assert.doesNotMatch(text, new RegExp(`${String.fromCharCode(0x1b)}\\[`));
+    assert.doesNotMatch(text, new RegExp(String.raw`${String.fromCodePoint(0x1b)}\[`));
   } finally {
     if (originalNoColor === undefined) {
       Reflect.deleteProperty(process.env, "NO_COLOR");
@@ -186,7 +186,7 @@ test("CLI TTY color mode emits ANSI escapes", () => {
       diagnostics: [{ code: "A", message: "m", severity: "error", uri: "" }],
       stream: { isTTY: true } as NodeJS.WriteStream,
     });
-    assert.match(text, new RegExp(`${String.fromCharCode(0x1b)}\\[`));
+    assert.match(text, new RegExp(String.raw`${String.fromCodePoint(0x1b)}\[`));
   } finally {
     if (originalNoColor === undefined) {
       Reflect.deleteProperty(process.env, "NO_COLOR");
@@ -259,6 +259,80 @@ test("CLI lint --fix removes used-only unused inline definitions", () => {
   assert.ok(!content.includes('Action ID="UnusedAction"'));
 });
 
+test("CLI lint --fix removes whole self-closing unused model element and keeps XML valid", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-self-closing-whole-element-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?>\n<root BTCPP_format="4"><BehaviorTree ID="Main"><Used/></BehaviorTree><TreeNodesModel><Action ID="Used"/><Action ID="Unused"/></TreeNodesModel></root>\n',
+    "utf8",
+  );
+
+  const fixResult = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(fixResult.status, 0, fixResult.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(!content.includes('ID="Unused"'));
+  assert.ok(!content.includes("<Action/>"));
+  assert.ok(!content.includes("<Action />"));
+  assert.ok(content.includes('ID="Used"'));
+
+  const relint = run(["lint", "--json", "tree.xml"], dir);
+  assert.equal(relint.status, 0, relint.stderr);
+  const relintJson = JSON.parse(relint.stdout);
+  const codes = relintJson.files.flatMap((entry: { diagnostics: Array<{ code: string }> }) =>
+    entry.diagnostics.map((diagnostic) => diagnostic.code),
+  );
+  assert.equal(codes.includes("BT006_DUPLICATE_NODE_MODEL_ID"), false);
+  assert.equal(codes.includes("BT003_MISSING_MODEL_ID"), false);
+  assert.equal(
+    codes.some((code: string) => code.startsWith("BT1_PARSE")),
+    false,
+  );
+});
+
+test("CLI lint --fix removes whole block unused model element", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-block-whole-element-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><Used/></BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Used"/>
+    <Action ID="Unused">
+      <input_port name="goal" type="Pose2D"/>
+    </Action>
+  </TreeNodesModel>
+</root>
+`,
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(!content.includes('ID="Unused"'));
+  assert.ok(!content.includes('<input_port name="goal" type="Pose2D"/>'));
+  assert.ok(content.includes('ID="Used"'));
+});
+
 test("CLI lint --fix removes non-canonical duplicates for single-source", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-single-source-"));
   fs.writeFileSync(
@@ -290,12 +364,126 @@ test("CLI lint --fix removes non-canonical duplicates for single-source", () => 
   assert.ok(!content.includes('<Action ID="Move"/>'));
 });
 
+test("CLI lint --fix removes whole non-canonical block definition for single-source", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-single-source-block-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "single-source",
+        files: ["models.xml"],
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "models.xml"),
+    `<?xml version="1.0" encoding="UTF-8"?>
+<TreeNodesModel>
+  <Action ID="Move">
+    <input_port name="goal"/>
+  </Action>
+</TreeNodesModel>
+`,
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><Move goal="x"/></BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Move">
+      <input_port name="goal"/>
+    </Action>
+  </TreeNodesModel>
+</root>
+`,
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(!content.includes('ID="Move"'));
+  assert.ok(!content.includes('<input_port name="goal"/>'));
+});
+
+test("CLI lint --fix does not auto-fix when canonical model files are multiple", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-single-source-multi-canonical-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "single-source",
+        files: ["models/a.xml", "models/b.xml"],
+      },
+    }),
+    "utf8",
+  );
+  writeFile(
+    dir,
+    "models/a.xml",
+    '<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"/></TreeNodesModel>',
+  );
+  writeFile(
+    dir,
+    "models/b.xml",
+    '<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"/></TreeNodesModel>',
+  );
+  const file = writeFile(
+    dir,
+    "tree.xml",
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>',
+  );
+  const before = fs.readFileSync(file, "utf8");
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+
+  const after = fs.readFileSync(file, "utf8");
+  assert.equal(after, before);
+});
+
+test("CLI lint --fix does not auto-fix single-source duplicates without canonical models.files", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-single-source-no-canonical-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: { convention: "single-source" },
+    }),
+    "utf8",
+  );
+  const fileA = writeFile(
+    dir,
+    "a.xml",
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="A"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>',
+  );
+  const fileB = writeFile(
+    dir,
+    "b.xml",
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="B"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>',
+  );
+  const beforeA = fs.readFileSync(fileA, "utf8");
+  const beforeB = fs.readFileSync(fileB, "utf8");
+
+  const result = run(["lint", "--fix", "a.xml", "b.xml"], dir);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+
+  assert.equal(fs.readFileSync(fileA, "utf8"), beforeA);
+  assert.equal(fs.readFileSync(fileB, "utf8"), beforeB);
+});
+
 test("CLI check --fix exits 2", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-check-fix-"));
   const result = run(["check", "--fix", "tree.xml"], dir);
   assert.equal(result.status, 2, result.stderr);
   const stripped = result.stderr.replace(
-    new RegExp(`${String.fromCharCode(0x1b)}\\[[0-9;]*m`, "g"),
+    new RegExp(String.raw`${String.fromCodePoint(0x1b)}\[[0-9;]*m`, "g"),
     "",
   );
   assert.ok(stripped.includes("`--fix` is only supported for"), stripped);
