@@ -1,5 +1,6 @@
 import { formatEditSummary } from "./repair/model-conflicts.ts";
 import type { GroupRepairAction, ModelConflictGroup, UsageImpact } from "./repair/types.ts";
+import { TOOL_VERSION } from "./output.ts";
 
 export type RepairResult = {
   ok: boolean;
@@ -398,7 +399,7 @@ export function printRepairJson(result: RepairResult): string {
       ok: result.ok,
       version: 2,
       schemaVersion: "2",
-      toolVersion: "0.1.0",
+      toolVersion: TOOL_VERSION,
       groups: result.groups.map((group) => ({
         id: group.id,
         kind: group.kind,

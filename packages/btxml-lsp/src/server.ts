@@ -36,6 +36,10 @@ import {
   toDiagnostic,
 } from "./protocol.ts";
 
+declare const __BTXML_VERSION__: string | undefined;
+
+const SERVER_VERSION = typeof __BTXML_VERSION__ === "string" ? __BTXML_VERSION__ : "unknown";
+
 type TraceServerMode = "off" | "messages" | "verbose";
 type ProjectKey = `config:${string}` | `workspace:${string}`;
 type ProjectBinding = {
@@ -508,7 +512,7 @@ connection.onInitialize((params: InitializeParams) => {
   return {
     serverInfo: {
       name: "btxml",
-      version: "0.1.0",
+      version: SERVER_VERSION,
     },
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,

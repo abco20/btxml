@@ -15,6 +15,7 @@ import type { CommandModule } from "yargs";
 import { runDoctorCommand } from "../context.ts";
 import { parseCommandOptions } from "../options/common.ts";
 import { doctorOptionsSchema } from "../options/doctor.ts";
+import { TOOL_VERSION } from "../output.ts";
 
 export async function runDoctor(project: BtxmlProject, options: { output?: string }) {
   const configPath = getNodeProjectConfigPath(project);
@@ -32,9 +33,9 @@ export async function runDoctor(project: BtxmlProject, options: { output?: strin
 
   const report = {
     version: 1,
-    packageVersion: "0.1.0",
-    cliVersion: "0.1.0",
-    lspVersion: "0.1.0",
+    packageVersion: TOOL_VERSION,
+    cliVersion: TOOL_VERSION,
+    lspVersion: TOOL_VERSION,
     configPath,
     configFound,
     configValid: configFound,
