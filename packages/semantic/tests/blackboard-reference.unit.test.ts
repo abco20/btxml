@@ -24,11 +24,25 @@ test("BlackboardReferenceView extracts multiple braced references with precise r
     bindings?.map((reference) => ({
       raw: reference.raw,
       key: reference.key,
+      scope: reference.scope,
+      identity: reference.identity,
       text: text.slice(reference.range.start.offset, reference.range.end.offset),
     })),
     [
-      { raw: "{target}", key: "target", text: "{target}" },
-      { raw: "{fallback}", key: "fallback", text: "{fallback}" },
+      {
+        raw: "{target}",
+        key: "target",
+        scope: "local",
+        identity: "local:target",
+        text: "{target}",
+      },
+      {
+        raw: "{fallback}",
+        key: "fallback",
+        scope: "local",
+        identity: "local:fallback",
+        text: "{fallback}",
+      },
     ],
   );
 });
@@ -55,4 +69,37 @@ test("BlackboardReferenceView ignores plain literals and marks malformed referen
   assert.equal(invalidBinding?.blackboardReferences[0]?.syntax, "invalid");
   assert.equal(invalidBinding?.blackboardReferences[0]?.raw, "{broken");
   assert.equal(invalidBinding?.blackboardReferences[0]?.key, "{broken");
+});
+
+test("BlackboardReferenceView extracts global and local references with separate identities", () => {
+  const parsed = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Sequence>
+      <A x="{value}" />
+      <B y="{@value}" />
+    </Sequence>
+  </BehaviorTree>
+</root>`,
+    { uri: "blackboard-scope.xml" },
+  );
+  assert.ok(parsed.document);
+
+  const view = buildLocalBtDocumentView(parsed.document, { config });
+  const refs = view.nodes.flatMap((node) =>
+    node.portBindings.flatMap((binding) => binding.blackboardReferences),
+  );
+
+  assert.equal(refs[0]?.scope, "local");
+  assert.equal(refs[0]?.key, "value");
+  assert.equal(refs[0]?.identity, "local:value");
+  assert.equal(refs[1]?.scope, "global");
+  assert.equal(refs[1]?.key, "value");
+  assert.equal(refs[1]?.raw, "{@value}");
+  assert.equal(refs[1]?.identity, "global:value");
+  assert.deepEqual(
+    refs.map((reference) => reference.identity),
+    ["local:value", "global:value"],
+  );
 });

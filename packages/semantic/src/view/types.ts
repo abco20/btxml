@@ -1,6 +1,7 @@
 import type { ResolvedBtxmlConfig } from "@btxml/config";
 import type { Diagnostic, SourceRange } from "@btxml/foundation";
 import type {
+  BlackboardScope,
   TreeNodeKind as BtcppTreeNodeKind,
   NodeModelSource,
   PortDef,
@@ -71,8 +72,10 @@ export type PortResolution =
 export interface BlackboardReferenceView {
   readonly raw: string;
   readonly key: string;
+  readonly scope: BlackboardScope;
+  readonly identity: string;
   readonly range: SourceRange;
-  readonly syntax: "braced" | "bare" | "invalid";
+  readonly syntax: "braced" | "shorthand" | "invalid";
 }
 
 export interface SemanticAttributeView {

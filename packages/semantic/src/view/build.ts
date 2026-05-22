@@ -1,4 +1,5 @@
 import type { SourcePosition, SourceRange } from "@btxml/foundation";
+import { makeBlackboardIdentity, parsePortBlackboardReference } from "@btxml/model";
 import type { BtDocument, BtXmlAttribute, BtXmlElement } from "@btxml/syntax";
 import { buildSemanticIndex } from "../semantic-index.js";
 import type { SemanticIndex } from "../types.js";
@@ -91,21 +92,37 @@ function rangeFromText(start: SourcePosition, prefix: string, text: string): Sou
 
 function extractBlackboardReferences(
   document: BtDocument,
+  portName: string,
   attribute: BtXmlAttribute,
 ): BlackboardReferenceView[] {
   const baseRange = attribute.valueContentRange || attribute.valueRange;
   const rawValue = document.originalText.slice(baseRange.start.offset, baseRange.end.offset);
   const references: BlackboardReferenceView[] = [];
 
-  for (const match of rawValue.matchAll(/\{([^}]+)\}/g)) {
+  for (const match of rawValue.matchAll(/\{[^}]*\}/g)) {
     const raw = match[0];
-    const key = match[1];
     const index = match.index ?? 0;
+    const parsed = parsePortBlackboardReference({ portName, rawValue: raw });
+
+    if (parsed.ok) {
+      references.push({
+        raw,
+        key: parsed.reference.key,
+        scope: parsed.reference.scope,
+        identity: makeBlackboardIdentity(parsed.reference),
+        range: rangeFromText(baseRange.start, rawValue.slice(0, index), raw),
+        syntax: parsed.reference.syntax === "shorthand" ? "shorthand" : "braced",
+      });
+      continue;
+    }
+
     references.push({
       raw,
-      key,
+      key: raw,
+      scope: "local",
+      identity: `invalid:${raw}`,
       range: rangeFromText(baseRange.start, rawValue.slice(0, index), raw),
-      syntax: "braced",
+      syntax: "invalid",
     });
   }
 
@@ -113,6 +130,8 @@ function extractBlackboardReferences(
     references.push({
       raw: rawValue,
       key: rawValue,
+      scope: "local",
+      identity: `invalid:${rawValue}`,
       range: baseRange,
       syntax: "invalid",
     });
@@ -385,7 +404,11 @@ export function buildBtDocumentView(
         attribute: portUsage.attribute,
         declaredPort: toPortResolution(portUsage),
         usage: portUsage,
-        blackboardReferences: extractBlackboardReferences(document, portUsage.attribute),
+        blackboardReferences: extractBlackboardReferences(
+          document,
+          portUsage.name,
+          portUsage.attribute,
+        ),
       }));
 
     node.children = element.children
@@ -493,7 +516,11 @@ export function buildSemanticDocumentView(
             attribute: portUsage.attribute,
             declaredPort: toPortResolution(portUsage),
             usage: portUsage,
-            blackboardReferences: extractBlackboardReferences(document, portUsage.attribute),
+            blackboardReferences: extractBlackboardReferences(
+              document,
+              portUsage.name,
+              portUsage.attribute,
+            ),
           }),
         ),
     };
