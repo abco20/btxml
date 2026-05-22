@@ -104,6 +104,26 @@ test("inline model definition", () => {
   });
 });
 
+test("models.convention accepts supported values", () => {
+  assertValid({
+    models: {
+      convention: "allow-unused",
+    },
+  });
+
+  assertValid({
+    models: {
+      convention: "used-only",
+    },
+  });
+
+  assertValid({
+    models: {
+      convention: "single-source",
+    },
+  });
+});
+
 test("schema rule names match RULES registry", () => {
   const enumRules = schema.properties.linter.properties.rules.propertyNames.enum;
   assert.deepEqual(
@@ -256,6 +276,14 @@ test("models.builtins unknown value is rejected", () => {
   assertInvalid({
     models: {
       builtins: ["unknown-builtin"],
+    },
+  });
+});
+
+test("models.convention unknown value is rejected", () => {
+  assertInvalid({
+    models: {
+      convention: "project-wide-used-only",
     },
   });
 });

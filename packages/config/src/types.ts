@@ -42,12 +42,15 @@ export type ResolvedResolverConfig = {
   behaviorTreeIds: "workspace-unique" | "file-local-first" | "allow-ambiguous";
 };
 
+export type ModelConvention = "allow-unused" | "used-only" | "single-source";
+
 export type ResolvedModelsConfig = {
   builtins: string[];
   files: string[];
   augmentations: string[];
   definitions: string[];
   inline: Record<string, unknown>;
+  convention: ModelConvention;
 };
 
 export type ResolvedLinterSuppressionsConfig = {
@@ -80,6 +83,7 @@ export type PartialResolvedModelsConfig = {
   augmentations?: ResolvedModelsConfig["augmentations"];
   definitions?: ResolvedModelsConfig["definitions"];
   inline?: ResolvedModelsConfig["inline"];
+  convention?: ResolvedModelsConfig["convention"];
 };
 
 export type PartialResolvedLinterSuppressionsConfig = {

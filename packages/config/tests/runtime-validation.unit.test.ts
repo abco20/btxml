@@ -166,3 +166,34 @@ test("runtime validation rejects invalid formatter lineEnding", () => {
     "CFG003_INVALID_CONFIG_VALUE",
   );
 });
+
+test("runtime validation accepts all model convention values", () => {
+  assertValidRuntimeConfig({
+    models: {
+      convention: "allow-unused",
+    },
+  });
+
+  assertValidRuntimeConfig({
+    models: {
+      convention: "used-only",
+    },
+  });
+
+  assertValidRuntimeConfig({
+    models: {
+      convention: "single-source",
+    },
+  });
+});
+
+test("runtime validation rejects unknown model convention", () => {
+  assertInvalidRuntimeConfig(
+    {
+      models: {
+        convention: "project-wide-used-only",
+      },
+    },
+    "CFG003_INVALID_CONFIG_VALUE",
+  );
+});

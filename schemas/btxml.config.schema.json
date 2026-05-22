@@ -177,6 +177,10 @@
             "enum": ["btcpp-v4", "btcpp-v4.6.2", "btcpp-v4.8.2", "btcpp-v4.9.0"]
           }
         },
+        "convention": {
+          "type": "string",
+          "enum": ["allow-unused", "used-only", "single-source"]
+        },
         "files": {
           "type": "array",
           "items": {
