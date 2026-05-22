@@ -23,8 +23,8 @@ import type {
 import { getProjectResolutionMode } from "../internal/entrypoints.js";
 import { resolveIncludeGraph } from "../internal/includes.js";
 import { loadProjectModelAugmentations } from "../model-augmentations.js";
-import { loadProjectNodeModels } from "../node-definitions.js";
 import { validateModelConventions } from "../model-conventions.js";
+import { loadProjectNodeModels } from "../node-definitions.js";
 import { asInternalProject } from "../project-handle.js";
 import { relativeUri } from "../uri.js";
 import type { InternalCheckProjectInput, InternalFileCheckResult } from "./internal-types.js";

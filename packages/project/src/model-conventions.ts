@@ -1,14 +1,14 @@
-import { DiagnosticSeverity, createDiagnostic } from "@btxml/foundation";
-import { getRuleSeverity, type RuleName } from "@btxml/analyzer/rules";
+import { type RuleName, getRuleSeverity } from "@btxml/analyzer/rules";
 import type { ResolvedBtxmlConfig } from "@btxml/config";
+import { DiagnosticSeverity, createDiagnostic } from "@btxml/foundation";
 import type { SourceRange } from "@btxml/foundation";
 import {
+  type ModelDefinitionFact,
+  type SemanticIndex,
   getModelDefinitionFacts,
   getNodeUsagesByUri,
   groupModelDefinitionsById,
   groupModelDefinitionsByKey,
-  type ModelDefinitionFact,
-  type SemanticIndex,
 } from "@btxml/semantic";
 
 const RULE_CONFLICTING_KIND = "model/no-conflicting-kind-for-id";
@@ -87,6 +87,18 @@ function validateConflictingKinds(input: {
     for (const definition of definitions.slice(1)) {
       if (definition.kind === primary.kind) continue;
 
+      const primaryRange = definitionRange(primary);
+      const relatedInformation =
+        primary.uri && primaryRange
+          ? [
+              {
+                uri: primary.uri,
+                range: primaryRange,
+                message: "first conflicting definition",
+              },
+            ]
+          : undefined;
+
       diagnostics.push(
         createConventionDiagnostic({
           code: "BT120_CONFLICTING_MODEL_KIND",
@@ -100,16 +112,7 @@ function validateConflictingKinds(input: {
             nodeId: id,
             definitions: definitions.map(definitionInfo),
           },
-          relatedInformation:
-            primary.uri && definitionRange(primary)
-              ? [
-                  {
-                    uri: primary.uri,
-                    range: definitionRange(primary),
-                    message: "first conflicting definition",
-                  },
-                ]
-              : undefined,
+          relatedInformation,
         }),
       );
     }

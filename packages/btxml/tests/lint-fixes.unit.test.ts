@@ -43,6 +43,7 @@ test("getSafeLintFixes applies BT121 delete-definition fix metadata", () => {
         code: "BT121_UNUSED_MODEL_DEFINITION",
         severity: "error",
         message: "unused",
+        uri: "tree.xml",
         data: {
           kind: "unused-model-definition",
           nodeId: "UnusedAction",
@@ -72,6 +73,7 @@ test("getSafeLintFixes applies BT122 delete-non-canonical-definitions metadata",
         code: "BT122_DUPLICATE_MODEL_DEFINITION",
         severity: "error",
         message: "duplicate",
+        uri: "models.xml",
         data: {
           kind: "duplicate-model-definition",
           nodeId: "Move",
