@@ -204,6 +204,73 @@ test("model file discovery reports unmatched augmentation patterns", async () =>
   });
 });
 
+test("model file discovery ignores files.ignore for explicit models paths", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-models-ignore-"));
+  const host = createNodeProjectHost(dir);
+  fs.mkdirSync(path.join(dir, "models"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "models", "nodes.xml"), "<TreeNodesModel/>", "utf8");
+  fs.writeFileSync(path.join(dir, "models", "nodes.json"), "{}", "utf8");
+  fs.writeFileSync(path.join(dir, "models", "augment.xml"), "<TreeNodesModel/>", "utf8");
+
+  const result = await discoverModelFiles(
+    pathToFileUri(dir),
+    resolvedModels({
+      files: ["models/nodes.xml"],
+      definitions: ["models/nodes.json"],
+      augmentations: ["models/augment.xml"],
+    }),
+    resolvedFiles({ ignore: ["models/**"] }),
+    host,
+  );
+
+  assert.deepEqual(
+    result.modelFiles.map((file) => file.path),
+    ["models/nodes.xml"],
+  );
+  assert.deepEqual(
+    result.definitionFiles.map((file) => file.path),
+    ["models/nodes.json"],
+  );
+  assert.deepEqual(
+    result.augmentationFiles.map((file) => file.path),
+    ["models/augment.xml"],
+  );
+});
+
+test("model file discovery ignores gitignore for explicit models paths", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-models-gitignore-"));
+  const host = createNodeProjectHost(dir);
+  fs.mkdirSync(path.join(dir, "models"), { recursive: true });
+  fs.writeFileSync(path.join(dir, ".gitignore"), "models/\n", "utf8");
+  fs.writeFileSync(path.join(dir, "models", "nodes.xml"), "<TreeNodesModel/>", "utf8");
+  fs.writeFileSync(path.join(dir, "models", "nodes.json"), "{}", "utf8");
+  fs.writeFileSync(path.join(dir, "models", "augment.xml"), "<TreeNodesModel/>", "utf8");
+
+  const result = await discoverModelFiles(
+    pathToFileUri(dir),
+    resolvedModels({
+      files: ["models/nodes.xml"],
+      definitions: ["models/nodes.json"],
+      augmentations: ["models/augment.xml"],
+    }),
+    resolvedFiles(),
+    host,
+  );
+
+  assert.deepEqual(
+    result.modelFiles.map((file) => file.path),
+    ["models/nodes.xml"],
+  );
+  assert.deepEqual(
+    result.definitionFiles.map((file) => file.path),
+    ["models/nodes.json"],
+  );
+  assert.deepEqual(
+    result.augmentationFiles.map((file) => file.path),
+    ["models/augment.xml"],
+  );
+});
+
 test("entrypoint validation reports missing files", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-entry-"));
   const host = createNodeProjectHost(dir);

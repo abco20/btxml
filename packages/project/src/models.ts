@@ -1,11 +1,6 @@
 import type { ResolvedFilesConfig, ResolvedModelsConfig } from "@btxml/config";
 import type { ProjectHost } from "./host.js";
-import {
-  createIgnoreInstance,
-  expandPatterns,
-  loadGitignore,
-  projectRelative,
-} from "./internal/files.js";
+import { expandPatterns, projectRelative } from "./internal/files.js";
 import type { ProjectFile } from "./types.js";
 
 export async function discoverModelFiles(
@@ -19,35 +14,31 @@ export async function discoverModelFiles(
   definitionFiles: ProjectFile[];
   unmatchedPatterns: { models: string[]; augmentations: string[]; definitions: string[] };
 }> {
-  const ignore = [...filesConfig.ignore];
-  const gitignoreLines = filesConfig.useGitignore ? await loadGitignore(rootUri, host) : [];
-  const ig = createIgnoreInstance(gitignoreLines);
-
   const modelFilesPatternResult = await expandPatterns(
     modelsConfig.files,
     rootUri,
-    ignore,
+    [],
     filesConfig.followSymlinks,
     undefined,
-    ig,
+    undefined,
     host,
   );
   const definitionFilesPatternResult = await expandPatterns(
     modelsConfig.definitions,
     rootUri,
-    ignore,
+    [],
     filesConfig.followSymlinks,
     undefined,
-    ig,
+    undefined,
     host,
   );
   const augmentationFilesPatternResult = await expandPatterns(
     modelsConfig.augmentations,
     rootUri,
-    ignore,
+    [],
     filesConfig.followSymlinks,
     undefined,
-    ig,
+    undefined,
     host,
   );
 
