@@ -287,13 +287,15 @@ test("CLI lint --fix removes whole self-closing unused model element and keeps X
   const relint = run(["lint", "--json", "tree.xml"], dir);
   assert.equal(relint.status, 0, relint.stderr);
   const relintJson = JSON.parse(relint.stdout);
-  const codes = relintJson.files.flatMap((entry: { diagnostics: Array<{ code: string }> }) =>
-    entry.diagnostics.map((diagnostic) => diagnostic.code),
+  const codes = new Set(
+    relintJson.files.flatMap((entry: { diagnostics: Array<{ code: string }> }) =>
+      entry.diagnostics.map((diagnostic) => diagnostic.code),
+    ),
   );
-  assert.equal(codes.includes("BT006_DUPLICATE_NODE_MODEL_ID"), false);
-  assert.equal(codes.includes("BT003_MISSING_MODEL_ID"), false);
+  assert.equal(codes.has("BT006_DUPLICATE_NODE_MODEL_ID"), false);
+  assert.equal(codes.has("BT003_MISSING_MODEL_ID"), false);
   assert.equal(
-    codes.some((code: string) => code.startsWith("BT1_PARSE")),
+    Array.from(codes).some((code) => String(code).startsWith("BT1_PARSE")),
     false,
   );
 });
@@ -331,6 +333,379 @@ test("CLI lint --fix removes whole block unused model element", () => {
   assert.ok(!content.includes('ID="Unused"'));
   assert.ok(!content.includes('<input_port name="goal" type="Pose2D"/>'));
   assert.ok(content.includes('ID="Used"'));
+});
+
+test("CLI lint --fix inserts missing builtin Sequence local definition", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-used-only-add-sequence-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Sequence>
+      <AlwaysSuccess/>
+    </Sequence>
+  </BehaviorTree>
+  <TreeNodesModel>
+  </TreeNodesModel>
+</root>
+`,
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('<Control ID="Sequence"/>'));
+});
+
+test("CLI lint --fix inserts missing builtin decorator local definition", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-used-only-add-decorator-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <ForceSuccess>
+      <AlwaysFailure/>
+    </ForceSuccess>
+  </BehaviorTree>
+  <TreeNodesModel>
+  </TreeNodesModel>
+</root>
+`,
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('<Decorator ID="ForceSuccess"/>'));
+});
+
+test("CLI lint --fix serializes missing external Action definition with ports", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-add-external-action-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "used-only",
+        files: ["models.xml"],
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "models.xml"),
+    `<?xml version="1.0" encoding="UTF-8"?>
+<TreeNodesModel>
+  <Action ID="Move">
+    <input_port name="goal" type="Pose2D"/>
+  </Action>
+</TreeNodesModel>
+`,
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move goal="{goal}"/></BehaviorTree><TreeNodesModel></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('<Action ID="Move">'));
+  assert.ok(content.includes('<input_port name="goal" type="Pose2D"/>'));
+});
+
+test("CLI lint --fix serializes missing node-definition-file model into XML", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-add-definition-file-action-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "used-only",
+        definitions: ["nodes.json"],
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "nodes.json"),
+    JSON.stringify({
+      nodes: {
+        JsonMove: {
+          kind: "Action",
+          ports: {
+            goal: { direction: "input", type: "Pose2D" },
+          },
+        },
+      },
+    }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><JsonMove goal="{goal}"/></BehaviorTree><TreeNodesModel></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('<Action ID="JsonMove">'));
+  assert.ok(content.includes('<input_port name="goal" type="Pose2D"/>'));
+});
+
+test("CLI lint --fix serializes missing config-inline model into XML", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-add-config-inline-action-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "used-only",
+        inline: {
+          ConfigMove: {
+            kind: "Action",
+            ports: {
+              goal: { direction: "input", type: "Pose2D" },
+            },
+          },
+        },
+      },
+    }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><ConfigMove goal="{goal}"/></BehaviorTree><TreeNodesModel></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('<Action ID="ConfigMove">'));
+  assert.ok(content.includes('<input_port name="goal" type="Pose2D"/>'));
+});
+
+test("CLI lint --fix creates TreeNodesModel when missing", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-create-tree-nodes-model-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><AlwaysSuccess/></Sequence></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes("<TreeNodesModel>"));
+  assert.ok(content.includes('<Control ID="Sequence"/>'));
+});
+
+test("CLI lint --fix does not add local definition for unknown node", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-no-fix-unknown-node-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><UnknownMove/></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const before = fs.readFileSync(file, "utf8");
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  const after = fs.readFileSync(file, "utf8");
+  assert.equal(after, before);
+});
+
+test("CLI lint --fix does not add local definition when model conflicts on shape", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-no-fix-conflicting-shape-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "used-only",
+        files: ["a.xml", "b.xml"],
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "a.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"><input_port name="goal" type="string"/></Action></TreeNodesModel>',
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "b.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>',
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move goal="{goal}"/></BehaviorTree><TreeNodesModel></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const before = fs.readFileSync(file, "utf8");
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  const after = fs.readFileSync(file, "utf8");
+  assert.equal(after, before);
+});
+
+test("CLI lint --fix does not add local definition when same ID has different kind conflict", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-no-fix-kind-conflict-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "used-only",
+        files: ["models.xml"],
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "models.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"/></TreeNodesModel>',
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Condition ID="Move"/></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const before = fs.readFileSync(file, "utf8");
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  const after = fs.readFileSync(file, "utf8");
+  assert.equal(after, before);
+});
+
+test("CLI lint --fix keeps SubTree model untouched and does not require it", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-used-only-subtree-excluded-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <SubTree ID="Child"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Child">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <SubTree ID="UnusedSubTreeContract"/>
+  </TreeNodesModel>
+</root>
+`,
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('<SubTree ID="UnusedSubTreeContract"/>'));
+  assert.equal((content.match(/<SubTree ID="Child"\/>/g) ?? []).length, 1);
+});
+
+test("CLI used-only fix result passes re-lint", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-used-only-relint-pass-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Sequence>
+      <Used/>
+    </Sequence>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Used"/>
+    <Action ID="Unused"/>
+  </TreeNodesModel>
+</root>
+`,
+    "utf8",
+  );
+
+  const fix = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(fix.status, 0, fix.stderr);
+
+  const relint = run(["lint", "--json", "tree.xml"], dir);
+  assert.equal(relint.status, 0, relint.stderr);
+  const report = JSON.parse(relint.stdout);
+  const codes = new Set(
+    report.files.flatMap((entry: { diagnostics: Array<{ code: string }> }) =>
+      entry.diagnostics.map((diagnostic) => diagnostic.code),
+    ),
+  );
+  assert.equal(codes.has("BT121_UNUSED_MODEL_DEFINITION"), false);
+  assert.equal(codes.has("BT123_MISSING_LOCAL_MODEL_DEFINITION"), false);
 });
 
 test("CLI lint --fix removes non-canonical duplicates for single-source", () => {

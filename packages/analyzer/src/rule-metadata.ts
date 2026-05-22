@@ -251,6 +251,18 @@ const RuleMetadataDetailsByCode: Record<string, Omit<RuleMetadata, "defaultSever
     validExample: '<TreeNodesModel><Action ID="Move"/></TreeNodesModel>',
     fix: "Run `btxmlc lint --fix` to delete non-canonical duplicates when safe.",
   },
+  [RuleCodes.MissingLocalModelDefinition]: {
+    code: RuleCodes.MissingLocalModelDefinition,
+    title: "Missing local model definition",
+    description:
+      "When models.convention is used-only, each normal node used in a file should have a local TreeNodesModel definition in that same file.",
+    suppressible: false,
+    invalidExample:
+      '<root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence/><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>',
+    validExample:
+      '<root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence/><Move/></BehaviorTree><TreeNodesModel><Control ID="Sequence"/><Action ID="Move"/></TreeNodesModel></root>',
+    fix: "Run `btxmlc lint --fix` to add missing local model definitions when they can be resolved safely.",
+  },
   [RuleCodes.DuplicateBehaviorTreeIdInWorkspace]: {
     code: RuleCodes.DuplicateBehaviorTreeIdInWorkspace,
     title: "Duplicate BehaviorTree ID in workspace",

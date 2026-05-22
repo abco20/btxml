@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { applyTextEdits } from "@btxml/foundation";
 import { parseBtXml } from "@btxml/syntax";
-import { getSafeLintFixes } from "../src/repair/lint-fixes.ts";
+import { getSafeLintFixes, serializeTreeNodeModelDefinition } from "../src/repair/lint-fixes.ts";
 
 function makeRange(start: number, end: number) {
   return {
@@ -150,4 +150,117 @@ test("getSafeLintFixes ignores BT121/BT122/BT120 when fix metadata is missing", 
   });
 
   assert.equal(fixes.length, 0);
+});
+
+test("serializeTreeNodeModelDefinition serializes builtin-style and ported models", () => {
+  assert.equal(
+    serializeTreeNodeModelDefinition({
+      id: "Sequence",
+      kind: "Control",
+      ports: [],
+    }),
+    '<Control ID="Sequence"/>',
+  );
+
+  assert.equal(
+    serializeTreeNodeModelDefinition({
+      id: "Move",
+      kind: "Action",
+      ports: [
+        {
+          direction: "input",
+          name: "goal",
+          type: "Pose2D",
+          defaultValue: "a&b",
+          description: 'g"oal',
+          enum: ["auto", "manual"],
+        },
+      ],
+    }),
+    [
+      '<Action ID="Move">',
+      '  <input_port name="goal" type="Pose2D" default="a&amp;b" description="g&quot;oal" enum="auto;manual"/>',
+      "</Action>",
+    ].join("\n"),
+  );
+});
+
+test("getSafeLintFixes appends BT123 definitions to existing TreeNodesModel", () => {
+  const parsed = parseBtXml(
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move goal="{goal}"/></BehaviorTree><TreeNodesModel></TreeNodesModel></root>',
+    { uri: "tree.xml" },
+  );
+  assert.ok(parsed.document);
+
+  const fixes = getSafeLintFixes({
+    documents: [parsed.document],
+    diagnostics: [
+      {
+        code: "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+        severity: "error",
+        message: "missing local",
+        uri: "tree.xml",
+        data: {
+          kind: "missing-local-model-definition",
+          nodeId: "Move",
+          sourceKind: "inline-tree-nodes-model",
+          fix: {
+            kind: "add-local-definition",
+            uri: "tree.xml",
+            nodeId: "Move",
+            model: {
+              id: "Move",
+              kind: "Action",
+              ports: [{ direction: "input", name: "goal", type: "Pose2D" }],
+            },
+          },
+        },
+      },
+    ],
+  });
+
+  assert.equal(fixes.length, 1);
+  const updated = applyTextEdits(parsed.document.originalText, fixes[0]?.edits ?? []);
+  assert.ok(updated.includes('<Action ID="Move">'));
+  assert.ok(updated.includes('<input_port name="goal" type="Pose2D"/>'));
+});
+
+test("getSafeLintFixes creates TreeNodesModel block for BT123 when missing", () => {
+  const parsed = parseBtXml(
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><AlwaysSuccess/></Sequence></BehaviorTree></root>',
+    { uri: "tree.xml" },
+  );
+  assert.ok(parsed.document);
+
+  const fixes = getSafeLintFixes({
+    documents: [parsed.document],
+    diagnostics: [
+      {
+        code: "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+        severity: "error",
+        message: "missing local",
+        uri: "tree.xml",
+        data: {
+          kind: "missing-local-model-definition",
+          nodeId: "Sequence",
+          sourceKind: "inline-tree-nodes-model",
+          fix: {
+            kind: "add-local-definition",
+            uri: "tree.xml",
+            nodeId: "Sequence",
+            model: {
+              id: "Sequence",
+              kind: "Control",
+              ports: [],
+            },
+          },
+        },
+      },
+    ],
+  });
+
+  assert.equal(fixes.length, 1);
+  const updated = applyTextEdits(parsed.document.originalText, fixes[0]?.edits ?? []);
+  assert.ok(updated.includes("<TreeNodesModel>"));
+  assert.ok(updated.includes('<Control ID="Sequence"/>'));
 });

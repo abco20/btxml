@@ -260,6 +260,208 @@ test("used-only ignores external, node-definition-file, and config-inline source
   );
 });
 
+test("used-only reports BT123 for missing local builtin Sequence definition", async () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-convention-used-only-missing-builtin-sequence-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only" },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><AlwaysSuccess/></Sequence></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const missing = allDiagnostics(result).find(
+    (entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+  );
+
+  assert.ok(missing);
+  assert.equal((missing?.data as { nodeId?: string })?.nodeId, "Sequence");
+});
+
+test("used-only reports BT123 for missing local builtin decorator definition", async () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-convention-used-only-missing-builtin-decorator-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only" },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><ForceSuccess><AlwaysFailure/></ForceSuccess></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const missing = allDiagnostics(result).find(
+    (entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+  );
+
+  assert.ok(missing);
+  assert.equal((missing?.data as { nodeId?: string })?.nodeId, "ForceSuccess");
+});
+
+test("used-only reports BT123 for missing local external Action definition", async () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-convention-used-only-missing-external-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only", files: ["models.xml"] },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "models.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>',
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move goal="{goal}"/></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const missing = allDiagnostics(result).find(
+    (entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+  );
+
+  assert.ok(missing);
+  assert.equal((missing?.data as { nodeId?: string })?.nodeId, "Move");
+});
+
+test("used-only reports BT123 for missing local node-definition-file Action", async () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-convention-used-only-missing-definitions-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only", definitions: ["nodes.json"] },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "nodes.json"),
+    JSON.stringify({
+      nodes: {
+        JsonDefined: {
+          kind: "Action",
+          ports: {
+            goal: { direction: "input", type: "Pose2D" },
+          },
+        },
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><JsonDefined goal="{goal}"/></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const missing = allDiagnostics(result).find(
+    (entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+  );
+
+  assert.ok(missing);
+  assert.equal((missing?.data as { nodeId?: string })?.nodeId, "JsonDefined");
+});
+
+test("used-only reports BT123 for missing local config-inline Action", async () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-convention-used-only-missing-config-inline-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: {
+        convention: "used-only",
+        inline: {
+          ConfigMove: {
+            kind: "Action",
+            ports: {
+              goal: { direction: "input", type: "Pose2D" },
+            },
+          },
+        },
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><ConfigMove goal="{goal}"/></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const missing = allDiagnostics(result).find(
+    (entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+  );
+
+  assert.ok(missing);
+  assert.equal((missing?.data as { nodeId?: string })?.nodeId, "ConfigMove");
+});
+
+test("used-only does not report BT123 for SubTree usage", async () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-convention-used-only-no-subtree-bt123-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only" },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><SubTree ID="ChildTree"/></BehaviorTree><BehaviorTree ID="ChildTree"/></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+
+  assert.equal(
+    allDiagnostics(result).some((entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION"),
+    false,
+  );
+});
+
 test("single-source reports duplicate user definitions", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-convention-single-source-"));
   fs.writeFileSync(
