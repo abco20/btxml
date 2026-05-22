@@ -98,6 +98,7 @@ Configures node models: built-ins, external model files, JSON definition files, 
     "builtins": ["btcpp-v4"],
     "files": ["behavior_trees/models/**/*.xml"],
     "definitions": ["behavior_trees/nodes.json"],
+    "convention": "allow-unused",
     "inline": {
       "SetFlag": {
         "kind": "Action",
@@ -114,6 +115,21 @@ Configures node models: built-ins, external model files, JSON definition files, 
 - `files`: glob paths to `TreeNodesModel` XML files.
 - `definitions`: paths to JSON node definition files.
 - `inline`: node definitions written directly in the config.
+- `convention`: model definition convention policy.
+
+`models.convention` values:
+
+| value | meaning |
+| --- | --- |
+| `allow-unused` | allow unused model definitions (default). |
+| `used-only` | inline `Action` / `Condition` / `Decorator` / `Control` definitions must be used in the same XML file. |
+| `single-source` | each user-defined `(ID, kind)` model definition should appear only once in the project. |
+
+Notes:
+
+- `SubTree` model definitions are excluded from `used-only` unused checks.
+- Builtins are ignored for convention duplicate counting.
+- `models.files` are treated as canonical model-definition sources by `lint --fix` and `repair --source model-files`.
 
 ## `linter`
 

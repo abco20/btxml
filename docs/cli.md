@@ -35,6 +35,8 @@ These options control the CLI at runtime and do **not** belong in `btxml.config.
 - `--fix` — apply safe, deterministic lint fixes (lint only).
 - `--write` — write repaired models interactively (repair only).
 - `--force` — overwrite existing files (init/repair).
+- `--source model-files` — treat `models.files` as canonical source when repairing model definitions (repair only).
+- `--mode <auto|sync|dedupe>` — canonical repair strategy when `--source model-files` is used (repair only).
 
 ### Format-specific
 
@@ -72,4 +74,28 @@ btxmlc check --update-baseline btxml-baseline.json
 
 # Format a single file to stdout
 btxmlc format --stdout behavior_trees/main.xml
+
+# Lint and apply safe fixes
+btxmlc lint --fix "behavior_trees/**/*.xml"
+
+# Repair using canonical model files
+btxmlc repair --source model-files --mode auto
 ```
+
+## `lint --fix` safe fixes
+
+`btxmlc lint --fix` applies only deterministic safe fixes:
+
+- `BT002_MISSING_BTCPP_FORMAT`: inserts `BTCPP_format="4"` on `<root>`.
+- `BT121_UNUSED_MODEL_DEFINITION`: removes unused inline model definitions for `used-only` convention.
+- `BT122_DUPLICATE_MODEL_DEFINITION`: removes non-canonical duplicates when exactly one canonical model-file definition exists.
+
+No automatic fix is applied for `BT120_CONFLICTING_MODEL_KIND`.
+
+## `repair --source model-files`
+
+When `--source model-files` is enabled, definitions loaded via `models.files` are treated as canonical.
+
+- `--mode sync`: rewrite non-canonical definitions to match canonical model-file definition text.
+- `--mode dedupe`: keep canonical model-file definition and delete non-canonical duplicates.
+- `--mode auto`: choose `dedupe` when `models.convention` is `single-source`, otherwise choose `sync`.
