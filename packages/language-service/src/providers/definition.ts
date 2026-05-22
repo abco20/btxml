@@ -4,6 +4,7 @@ import {
   type SemanticIndex,
   getBehaviorTrees,
   getNodeModel,
+  getNodeModelDefinitions,
   getRemappedKey,
   resolveNodeUsage,
 } from "@btxml/semantic";
@@ -17,6 +18,47 @@ import type { LanguageRequestContext } from "../context.js";
 import type { InternalDefinitionInput } from "../internal-types.js";
 import type { DefinitionResult, Location } from "../public-types.js";
 import { getBehaviorTreeScriptFlowStates, getScriptIdentifierTarget } from "./script-context.js";
+
+function uniqueLocations(locations: readonly Location[]): Location[] {
+  const seen = new Set<string>();
+  const result: Location[] = [];
+
+  for (const location of locations) {
+    const key = `${location.uri}:${location.range.start.offset}:${location.range.end.offset}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(location);
+  }
+
+  return result;
+}
+
+function getSubTreeModelDefinitionLocations(
+  semantic: SemanticIndex,
+  id: string,
+  fallbackUri: string,
+): Location[] {
+  return getNodeModelDefinitions(semantic, id)
+    .filter((definition) => definition.kind === "SubTree")
+    .map((definition) => {
+      if (definition.idRange) {
+        return {
+          uri: definition.uri || fallbackUri,
+          range: definition.idRange,
+        };
+      }
+
+      if (definition.range) {
+        return {
+          uri: definition.uri || fallbackUri,
+          range: definition.range,
+        };
+      }
+
+      return undefined;
+    })
+    .filter((location): location is Location => Boolean(location));
+}
 
 export function getDefinitionLocations(
   parsed: BtDocument | undefined,
@@ -53,33 +95,48 @@ export function getDefinitionLocations(
       })
     : undefined;
   if (element?.name === "SubTree" && attribute?.name === "ID") {
+    if (usage?.tagForm === "model-definition") {
+      return getBehaviorTrees(semantic, attribute.value)
+        .map((def) => (def.idRange ? { uri: def.uri, range: def.idRange } : undefined))
+        .filter((location): location is Location => Boolean(location));
+    }
+
+    const subtreeModelDefinitions = getSubTreeModelDefinitionLocations(
+      semantic,
+      attribute.value,
+      parsed.uri,
+    );
     const target = usage?.subtree?.target;
     if (target?.status === "resolved" && target.kind === "behavior-tree") {
       const behaviorTree = target.behaviorTree;
       if (behaviorTree.idRange) {
-        return [
+        return uniqueLocations([
           {
             uri: behaviorTree.uri,
             range: behaviorTree.idRange,
           },
-        ];
+          ...subtreeModelDefinitions,
+        ]);
       }
+      return subtreeModelDefinitions;
     }
     if (target?.status === "ambiguous") {
-      return [...target.behaviorTrees, ...target.definitions]
-        .map((def) =>
-          def.idRange
-            ? { uri: def.uri || parsed.uri, range: def.idRange }
-            : def.range
-              ? { uri: def.uri || parsed.uri, range: def.range }
-              : undefined,
-        )
-        .filter((location): location is Location => Boolean(location));
+      return uniqueLocations(
+        [
+          ...target.behaviorTrees.map((def) =>
+            def.idRange ? { uri: def.uri || parsed.uri, range: def.idRange } : undefined,
+          ),
+          ...subtreeModelDefinitions,
+        ].filter((location): location is Location => Boolean(location)),
+      );
     }
-    if (target?.status === "resolved" && target.kind === "node-model" && target.model.idRange) {
-      return [{ uri: target.model.uri || parsed.uri, range: target.model.idRange }];
+    if (target?.status === "resolved" && target.kind === "node-model") {
+      if (subtreeModelDefinitions.length > 0) return subtreeModelDefinitions;
+      if (target.model.idRange) {
+        return [{ uri: target.model.uri || parsed.uri, range: target.model.idRange }];
+      }
     }
-    return [];
+    return subtreeModelDefinitions;
   }
   if (element?.name === "root" && attribute?.name === "main_tree_to_execute") {
     return getBehaviorTrees(semantic, attribute.value)

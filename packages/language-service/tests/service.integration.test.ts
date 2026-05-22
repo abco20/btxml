@@ -97,6 +97,42 @@ test("definition jumps to local BehaviorTree for SubTree target", () => {
   assert.equal(doc.getText(result.locations[0]?.range), 'ID="Child"');
 });
 
+test("definition from runtime SubTree includes matching BehaviorTree and SubTree model", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <SubTree ID="Child"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Child">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <SubTree ID="Child">
+      <input_port name="target" type="std::string"/>
+    </SubTree>
+  </TreeNodesModel>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const attrPos = doc.positionAt(text.indexOf('<SubTree ID="Child"/>') + '<SubTree ID="'.length);
+  const result = ls.getDefinition({ document: doc, position: attrPos });
+
+  assert.equal(result.locations.length, 2);
+  assert.equal(result.locations[0]?.uri, doc.uri);
+  assert.equal(result.locations[1]?.uri, doc.uri);
+  assert.deepEqual(result.locations.map((location) => doc.getText(location.range)).sort(), [
+    'ID="Child"',
+    'ID="Child"',
+  ]);
+  assert.deepEqual(
+    result.locations.map((location) => location.range.start.offset).sort((left, right) => left - right),
+    [
+      text.indexOf('<BehaviorTree ID="Child">') + '<BehaviorTree '.length,
+      text.lastIndexOf('<SubTree ID="Child">') + '<SubTree '.length,
+    ],
+  );
+});
+
 test("definition jumps from generic Action ID usage to concrete model definition", () => {
   const text = `<?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4">
@@ -182,6 +218,33 @@ test("definition jumps to SubTree model target when no BehaviorTree target exist
   assert.equal(result.locations.length, 1);
   assert.equal(result.locations[0]?.uri, doc.uri);
   assert.equal(doc.getText(result.locations[0]?.range), 'ID="Child"');
+});
+
+test("definition jumps from SubTree model definition to matching BehaviorTree", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <SubTree ID="Child"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Child">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <SubTree ID="Child">
+      <input_port name="target" type="std::string"/>
+    </SubTree>
+  </TreeNodesModel>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const idPos = doc.positionAt(text.lastIndexOf('<SubTree ID="Child">') + '<SubTree ID="'.length);
+  const result = ls.getDefinition({ document: doc, position: idPos });
+  const behaviorTreeIdOffset = text.indexOf('<BehaviorTree ID="Child">') + "<BehaviorTree ".length;
+
+  assert.equal(result.locations.length, 1);
+  assert.equal(result.locations[0]?.uri, doc.uri);
+  assert.equal(doc.getText(result.locations[0]?.range), 'ID="Child"');
+  assert.equal(result.locations[0]?.range.start.offset, behaviorTreeIdOffset);
 });
 
 test("definition returns behavior tree and subtree model candidates for ambiguous SubTree targets", () => {
