@@ -59,7 +59,7 @@ function definitionRange(definition: ModelDefinitionFact) {
 }
 
 function definitionDeleteRange(definition: ModelDefinitionFact) {
-  return definition.range ?? definition.model.idRange;
+  return definition.range;
 }
 
 function definitionInfo(definition: ModelDefinitionFact) {
@@ -198,7 +198,7 @@ function duplicateFix(definitions: readonly ModelDefinitionFact[]) {
     kind: "delete-non-canonical-definitions",
     keep: {
       uri: keep.uri,
-      range: definitionDeleteRange(keep),
+      range: definitionRange(keep),
     },
     delete: deleteTargets.map((definition) => ({
       uri: definition.uri,
