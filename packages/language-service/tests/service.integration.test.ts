@@ -125,10 +125,12 @@ test("definition from runtime SubTree includes matching BehaviorTree and SubTree
     'ID="Child"',
   ]);
   assert.deepEqual(
-    result.locations.map((location) => location.range.start.offset).sort((left, right) => left - right),
+    result.locations
+      .map((location) => location.range.start.offset)
+      .sort((left, right) => left - right),
     [
-      text.indexOf('<BehaviorTree ID="Child">') + '<BehaviorTree '.length,
-      text.lastIndexOf('<SubTree ID="Child">') + '<SubTree '.length,
+      text.indexOf('<BehaviorTree ID="Child">') + "<BehaviorTree ".length,
+      text.lastIndexOf('<SubTree ID="Child">') + "<SubTree ".length,
     ],
   );
 });
