@@ -229,8 +229,9 @@ export const RULES = {
   },
   "model/require-output-port-remap": {
     code: RuleCodes.OutputPortRequiresRemap,
-    defaultSeverity: "warn" as Severity,
-    description: "Resolved output ports must write to a blackboard remap.",
+    defaultSeverity: "error" as Severity,
+    description:
+      "Resolved output ports must be explicitly or default-remapped to a blackboard entry.",
   },
   "model/no-childless-control-shape-mismatch": {
     code: RuleCodes.ChildCapableNodeSelfClosing,

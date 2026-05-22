@@ -52,3 +52,43 @@ test("code action removes only undeclared ports from semantic usage", () => {
 
   assert.ok(actions.actions.some((action) => action.title === "Remove unknown port extra"));
 });
+
+test("code action adds missing output remap attribute", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Foo/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Foo">
+      <output_port name="result" type="int"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createTextDocument("file:///test.xml", text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const diagnostics = ls.getDiagnostics({ document: doc }).diagnostics;
+  const actions = ls.getCodeActions({ document: doc, diagnostics });
+
+  assert.ok(actions.actions.some((action) => action.title === "Remap output port result"));
+});
+
+test("code action rewrites literal output binding to blackboard remap", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Foo result="123"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Foo">
+      <output_port name="result" type="int"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createTextDocument("file:///test.xml", text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const diagnostics = ls.getDiagnostics({ document: doc }).diagnostics;
+  const actions = ls.getCodeActions({ document: doc, diagnostics });
+
+  assert.ok(actions.actions.some((action) => action.title === "Remap output port result"));
+});

@@ -679,11 +679,11 @@ Not suppressible.
 
 **Title:** Output port requires remap
 **Diagnostic code:** `BT115_OUTPUT_PORT_REQUIRES_REMAP`
-**Default severity:** warn
+**Default severity:** error
 
 ### Description
 
-Resolved output ports must write to a blackboard remap.
+Resolved output ports must be explicitly or default-remapped to a blackboard entry.
 
 ### Why this matters
 

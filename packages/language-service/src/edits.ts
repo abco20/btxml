@@ -27,10 +27,19 @@ export function addAttributeEdit(
   element: BtXmlElement,
   name: string,
 ): TextEdit {
+  return addAttributeWithValueEdit(document, element, name, "");
+}
+
+export function addAttributeWithValueEdit(
+  document: BtTextDocument,
+  element: BtXmlElement,
+  name: string,
+  value: string,
+): TextEdit {
   const closeOffset = Math.max(
     element.openTagRange.end.offset - (element.selfClosing ? 2 : 1),
     element.openTagRange.start.offset,
   );
   const pos = document.positionAt(closeOffset);
-  return { range: sourceRange(pos, pos), newText: ` ${name}=""` };
+  return { range: sourceRange(pos, pos), newText: ` ${name}="${value}"` };
 }
