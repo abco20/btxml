@@ -158,6 +158,8 @@ export type GroupRepairActionKind =
   | "match-signature"
   | "keep-model-definition"
   | "keep-port-definition"
+  | "match-canonical-model-file"
+  | "keep-canonical-model-file-definition"
   | "manual"
   | "skip";
 

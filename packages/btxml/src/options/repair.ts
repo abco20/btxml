@@ -16,6 +16,8 @@ export const repairOptionsSchema = projectOptionsSchema.pipe(
       json: z.boolean().optional(),
       write: z.boolean().optional(),
       show: z.string().optional(),
+      source: z.enum(["model-files"]).optional(),
+      mode: z.enum(["auto", "sync", "dedupe"]).optional(),
     })
     .merge(filesSchema)
     .transform((options) => ({

@@ -513,3 +513,66 @@ test("built-in models are not editable repair targets", () => {
     }
   }
 });
+
+test("canonical model-files sync adds match-canonical action", () => {
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"><input_port name="goal" type="string"/></Action></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+  const canonicalDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(inlineDoc.document);
+  assert.ok(canonicalDoc.document);
+
+  const documents = [inlineDoc.document, canonicalDoc.document];
+  const workspace = buildSemanticIndex(documents, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      canonicalSource: "model-files",
+      canonicalMode: "sync",
+      includeConventionGroups: true,
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Move");
+  assert.ok(group);
+  assert.ok(group.actions.some((action) => action.kind === "match-canonical-model-file"));
+});
+
+test("single-source equivalent duplicates are included with canonical dedupe action", () => {
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+  const canonicalDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"/></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(inlineDoc.document);
+  assert.ok(canonicalDoc.document);
+
+  const documents = [inlineDoc.document, canonicalDoc.document];
+  const workspace = buildSemanticIndex(documents, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      includeConventionGroups: true,
+      convention: "single-source",
+      canonicalSource: "model-files",
+      canonicalMode: "dedupe",
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Move");
+  assert.ok(group);
+  assert.ok(
+    group.actions.some((action) => action.kind === "keep-canonical-model-file-definition"),
+  );
+});
