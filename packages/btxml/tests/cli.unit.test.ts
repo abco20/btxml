@@ -236,6 +236,60 @@ test("CLI lint --fix exits 1 when non-fixable diagnostics remain", () => {
   assert.ok(result.stdout.includes("fixed 0 problems"));
 });
 
+test("CLI lint --fix removes used-only unused inline definitions", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-used-only-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?>\n<root BTCPP_format="4"><BehaviorTree ID="Main"><UsedAction/></BehaviorTree><TreeNodesModel><Action ID="UsedAction"/><Action ID="UnusedAction"/></TreeNodesModel></root>\n',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stdout.includes("fixed"));
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('Action ID="UsedAction"'));
+  assert.ok(!content.includes('Action ID="UnusedAction"'));
+});
+
+test("CLI lint --fix removes non-canonical duplicates for single-source", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-single-source-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "single-source",
+        files: ["models.xml"],
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "models.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?>\n<TreeNodesModel><Action ID="Move"/></TreeNodesModel>\n',
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?>\n<root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>\n',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(!content.includes('<Action ID="Move"/>'));
+});
+
 test("CLI check --fix exits 2", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-check-fix-"));
   const result = run(["check", "--fix", "tree.xml"], dir);
@@ -503,6 +557,8 @@ test("CLI repair --json includes group kind and action kinds", () => {
     "match-signature",
     "keep-model-definition",
     "keep-port-definition",
+    "match-canonical-model-file",
+    "keep-canonical-model-file-definition",
     "manual",
     "skip",
   ]);
@@ -563,6 +619,115 @@ test("CLI repair reports external model conflict", async () => {
   const result = run(["repair", "tree.xml"], dir);
   assert.equal(result.status, 1, result.stderr);
   assert.ok(result.stdout.includes("BT012_CONFLICTING_NODE_MODEL"), result.stdout);
+});
+
+test("CLI repair --source model-files --mode sync emits canonical sync action", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-repair-source-sync-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { files: ["models.xml"] } }),
+    "utf8",
+  );
+  writeFile(
+    dir,
+    "tree.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><Move/></BehaviorTree>
+  <TreeNodesModel><Action ID="Move"><input_port name="goal" type="string"/></Action></TreeNodesModel>
+</root>`,
+  );
+  writeFile(
+    dir,
+    "models.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+<TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>`,
+  );
+
+  const result = run(
+    ["repair", "--json", "--source", "model-files", "--mode", "sync", "tree.xml"],
+    dir,
+  );
+  assert.equal(result.status, 1, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.ok(
+    parsed.groups.some((group: { actions: Array<{ kind: string }> }) =>
+      group.actions.some((action) => action.kind === "match-canonical-model-file"),
+    ),
+  );
+});
+
+test("CLI repair --source model-files --mode auto uses dedupe under single-source", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-repair-source-auto-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: { convention: "single-source", files: ["models.xml"] },
+    }),
+    "utf8",
+  );
+  writeFile(
+    dir,
+    "tree.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><Move/></BehaviorTree>
+  <TreeNodesModel><Action ID="Move"/></TreeNodesModel>
+</root>`,
+  );
+  writeFile(
+    dir,
+    "models.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+<TreeNodesModel><Action ID="Move"/></TreeNodesModel>`,
+  );
+
+  const result = run(
+    ["repair", "--json", "--source", "model-files", "--mode", "auto", "tree.xml"],
+    dir,
+  );
+  assert.equal(result.status, 1, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.ok(
+    parsed.groups.some((group: { actions: Array<{ kind: string }> }) =>
+      group.actions.some((action) => action.kind === "keep-canonical-model-file-definition"),
+    ),
+  );
+});
+
+test("CLI repair --source model-files --mode sync does not emit group for equivalent duplicate", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-repair-source-sync-equivalent-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: { convention: "allow-unused", files: ["models.xml"] },
+    }),
+    "utf8",
+  );
+  writeFile(
+    dir,
+    "tree.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main"><Move/></BehaviorTree>
+  <TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>
+</root>`,
+  );
+  writeFile(
+    dir,
+    "models.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+<TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>`,
+  );
+
+  const result = run(
+    ["repair", "--json", "--source", "model-files", "--mode", "sync", "tree.xml"],
+    dir,
+  );
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.groups.length, 0);
 });
 
 test("CLI repair --show MoveBase.speed matches duplicate port group", () => {

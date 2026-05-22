@@ -253,6 +253,21 @@ export const RULES = {
     defaultSeverity: "error" as Severity,
     description: "Node model definitions must agree on kind and port shape.",
   },
+  "model/no-conflicting-kind-for-id": {
+    code: RuleCodes.ConflictingModelKind,
+    defaultSeverity: "error",
+    description: "A model ID must not be defined with different kinds.",
+  },
+  "model/no-unused-definition": {
+    code: RuleCodes.UnusedModelDefinition,
+    defaultSeverity: "error",
+    description: "Inline model definitions should be used in the same BT XML file.",
+  },
+  "model/no-duplicate-definition": {
+    code: RuleCodes.DuplicateModelDefinition,
+    defaultSeverity: "error",
+    description: "A user-defined model (ID, kind) should be defined only once.",
+  },
   "suppression/no-unused": {
     code: RuleCodes.UnusedSuppression,
     defaultSeverity: "warn" as Severity,

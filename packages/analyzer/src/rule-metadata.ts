@@ -220,6 +220,37 @@ const RuleMetadataDetailsByCode: Record<string, Omit<RuleMetadata, "defaultSever
     suppressible: false,
     fix: "Run `btxmlc repair` to inspect conflicts. Run `btxmlc repair --write` to resolve the conflict interactively.",
   },
+  [RuleCodes.ConflictingModelKind]: {
+    code: RuleCodes.ConflictingModelKind,
+    title: "Conflicting model kind for ID",
+    description: "The same model ID must not be defined with different node kinds.",
+    suppressible: false,
+    invalidExample: '<TreeNodesModel><Action ID="Foo"/><Condition ID="Foo"/></TreeNodesModel>',
+    validExample: '<TreeNodesModel><Action ID="Foo"/></TreeNodesModel>',
+  },
+  [RuleCodes.UnusedModelDefinition]: {
+    code: RuleCodes.UnusedModelDefinition,
+    title: "Unused inline model definition",
+    description:
+      "When models.convention is used-only, inline Action/Condition/Decorator/Control definitions must be used in the same file.",
+    suppressible: false,
+    invalidExample:
+      '<root BTCPP_format="4"><BehaviorTree ID="Main"><Run/></BehaviorTree><TreeNodesModel><Action ID="Run"/><Action ID="Unused"/></TreeNodesModel></root>',
+    validExample:
+      '<root BTCPP_format="4"><BehaviorTree ID="Main"><Run/></BehaviorTree><TreeNodesModel><Action ID="Run"/></TreeNodesModel></root>',
+    fix: "Run `btxmlc lint --fix` to remove unused inline model definitions when safe.",
+  },
+  [RuleCodes.DuplicateModelDefinition]: {
+    code: RuleCodes.DuplicateModelDefinition,
+    title: "Duplicate model definition",
+    description:
+      "When models.convention is single-source, each user-defined (ID, kind) model definition should appear only once.",
+    suppressible: false,
+    invalidExample:
+      '<!-- a.xml --><TreeNodesModel><Action ID="Move"/></TreeNodesModel>\n<!-- b.xml --><TreeNodesModel><Action ID="Move"/></TreeNodesModel>',
+    validExample: '<TreeNodesModel><Action ID="Move"/></TreeNodesModel>',
+    fix: "Run `btxmlc lint --fix` to delete non-canonical duplicates when safe.",
+  },
   [RuleCodes.DuplicateBehaviorTreeIdInWorkspace]: {
     code: RuleCodes.DuplicateBehaviorTreeIdInWorkspace,
     title: "Duplicate BehaviorTree ID in workspace",

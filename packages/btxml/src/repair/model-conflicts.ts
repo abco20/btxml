@@ -4,7 +4,8 @@ import type { BtxmlProject } from "@btxml/project";
 import {
   type SemanticIndex,
   getAllDocumentModels,
-  getAllNodeModelDefinitions,
+  getModelDefinitionFacts,
+  groupModelDefinitionsById,
 } from "@btxml/semantic";
 import type { BtDocument } from "@btxml/syntax";
 import {
@@ -24,6 +25,13 @@ import type {
   SignatureVariant,
 } from "./types.ts";
 import { collectNodeModelUsageEvidence, computeUsageImpact } from "./usage-evidence.ts";
+
+type RepairGroupingOptions = {
+  includeConventionGroups?: boolean;
+  convention?: "allow-unused" | "used-only" | "single-source";
+  canonicalSource?: "model-files";
+  canonicalMode?: "sync" | "dedupe";
+};
 
 function countPairwiseConflicts(models: TreeNodeModelDef[]): number {
   let count = 0;
@@ -145,6 +153,7 @@ export function formatEditSummary(summary: RepairEditSummary): string {
 function buildGroupRepairActions(params: {
   group: Omit<ModelConflictGroup, "actions" | "usageImpacts">;
   documents: BtDocument[];
+  options?: RepairGroupingOptions;
 }): GroupRepairAction[] {
   const actions: GroupRepairAction[] = [];
   const { group, documents } = params;
@@ -181,7 +190,10 @@ function buildGroupRepairActions(params: {
         targetSignatureId: signature.id,
         workspaceEdits: targetEdits,
         editSummary: buildEditSummary(targetEdits),
-        usageImpact: computeUsageImpact({ signature, usageEvidence: group.usageEvidence }),
+        usageImpact: computeUsageImpact({
+          signature,
+          usageEvidence: group.usageEvidence,
+        }),
       });
     }
   } else if (group.kind === "duplicate-model-id") {
@@ -247,6 +259,98 @@ function buildGroupRepairActions(params: {
         workspaceEdits: deleteEdits,
         editSummary: buildEditSummary(deleteEdits),
       });
+    }
+  }
+
+  if (params.options?.canonicalSource === "model-files") {
+    const kinds = new Set(group.definitions.map((definition) => definition.kind));
+    if (kinds.size > 1) {
+      // same ID with different kinds must remain manual (no deterministic canonical action)
+      return [
+        ...actions,
+        {
+          id: "manual",
+          title: "Manual update required",
+          description: "No editable definitions are available for automatic repair.",
+          kind: "manual",
+          applicable: false,
+          workspaceEdits: [],
+          editSummary: { files: 0, definitions: 0, edits: 0, affectedUris: [] },
+        },
+        {
+          id: "skip",
+          title: "Skip this model group",
+          description: "Do not change any definitions for this node model.",
+          kind: "skip",
+          applicable: false,
+          workspaceEdits: [],
+          editSummary: { files: 0, definitions: 0, edits: 0, affectedUris: [] },
+        },
+      ];
+    }
+
+    const canonicalDefinitions = group.definitions.filter(
+      (definition) => definition.sourceKind === "external-tree-nodes-model",
+    );
+
+    if (canonicalDefinitions.length === 1) {
+      const canonicalDefinition = canonicalDefinitions[0];
+      const canonicalSignature = group.signatures.find(
+        (signature) => signature.id === canonicalDefinition.signatureId,
+      );
+
+      if (canonicalSignature) {
+        if (params.options.canonicalMode === "sync") {
+          const syncEdits = buildMatchSignatureEdits({
+            targetSignature: canonicalSignature,
+            allDefinitions: group.definitions,
+            documents,
+          });
+
+          if (syncEdits.length > 0) {
+            actions.push({
+              id: "match-canonical-model-file",
+              title: "Make definitions match canonical model file",
+              description:
+                "Replace editable non-canonical definitions with the canonical model-file definition.",
+              kind: "match-canonical-model-file",
+              applicable: true,
+              targetSignatureId: canonicalSignature.id,
+              workspaceEdits: syncEdits,
+              editSummary: buildEditSummary(syncEdits),
+              usageImpact: computeUsageImpact({
+                signature: canonicalSignature,
+                usageEvidence: group.usageEvidence,
+              }),
+            });
+          }
+        }
+
+        if (params.options.canonicalMode === "dedupe") {
+          const dedupeEdits = buildDeleteDuplicateEdits({
+            keepDefinition: canonicalDefinition,
+            allDefinitions: group.definitions,
+          });
+
+          if (dedupeEdits.length > 0) {
+            actions.push({
+              id: "keep-canonical-model-file-definition",
+              title: "Keep canonical model file definition and delete duplicates",
+              description:
+                "Delete editable non-canonical duplicate definitions and keep the canonical model-file definition.",
+              kind: "keep-canonical-model-file-definition",
+              applicable: true,
+              targetSignatureId: canonicalSignature.id,
+              workspaceEdits: dedupeEdits,
+              editSummary: buildEditSummary(dedupeEdits),
+              usageImpact: computeUsageImpact({
+                signature: canonicalSignature,
+                usageEvidence: group.usageEvidence,
+              }),
+            });
+          }
+        }
+      }
     }
   }
 
@@ -366,12 +470,20 @@ function createModelGroup(params: {
   documents: BtDocument[];
   code: ModelConflictCode;
   kind?: "model-signature-conflict" | "duplicate-model-id";
+  forceIncludeEquivalent?: boolean;
+  options?: RepairGroupingOptions;
 }): ModelConflictGroup | undefined {
   const { nodeId, models, documents, code } = params;
   if (models.length < 2) return undefined;
 
   const signatures = groupModelsBySignature(models);
-  if (signatures.length < 2 && code !== "BT006_DUPLICATE_NODE_MODEL_ID") return undefined;
+  if (
+    signatures.length < 2 &&
+    code !== "BT006_DUPLICATE_NODE_MODEL_ID" &&
+    !params.forceIncludeEquivalent
+  ) {
+    return undefined;
+  }
 
   const definitions = signatures.flatMap((signature) => signature.definitions);
   const pairwiseConflictCount = countPairwiseConflicts(models);
@@ -390,6 +502,53 @@ function createModelGroup(params: {
       severity = result.severity;
     }
   } else {
+    if (signatures.length < 2 && params.forceIncludeEquivalent) {
+      codes = [code];
+      severity = "error";
+      const candidatePorts = [
+        ...new Set(
+          definitions.flatMap((definition) => definition.model.ports.map((port) => port.name)),
+        ),
+      ];
+      const usageEvidence = collectNodeModelUsageEvidence({
+        nodeId,
+        documents,
+        candidatePorts,
+      });
+      const groupBase: Omit<ModelConflictGroup, "actions" | "usageImpacts"> = {
+        id: `model-group:${nodeId}:equivalent`,
+        kind: params.kind ?? "model-signature-conflict",
+        nodeId,
+        displayName: nodeId,
+        codes,
+        severity,
+        definitions,
+        signatures,
+        differences: [],
+        usageEvidence,
+        differencePattern: {
+          key: "equivalent",
+          label: "equivalent signatures",
+        },
+        pairwiseConflictCount,
+      };
+
+      return {
+        ...groupBase,
+        actions: buildGroupRepairActions({
+          group: groupBase,
+          documents,
+          options: params.options,
+        }),
+        usageImpacts: signatures.map((signature) =>
+          computeUsageImpact({
+            signature,
+            usageEvidence: groupBase.usageEvidence,
+          }),
+        ),
+      };
+    }
+
     const signatureDiffs = buildSignatureDifferences(signatures);
     const result = determineCodesAndSeverity(signatureDiffs);
     codes = result.codes;
@@ -402,7 +561,11 @@ function createModelGroup(params: {
       definitions.flatMap((definition) => definition.model.ports.map((port) => port.name)),
     ),
   ];
-  const usageEvidence = collectNodeModelUsageEvidence({ nodeId, documents, candidatePorts });
+  const usageEvidence = collectNodeModelUsageEvidence({
+    nodeId,
+    documents,
+    candidatePorts,
+  });
   const differences = buildSignatureDifferences(signatures);
   const allDiffs = differences.flatMap((difference) => difference.differences);
   const patternKey = getDifferencePatternKey(allDiffs);
@@ -429,7 +592,11 @@ function createModelGroup(params: {
 
   return {
     ...groupBase,
-    actions: buildGroupRepairActions({ group: groupBase, documents }),
+    actions: buildGroupRepairActions({
+      group: groupBase,
+      documents,
+      options: params.options,
+    }),
     usageImpacts: signatures.map((signature) => computeUsageImpact({ signature, usageEvidence })),
   };
 }
@@ -595,7 +762,12 @@ function buildDuplicatePortGroups(
       }
       for (const [portName, ports] of portsByName) {
         if (ports.length < 2) continue;
-        const group = createDuplicatePortGroup({ model, portName, ports, documents });
+        const group = createDuplicatePortGroup({
+          model,
+          portName,
+          ports,
+          documents,
+        });
         if (group) groups.push(group);
       }
     }
@@ -620,12 +792,16 @@ function collectNodeIdsWithDuplicateModels(workspace: SemanticIndex): Set<string
 }
 
 function collectAllLayerModelsById(workspace: SemanticIndex): Map<string, TreeNodeModelDef[]> {
+  const groupedFacts = groupModelDefinitionsById(getModelDefinitionFacts(workspace));
   const byId = new Map<string, TreeNodeModelDef[]>();
-  for (const model of getAllNodeModelDefinitions(workspace)) {
-    const list = byId.get(model.id) ?? [];
-    list.push(model);
-    byId.set(model.id, list);
+
+  for (const [id, facts] of groupedFacts) {
+    byId.set(
+      id,
+      facts.map((fact) => fact.model),
+    );
   }
+
   return byId;
 }
 
@@ -633,6 +809,7 @@ export function buildModelConflictRepairGroups(input: {
   documents: BtDocument[];
   workspace: SemanticIndex;
   project?: BtxmlProject;
+  options?: RepairGroupingOptions;
 }): ModelConflictGroup[] {
   const groups: ModelConflictGroup[] = [];
   const nodeIdsWithLocalDuplicates = collectNodeIdsWithDuplicateModels(input.workspace);
@@ -644,7 +821,12 @@ export function buildModelConflictRepairGroups(input: {
       nodeId,
       models,
       documents: input.documents,
-      code: "BT012_CONFLICTING_NODE_MODEL",
+      code:
+        input.options?.includeConventionGroups === true
+          ? "BT122_DUPLICATE_MODEL_DEFINITION"
+          : "BT012_CONFLICTING_NODE_MODEL",
+      forceIncludeEquivalent: input.options?.includeConventionGroups === true,
+      options: input.options,
     });
     if (group) groups.push(group);
   }

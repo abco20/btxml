@@ -1,8 +1,8 @@
 import type {
   BehaviorTreeDef,
-  BlackboardScope,
   BtDocumentModel,
   ModelAugmentationFile,
+  NodeUsageDef,
   PortDef,
   SubTreeReference,
   TreeNodeModelDef,
@@ -51,6 +51,22 @@ export function getSubTreeReferences(index: SemanticIndex, id: string): SubTreeR
 
 export function getAllSubTreeReferences(index: SemanticIndex): SubTreeReference[] {
   return getAllDocumentModels(index).flatMap((model) => model.subtreeReferences);
+}
+
+export function getAllNodeUsages(index: SemanticIndex): NodeUsageDef[] {
+  return getAllDocumentModels(index).flatMap((model) => model.nodeUsages);
+}
+
+export function getNodeUsagesByUri(index: SemanticIndex): Map<string, NodeUsageDef[]> {
+  const grouped = new Map<string, NodeUsageDef[]>();
+
+  for (const usage of getAllNodeUsages(index)) {
+    const list = grouped.get(usage.uri) ?? [];
+    list.push(usage);
+    grouped.set(usage.uri, list);
+  }
+
+  return grouped;
 }
 
 export function getBehaviorTreeIds(index: SemanticIndex): string[] {

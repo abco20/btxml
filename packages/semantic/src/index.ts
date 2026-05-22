@@ -22,6 +22,8 @@ export {
   getAllBehaviorTreeDefinitions,
   getSubTreeReferences,
   getAllSubTreeReferences,
+  getAllNodeUsages,
+  getNodeUsagesByUri,
   hasBehaviorTree,
   getNodeModel,
   getNodeModelDefinitions,
@@ -39,6 +41,12 @@ export {
   getModelConflicts,
   normalizeTypeName,
 } from "./queries.js";
+
+export {
+  getModelDefinitionFacts,
+  groupModelDefinitionsById,
+  groupModelDefinitionsByKey,
+} from "./model-definition-facts.js";
 
 export { resolveSubTreeTarget } from "./subtree-resolution.js";
 
@@ -62,6 +70,7 @@ export type {
   PortDef,
   ResolvedTypeDefinition,
   TreeNodeModelDef,
+  NodeUsageDef,
   TypeRegistry,
   BehaviorTreeDef as BehaviorTreeDefinition,
   BtDocumentModel as DocumentModelFact,
@@ -69,6 +78,11 @@ export type {
   ResolveSubTreeInput,
   WorkspaceInput,
 } from "./types.js";
+
+export type {
+  ModelDefinitionFact,
+  ModelDefinitionKey,
+} from "./model-definition-facts.js";
 
 export type { BlackboardScope } from "./queries.js";
 

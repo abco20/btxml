@@ -48,7 +48,9 @@ test("buildModelConflictRepairGroups groups BT012 conflicts by nodeId", () => {
   assert.ok(docA.document);
   assert.ok(docB.document);
   const docs = [docA.document, docB.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   assert.equal(groups.length, 1);
   assert.equal(groups[0].nodeId, "MoveBase");
@@ -78,7 +80,9 @@ test("buildModelConflictRepairGroups groups BT107 default-only conflicts", () =>
   assert.ok(docA.document);
   assert.ok(docB.document);
   const docs = [docA.document, docB.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   assert.equal(groups.length, 1);
   assert.equal(groups[0].nodeId, "MoveBase");
@@ -100,7 +104,9 @@ test("buildModelConflictRepairGroups produces BT006 for duplicate model ID in sa
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   assert.ok(
     groups.some((g: ModelConflictGroup) => g.codes.includes("BT006_DUPLICATE_NODE_MODEL_ID")),
@@ -127,7 +133,9 @@ test("buildModelConflictRepairGroups produces BT008 for duplicate port name in s
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   assert.ok(groups.some((g: ModelConflictGroup) => g.codes.includes("BT008_DUPLICATE_PORT_NAME")));
   const bt008 = groups.find((g: ModelConflictGroup) =>
@@ -156,7 +164,9 @@ test("buildModelConflictRepairGroups suppresses BT012 when local duplicate exist
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   assert.ok(groups.some((g: ModelConflictGroup) => g.kind === "duplicate-model-id"));
   assert.ok(!groups.some((g: ModelConflictGroup) => g.kind === "model-signature-conflict"));
@@ -173,7 +183,9 @@ test("buildModelConflictRepairGroups does not emit empty match-signature actions
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   for (const group of groups) {
     for (const action of group.actions) {
@@ -198,7 +210,9 @@ test("BT008 interleaved duplicate port keeps correct variant", () => {
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   const bt008 = groups.find((g) => g.codes.includes("BT008_DUPLICATE_PORT_NAME"));
   assert.ok(bt008, "expected BT008 group");
@@ -235,7 +249,9 @@ test("BT008 three duplicate ports produces A/B/C variants", () => {
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   const bt008 = groups.find((g) => g.codes.includes("BT008_DUPLICATE_PORT_NAME"));
   assert.ok(bt008, "expected BT008 group");
@@ -257,7 +273,9 @@ test("BT008 identical duplicate ports shows single signature with multiple locat
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   const bt008 = groups.find((g) => g.codes.includes("BT008_DUPLICATE_PORT_NAME"));
   assert.ok(bt008, "expected BT008 group");
@@ -287,7 +305,9 @@ test("usage 0 displays no usage evidence available", () => {
   assert.ok(docA.document);
   assert.ok(docB.document);
   const docs = [docA.document, docB.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   const group = groups.find((g) => g.nodeId === "SetTargetValue");
   assert.ok(group);
@@ -308,7 +328,9 @@ test("BT006 different duplicate model keep variant A deletes other", () => {
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   const bt006 = groups.find((g) => g.codes.includes("BT006_DUPLICATE_NODE_MODEL_ID"));
   assert.ok(bt006, "expected BT006 group");
@@ -344,7 +366,9 @@ test("BT006 identical duplicate model deletes duplicate copy", () => {
 </root>`);
   assert.ok(doc.document);
   const docs = [doc.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   const bt006 = groups.find((g) => g.codes.includes("BT006_DUPLICATE_NODE_MODEL_ID"));
   assert.ok(bt006, "expected BT006 group");
@@ -374,7 +398,9 @@ test("repair actions set applicable correctly", () => {
   assert.ok(docA.document);
   assert.ok(docB.document);
   const docs = [docA.document, docB.document];
-  const workspace = buildSemanticIndex(docs, { config: DEFAULT_RESOLVED_BTXML_CONFIG }).index;
+  const workspace = buildSemanticIndex(docs, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
   const groups = buildModelConflictRepairGroups({ documents: docs, workspace });
   const group = groups[0];
   assert.ok(group);
@@ -474,7 +500,10 @@ test("config-inline conflicts are included in repair groups", () => {
     },
   }).index;
 
-  const groups = buildModelConflictRepairGroups({ documents: [doc.document], workspace });
+  const groups = buildModelConflictRepairGroups({
+    documents: [doc.document],
+    workspace,
+  });
   const group = groups.find((g) => g.nodeId === "Move");
   assert.ok(group);
   assert.ok(group.definitions.some((d) => d.sourceKind === "config"));
@@ -488,7 +517,10 @@ test("generic SubTree ports do not create repair groups", () => {
   const workspace = buildSemanticIndex([doc.document], {
     config: DEFAULT_RESOLVED_BTXML_CONFIG,
   }).index;
-  const groups = buildModelConflictRepairGroups({ documents: [doc.document], workspace });
+  const groups = buildModelConflictRepairGroups({
+    documents: [doc.document],
+    workspace,
+  });
   assert.equal(
     groups.some((g) => g.nodeId === "SubTree" || g.displayName.includes("SubTree._autoremap")),
     false,
@@ -503,7 +535,10 @@ test("built-in models are not editable repair targets", () => {
   const workspace = buildSemanticIndex([doc.document], {
     config: DEFAULT_RESOLVED_BTXML_CONFIG,
   }).index;
-  const groups = buildModelConflictRepairGroups({ documents: [doc.document], workspace });
+  const groups = buildModelConflictRepairGroups({
+    documents: [doc.document],
+    workspace,
+  });
   for (const group of groups) {
     for (const action of group.actions) {
       for (const edit of action.workspaceEdits) {
@@ -512,4 +547,109 @@ test("built-in models are not editable repair targets", () => {
       }
     }
   }
+});
+
+test("canonical model-files sync adds match-canonical action", () => {
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"><input_port name="goal" type="string"/></Action></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+  const canonicalDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(inlineDoc.document);
+  assert.ok(canonicalDoc.document);
+
+  const documents = [inlineDoc.document, canonicalDoc.document];
+  const workspace = buildSemanticIndex(documents, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      canonicalSource: "model-files",
+      canonicalMode: "sync",
+      includeConventionGroups: true,
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Move");
+  assert.ok(group);
+  assert.ok(group.actions.some((action) => action.kind === "match-canonical-model-file"));
+});
+
+test("single-source equivalent duplicates are included with canonical dedupe action", () => {
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+  const canonicalDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"/></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(inlineDoc.document);
+  assert.ok(canonicalDoc.document);
+
+  const documents = [inlineDoc.document, canonicalDoc.document];
+  const workspace = buildSemanticIndex(documents, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      includeConventionGroups: true,
+      convention: "single-source",
+      canonicalSource: "model-files",
+      canonicalMode: "dedupe",
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Move");
+  assert.ok(group);
+  assert.ok(group.codes.includes("BT122_DUPLICATE_MODEL_DEFINITION"));
+  assert.ok(group.actions.some((action) => action.kind === "keep-canonical-model-file-definition"));
+});
+
+test("canonical source does not add canonical actions for kind conflicts", () => {
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Foo/></BehaviorTree><TreeNodesModel><Condition ID="Foo"/></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+  const canonicalDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Foo"/></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(inlineDoc.document);
+  assert.ok(canonicalDoc.document);
+
+  const documents = [inlineDoc.document, canonicalDoc.document];
+  const workspace = buildSemanticIndex(documents, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      canonicalSource: "model-files",
+      canonicalMode: "sync",
+      includeConventionGroups: true,
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Foo");
+  assert.ok(group);
+  assert.equal(
+    group.actions.some(
+      (action) =>
+        action.kind === "match-canonical-model-file" ||
+        action.kind === "keep-canonical-model-file-definition",
+    ),
+    false,
+  );
 });

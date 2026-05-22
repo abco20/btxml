@@ -448,6 +448,79 @@ Violations can break runtime resolution, hide project issues, or reduce editor a
 <!-- btxml-disable-next-line BT108_CHILD_CAPABLE_NODE_SELF_CLOSING reason: ... -->
 ```
 
+## model/no-conflicting-kind-for-id
+
+**Title:** Conflicting model kind for ID
+**Diagnostic code:** `BT120_CONFLICTING_MODEL_KIND`
+**Default severity:** error
+
+### Description
+
+The same model ID must not be defined with different node kinds.
+
+### Why this matters
+
+Violations can break runtime resolution, hide project issues, or reduce editor and CI signal.
+
+### Invalid example
+
+```xml
+<TreeNodesModel><Action ID="Foo"/><Condition ID="Foo"/></TreeNodesModel>
+```
+
+### Valid example / fix
+
+```xml
+<TreeNodesModel><Action ID="Foo"/></TreeNodesModel>
+```
+
+### Config override
+
+```json
+{"linter":{"rules":{"model/no-conflicting-kind-for-id":"warn"}}}
+```
+
+### Suppression
+
+Not suppressible.
+
+## model/no-duplicate-definition
+
+**Title:** Duplicate model definition
+**Diagnostic code:** `BT122_DUPLICATE_MODEL_DEFINITION`
+**Default severity:** error
+
+### Description
+
+When models.convention is single-source, each user-defined (ID, kind) model definition should appear only once.
+
+### Why this matters
+
+Violations can break runtime resolution, hide project issues, or reduce editor and CI signal.
+
+### Invalid example
+
+```xml
+<!-- a.xml --><TreeNodesModel><Action ID="Move"/></TreeNodesModel>
+<!-- b.xml --><TreeNodesModel><Action ID="Move"/></TreeNodesModel>
+```
+
+### Valid example / fix
+
+```xml
+<TreeNodesModel><Action ID="Move"/></TreeNodesModel>
+```
+
+### Config override
+
+```json
+{"linter":{"rules":{"model/no-duplicate-definition":"warn"}}}
+```
+
+### Suppression
+
+Not suppressible.
+
 ## model/no-leaf-block-shape
 
 **Title:** Leaf node uses block shape
@@ -565,6 +638,42 @@ Violations can break runtime resolution, hide project issues, or reduce editor a
 ```xml
 <!-- btxml-disable-next-line BT102_UNKNOWN_PORT reason: ... -->
 ```
+
+## model/no-unused-definition
+
+**Title:** Unused inline model definition
+**Diagnostic code:** `BT121_UNUSED_MODEL_DEFINITION`
+**Default severity:** error
+
+### Description
+
+When models.convention is used-only, inline Action/Condition/Decorator/Control definitions must be used in the same file.
+
+### Why this matters
+
+Violations can break runtime resolution, hide project issues, or reduce editor and CI signal.
+
+### Invalid example
+
+```xml
+<root BTCPP_format="4"><BehaviorTree ID="Main"><Run/></BehaviorTree><TreeNodesModel><Action ID="Run"/><Action ID="Unused"/></TreeNodesModel></root>
+```
+
+### Valid example / fix
+
+```xml
+<root BTCPP_format="4"><BehaviorTree ID="Main"><Run/></BehaviorTree><TreeNodesModel><Action ID="Run"/></TreeNodesModel></root>
+```
+
+### Config override
+
+```json
+{"linter":{"rules":{"model/no-unused-definition":"warn"}}}
+```
+
+### Suppression
+
+Not suppressible.
 
 ## model/require-output-port-remap
 

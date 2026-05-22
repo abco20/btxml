@@ -28,7 +28,7 @@ import {
   printRepairJson,
 } from "../repair-output.ts";
 import { buildModelConflictRepairGroups, formatEditSummary } from "../repair/model-conflicts.ts";
-import type { GroupRepairAction, ModelConflictGroup } from "../repair/types.ts";
+import type { ModelConflictGroup } from "../repair/types.ts";
 import { groupWorkspaceEditsByUri } from "../repair/workspace-edit.ts";
 
 type RepairRunOptions = {
@@ -36,6 +36,8 @@ type RepairRunOptions = {
   write?: boolean;
   quiet?: boolean;
   show?: string;
+  source?: "model-files";
+  mode?: "auto" | "sync" | "dedupe";
 };
 
 function selectGroupByShow(
@@ -124,6 +126,17 @@ export async function runRepair(
   if (!resolvedConfig) {
     throw new Error("Invariant: resolvedConfig is required");
   }
+
+  const canonicalSource = options.source;
+  const explicitMode =
+    options.mode === "dedupe" || options.mode === "sync" ? options.mode : undefined;
+  const canonicalMode =
+    canonicalSource === "model-files"
+      ? (explicitMode ?? (resolvedConfig.models.convention === "single-source" ? "dedupe" : "sync"))
+      : undefined;
+  const includeConventionGroups =
+    resolvedConfig.models.convention === "single-source" || canonicalMode === "dedupe";
+
   const loaded = await loadProjectDocuments(project, host);
   let { documents } = loaded;
   let { externalModelDocuments } = loaded;
@@ -145,6 +158,12 @@ export async function runRepair(
     documents: repairDocuments,
     workspace: semantic.semanticIndex,
     project,
+    options: {
+      includeConventionGroups,
+      convention: resolvedConfig.models.convention,
+      canonicalSource,
+      canonicalMode,
+    },
   });
 
   if (options.show) {
@@ -196,6 +215,12 @@ export async function runRepair(
         documents: reloadedRepairDocuments,
         workspace: semantic.semanticIndex,
         project,
+        options: {
+          includeConventionGroups,
+          convention: resolvedConfig.models.convention,
+          canonicalSource,
+          canonicalMode,
+        },
       });
 
       const remaining = groups.filter((g) => !skippedGroupIds.has(g.id));
@@ -205,7 +230,10 @@ export async function runRepair(
 
       if (options.output === "human" && !options.quiet) {
         console.log(
-          printRepairGroupDetail(group, { index: groups.indexOf(group) + 1, total: groups.length }),
+          printRepairGroupDetail(group, {
+            index: groups.indexOf(group) + 1,
+            total: groups.length,
+          }),
         );
       }
 
@@ -272,7 +300,11 @@ export async function runRepair(
 
       // Confirm before applying
       const confirmChoices = [
-        { label: "Apply", value: "apply", description: formatEditSummary(action.editSummary) },
+        {
+          label: "Apply",
+          value: "apply",
+          description: formatEditSummary(action.editSummary),
+        },
         { label: "Show edit preview", value: "preview", description: "" },
         { label: "Back", value: "back", description: "" },
       ];
@@ -310,6 +342,12 @@ export async function runRepair(
       ]),
       workspace: semantic.semanticIndex,
       project,
+      options: {
+        includeConventionGroups,
+        convention: resolvedConfig.models.convention,
+        canonicalSource,
+        canonicalMode,
+      },
     });
 
     if (quitRequested && groups.length > 0 && options.output === "human" && !options.quiet) {
@@ -351,7 +389,9 @@ export const repairCommand: CommandModule = {
       .option("output", { type: "string" })
       .option("json", { type: "boolean" })
       .option("write", { type: "boolean" })
-      .option("show", { type: "string" }),
+      .option("show", { type: "string" })
+      .option("source", { type: "string" })
+      .option("mode", { type: "string" }),
   handler: async (argv) => {
     const options = parseCommandOptions(repairOptionsSchema, argv);
     process.exitCode = await runRepairCommand(options);

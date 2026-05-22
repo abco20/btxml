@@ -15,7 +15,6 @@ import { buildBtDocumentView } from "@btxml/semantic/ast-view";
 import type { BtDocument } from "@btxml/syntax";
 import type { IncludeIssue, SuppressionIssue } from "../analyzer-facts.js";
 import { loadExternalTreeNodesModelFile } from "../documents.js";
-import type { ProjectHost } from "../host.js";
 import type {
   BuildProjectIndexInput,
   ProjectIndex,
@@ -24,6 +23,7 @@ import type {
 import { getProjectResolutionMode } from "../internal/entrypoints.js";
 import { resolveIncludeGraph } from "../internal/includes.js";
 import { loadProjectModelAugmentations } from "../model-augmentations.js";
+import { validateModelConventions } from "../model-conventions.js";
 import { loadProjectNodeModels } from "../node-definitions.js";
 import { asInternalProject } from "../project-handle.js";
 import { relativeUri } from "../uri.js";
@@ -78,7 +78,10 @@ export async function buildProjectIndex(
   const externalDocs = input.externalModelDocuments;
   const augmentations = input.augmentations;
 
-  const nodeDefinitions = await loadProjectNodeModels({ project: input.project, host: input.host });
+  const nodeDefinitions = await loadProjectNodeModels({
+    project: input.project,
+    host: input.host,
+  });
   diagnostics.push(...nodeDefinitions.diagnostics);
   const nodeDefinitionModels = nodeDefinitions.nodeModels;
 
@@ -106,7 +109,13 @@ export async function buildProjectIndex(
     includeIssuesByUri: groupIncludeIssues(graphResult?.issues ?? []),
     suppressionIssuesByUri: new Map<string, SuppressionIssue[]>(),
   };
-  diagnostics.push(...semanticResult.diagnostics);
+  diagnostics.push(
+    ...semanticResult.diagnostics,
+    ...validateModelConventions({
+      config: resolvedConfig,
+      index: semanticResult.index,
+    }),
+  );
   const reachableBehaviorTreesById = new Map(
     getBehaviorTreeIds(semanticResult.index).map((id) => [
       id,

@@ -8,6 +8,7 @@ export type {
   RawResolverConfig,
   ResolvedResolverConfig,
   RawModelsConfig,
+  ModelConvention,
   ResolvedModelsConfig,
   RawLinterSuppressionsConfig,
   ResolvedLinterSuppressionsConfig,

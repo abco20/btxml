@@ -42,6 +42,7 @@ export const DEFAULT_RESOLVED_BTXML_CONFIG: ResolvedBtxmlConfig = {
     augmentations: [],
     definitions: [],
     inline: {},
+    convention: "allow-unused",
   },
   linter: {
     enabled: true,

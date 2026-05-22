@@ -31,6 +31,7 @@ function resolvedModels(partial: Partial<ResolvedModelsConfig> = {}): ResolvedMo
     augmentations: [],
     definitions: [],
     inline: {},
+    convention: "allow-unused",
     ...partial,
   };
 }

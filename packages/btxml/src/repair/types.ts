@@ -92,6 +92,7 @@ export type SerializablePortSignature = {
 export type ModelConflictCode =
   | "BT012_CONFLICTING_NODE_MODEL"
   | "BT107_CONFLICTING_PORT_DEFAULT"
+  | "BT122_DUPLICATE_MODEL_DEFINITION"
   | "BT006_DUPLICATE_NODE_MODEL_ID"
   | "BT008_DUPLICATE_PORT_NAME";
 
@@ -158,6 +159,8 @@ export type GroupRepairActionKind =
   | "match-signature"
   | "keep-model-definition"
   | "keep-port-definition"
+  | "match-canonical-model-file"
+  | "keep-canonical-model-file-definition"
   | "manual"
   | "skip";
 

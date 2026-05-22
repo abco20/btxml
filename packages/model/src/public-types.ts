@@ -155,6 +155,15 @@ export type SubTreeReference = {
   readonly parentBehaviorTreeId?: string;
 };
 
+export type NodeUsageDef = {
+  readonly id: string;
+  readonly uri: string;
+  readonly kind: "node" | "SubTree";
+  readonly range?: SourceRange;
+  readonly elementRange?: SourceRange;
+  readonly parentBehaviorTreeId?: string;
+};
+
 export type DocumentBlackboardReference = {
   readonly raw: string;
   readonly key: string;
@@ -181,6 +190,7 @@ export type BtDocumentModel = {
   readonly kind: BtDocumentModelKind;
   readonly behaviorTrees: readonly BehaviorTreeDef[];
   readonly subtreeReferences: readonly SubTreeReference[];
+  readonly nodeUsages: readonly NodeUsageDef[];
   readonly blackboardReferences: readonly DocumentBlackboardReference[];
   readonly treeNodesModel: readonly TreeNodeModelDef[];
   readonly genericSubTreePorts: readonly PortDef[];

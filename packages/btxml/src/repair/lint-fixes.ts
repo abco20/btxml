@@ -1,7 +1,24 @@
 import type { Diagnostic, WorkspaceEdit } from "@btxml/foundation";
 import type { BtDocument } from "@btxml/syntax";
 
-export function getSafeLintFixes(input: {
+type TextEdit = WorkspaceEdit["edits"][number];
+
+function mergeWorkspaceEdits(edits: WorkspaceEdit[]): WorkspaceEdit[] {
+  const byUri = new Map<string, TextEdit[]>();
+
+  for (const edit of edits) {
+    const list = byUri.get(edit.uri) ?? [];
+    list.push(...edit.edits);
+    byUri.set(edit.uri, list);
+  }
+
+  return [...byUri.entries()].map(([uri, uriEdits]) => ({
+    uri,
+    edits: [...uriEdits].sort((left, right) => right.range.start.offset - left.range.start.offset),
+  }));
+}
+
+function getBtcppFormatFixes(input: {
   documents: BtDocument[];
   diagnostics: Diagnostic[];
 }): WorkspaceEdit[] {
@@ -40,4 +57,61 @@ export function getSafeLintFixes(input: {
   }
 
   return [...editsByUri.values()];
+}
+
+function getModelConventionFixes(input: {
+  diagnostics: Diagnostic[];
+}): WorkspaceEdit[] {
+  const edits: WorkspaceEdit[] = [];
+
+  for (const diagnostic of input.diagnostics) {
+    const data = diagnostic.data;
+    if (!data || typeof data !== "object") continue;
+
+    if (diagnostic.code === "BT121_UNUSED_MODEL_DEFINITION") {
+      const fix = (data as { fix?: unknown }).fix;
+      if (!fix || typeof fix !== "object") continue;
+      const deleteFix = fix as {
+        kind?: string;
+        uri?: string;
+        range?: TextEdit["range"];
+      };
+      if (deleteFix.kind !== "delete-definition") continue;
+      if (!deleteFix.uri || !deleteFix.range) continue;
+      edits.push({
+        uri: deleteFix.uri,
+        edits: [{ range: deleteFix.range, newText: "" }],
+      });
+      continue;
+    }
+
+    if (diagnostic.code === "BT122_DUPLICATE_MODEL_DEFINITION") {
+      const fix = (data as { fix?: unknown }).fix;
+      if (!fix || typeof fix !== "object") continue;
+      const duplicateFix = fix as {
+        kind?: string;
+        delete?: Array<{ uri?: string; range?: TextEdit["range"] }>;
+      };
+      if (duplicateFix.kind !== "delete-non-canonical-definitions") continue;
+      for (const target of duplicateFix.delete ?? []) {
+        if (!target.uri || !target.range) continue;
+        edits.push({
+          uri: target.uri,
+          edits: [{ range: target.range, newText: "" }],
+        });
+      }
+    }
+  }
+
+  return edits;
+}
+
+export function getSafeLintFixes(input: {
+  documents: BtDocument[];
+  diagnostics: Diagnostic[];
+}): WorkspaceEdit[] {
+  return mergeWorkspaceEdits([
+    ...getBtcppFormatFixes(input),
+    ...getModelConventionFixes({ diagnostics: input.diagnostics }),
+  ]);
 }

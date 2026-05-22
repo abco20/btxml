@@ -21,6 +21,7 @@ test("fills defaults correctly", () => {
   ]);
   assert.equal(config.resolver.includes.maxFiles, 1000);
   assert.deepEqual(config.models.augmentations, []);
+  assert.equal(config.models.convention, "allow-unused");
   assert.equal(config.formatter.xmlDeclaration, "always");
   assert.equal(config.formatter.lineEnding, "lf");
   assert.equal(config.linter.suppressions.inline, "allow");
@@ -37,6 +38,17 @@ test("normalize preserves configured model augmentations", () => {
 
   assert.equal(result.ok, true);
   assert.deepEqual(result.config.models.augmentations, ["models/augment.xml"]);
+});
+
+test("normalize preserves configured model convention", () => {
+  const result = normalizeBtxmlConfig({
+    models: {
+      convention: "single-source",
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.config.models.convention, "single-source");
 });
 
 test("strict applies expected rule escalations", () => {

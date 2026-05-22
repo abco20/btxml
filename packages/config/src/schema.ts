@@ -47,6 +47,8 @@ export const resolverConfigSchema = z
   })
   .strict();
 
+export const modelConventionSchema = z.enum(["allow-unused", "used-only", "single-source"]);
+
 export const modelsConfigSchema = z
   .object({
     builtins: z.array(z.enum(SUPPORTED_BUILTIN_MODEL_SETS)).optional(),
@@ -54,6 +56,7 @@ export const modelsConfigSchema = z
     augmentations: z.array(z.string()).optional(),
     definitions: z.array(z.string()).optional(),
     inline: z.record(z.string(), configNodeModelSchema).optional(),
+    convention: modelConventionSchema.optional(),
   })
   .strict();
 
