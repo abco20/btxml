@@ -776,6 +776,30 @@ test("blackboard completion inserts wrapped key inside quotes without braces", (
   assert.equal(item?.textEdit?.newText, "{goal}");
 });
 
+test("attribute value completion suggests shorthand equals remap keys", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Action ID="Writer" goal="="/>
+    <Action ID="Reader" input="{"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Writer">
+      <output_port name="goal" type="std::string"/>
+    </Action>
+    <Action ID="Reader">
+      <input_port name="input" type="std::string"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const pos = doc.positionAt(text.indexOf('input="{"') + 8);
+  const result = ls.getCompletions({ document: doc, position: pos });
+
+  assert.ok(result.items.some((item) => item.label === "goal"));
+});
+
 test("attribute value completion suggests scoped local and global blackboard keys", () => {
   const text = `<?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4">

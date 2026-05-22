@@ -1,4 +1,4 @@
-import type { SourcePosition, SourceRange } from "@btxml/foundation";
+import { type SourcePosition, type SourceRange, createTextDocument } from "@btxml/foundation";
 import {
   type ScriptEnvironment,
   type ScriptEnvironmentSymbolInput,
@@ -21,7 +21,13 @@ import {
   getTypeRegistry,
   parsePortBlackboardReference,
 } from "@btxml/semantic";
-import type { BehaviorTreeView, PortBindingView, TreeNodeView } from "@btxml/semantic/ast-view";
+import {
+  type BehaviorTreeView,
+  type BtDocumentView,
+  type PortBindingView,
+  type TreeNodeView,
+  buildBtDocumentView,
+} from "@btxml/semantic/ast-view";
 import {
   type BtXmlAttribute,
   type BtXmlElement,
@@ -51,6 +57,7 @@ export type ScriptSymbolReference =
   | { kind: "enum"; name: string; value: number };
 
 export type ScriptResolvedOccurrence = {
+  uri: string;
   attributeContext: ScriptAttributeContext;
   identifier: ScriptIdentifierAccess;
   reference: ScriptSymbolReference;
@@ -125,6 +132,7 @@ export function getScriptIdentifierTarget(
     reference,
     flowState,
     occurrence: {
+      uri: context.document.uri,
       attributeContext: scriptContext,
       identifier: resolved.access,
       reference,
@@ -137,31 +145,58 @@ export function getScriptReferencesForSymbol(
   context: LanguageRequestContext,
   target: ScriptIdentifierTarget,
 ): ScriptResolvedOccurrence[] {
-  const states = getBehaviorTreeScriptFlow(context, target.attributeContext.behaviorTree);
-
-  const occurrences = states.flatMap((state) =>
-    collectResolvedOccurrences(context, state).filter((occurrence) =>
-      target.reference.kind === "enum"
-        ? occurrence.reference.kind === "enum" &&
-          occurrence.reference.name === target.reference.name
-        : target.reference.kind === "global-blackboard"
-          ? occurrence.reference.kind === "global-blackboard" &&
-            occurrence.reference.key === target.reference.key
-          : sameResolvedSymbol(target.reference.symbol, occurrence.reference),
-    ),
+  const occurrences = (
+    target.reference.kind === "global-blackboard"
+      ? collectAllScriptOccurrences(context)
+      : getBehaviorTreeScriptFlow(context, target.attributeContext.behaviorTree).flatMap((state) =>
+          collectResolvedOccurrences(context, state),
+        )
+  ).filter((occurrence) =>
+    target.reference.kind === "enum"
+      ? occurrence.reference.kind === "enum" && occurrence.reference.name === target.reference.name
+      : target.reference.kind === "global-blackboard"
+        ? occurrence.reference.kind === "global-blackboard" &&
+          occurrence.reference.key === target.reference.key
+        : sameResolvedSymbol(target.reference.symbol, occurrence.reference),
   );
 
   if (target.reference.kind === "global-blackboard") {
     return uniqueScriptOccurrences([
       ...occurrences,
-      ...collectGlobalBlackboardRemapOccurrences(
-        target.attributeContext.behaviorTree,
-        target.reference.key,
-      ),
+      ...collectGlobalBlackboardRemapOccurrences(context, target.reference.key),
     ]);
   }
 
   return occurrences;
+}
+
+export function getGlobalBlackboardReferenceLocations(
+  context: LanguageRequestContext,
+  key: string,
+): { uri: string; range: SourceRange }[] {
+  return uniqueBlackboardLocations(
+    collectGlobalBlackboardRemapOccurrences(context, key).map((occurrence) => ({
+      uri: occurrence.uri,
+      range: occurrence.documentRange,
+    })),
+  );
+}
+
+export function getGlobalBlackboardScriptLocations(
+  context: LanguageRequestContext,
+  key: string,
+): { uri: string; range: SourceRange }[] {
+  return uniqueBlackboardLocations(
+    collectAllScriptOccurrences(context)
+      .filter(
+        (occurrence) =>
+          occurrence.reference.kind === "global-blackboard" && occurrence.reference.key === key,
+      )
+      .map((occurrence) => ({
+        uri: occurrence.uri,
+        range: occurrence.documentRange,
+      })),
+  );
 }
 
 export function getBehaviorTreeScriptFlowStates(
@@ -400,6 +435,7 @@ function collectResolvedOccurrences(
           : entry.resolution;
     return [
       {
+        uri: context.document.uri,
         attributeContext: state.context,
         identifier: entry.access,
         reference,
@@ -445,7 +481,7 @@ function uniqueScriptOccurrences(
   const result: ScriptResolvedOccurrence[] = [];
 
   for (const occurrence of occurrences) {
-    const key = `${occurrence.documentRange.start.offset}:${occurrence.documentRange.end.offset}:${occurrence.reference.kind}`;
+    const key = `${occurrence.uri}:${occurrence.documentRange.start.offset}:${occurrence.documentRange.end.offset}:${occurrence.reference.kind}`;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(occurrence);
@@ -455,42 +491,124 @@ function uniqueScriptOccurrences(
 }
 
 function collectGlobalBlackboardRemapOccurrences(
-  behaviorTree: BehaviorTreeView,
+  context: LanguageRequestContext,
   key: string,
 ): ScriptResolvedOccurrence[] {
-  return behaviorTree.nodes.flatMap((node) =>
-    node.portBindings.flatMap((binding) =>
-      binding.blackboardReferences
-        .filter((reference) => reference.scope === "global" && reference.key === key)
-        .map((reference) => ({
-          attributeContext: {
-            id: `${node.path.join(".")}:${binding.attribute.name}:${node.element.attributes.indexOf(binding.attribute)}`,
-            node,
-            element: node.element,
-            attribute: binding.attribute,
-            source: binding.attribute.value,
-            behaviorTree: node.behaviorTree,
-          },
-          identifier: {
-            name: `@${reference.key}`,
-            kind: "read",
-            range: { start: 0, end: 0 },
-            identifier: {
-              kind: "Identifier",
-              name: `@${reference.key}`,
-              range: { start: 0, end: 0 },
-            },
-            statementIndex: -1,
-          },
-          reference: {
-            kind: "global-blackboard",
-            key: reference.key,
-            origin: "port-remap",
-          } as const,
-          documentRange: reference.range,
-        })),
+  return getDocumentTrees(context).flatMap(({ uri, trees }) =>
+    trees.flatMap((behaviorTree) =>
+      behaviorTree.nodes.flatMap((node) =>
+        node.portBindings.flatMap((binding) =>
+          binding.blackboardReferences
+            .filter((reference) => reference.scope === "global" && reference.key === key)
+            .map((reference) => ({
+              uri,
+              attributeContext: {
+                id: `${node.path.join(".")}:${binding.attribute.name}:${node.element.attributes.indexOf(binding.attribute)}`,
+                node,
+                element: node.element,
+                attribute: binding.attribute,
+                source: binding.attribute.value,
+                behaviorTree: node.behaviorTree,
+              },
+              identifier: {
+                name: `@${reference.key}`,
+                kind: "read",
+                range: { start: 0, end: 0 },
+                identifier: {
+                  kind: "Identifier",
+                  name: `@${reference.key}`,
+                  range: { start: 0, end: 0 },
+                },
+                statementIndex: -1,
+              },
+              reference: {
+                kind: "global-blackboard",
+                key: reference.key,
+                origin: "port-remap",
+              } as const,
+              documentRange: reference.range,
+            })),
+        ),
+      ),
     ),
   );
+}
+
+function collectAllScriptOccurrences(context: LanguageRequestContext): ScriptResolvedOccurrence[] {
+  return getDocumentTrees(context).flatMap(({ uri, trees }) =>
+    trees.flatMap((behaviorTree) => {
+      const nextContext = getContextForUri(context, uri);
+      return getBehaviorTreeScriptFlow(nextContext, behaviorTree).flatMap((state) =>
+        collectResolvedOccurrencesByUri(nextContext, uri, state),
+      );
+    }),
+  );
+}
+
+function collectResolvedOccurrencesByUri(
+  context: LanguageRequestContext,
+  uri: string,
+  state: ScriptAttributeFlowState,
+): ScriptResolvedOccurrence[] {
+  return collectResolvedOccurrences(context, state).map((occurrence) => ({ ...occurrence, uri }));
+}
+
+function getDocumentTrees(
+  context: LanguageRequestContext,
+): { uri: string; trees: readonly BehaviorTreeView[] }[] {
+  const current = context.documentView
+    ? [{ uri: context.document.uri, trees: context.documentView.behaviorTrees }]
+    : [];
+  const workspace = context.workspace?.documents ?? [];
+  const others = workspace
+    .filter((document) => document.uri !== context.document.uri)
+    .map((document) => {
+      const view = buildBtDocumentView(document, {
+        semantic: context.semantic,
+        config: context.config,
+        policy: context.nodeUsagePolicy,
+      });
+      return { uri: document.uri, trees: view.behaviorTrees };
+    })
+    .filter((entry) => entry.trees.length > 0);
+  return [...current, ...others];
+}
+
+function getContextForUri(context: LanguageRequestContext, uri: string): LanguageRequestContext {
+  if (uri === context.document.uri) return context;
+
+  const parsed = context.workspace?.documents.find((document) => document.uri === uri);
+  if (!parsed) return context;
+
+  const document = createTextDocument(uri, parsed.originalText, 0, "btcpp-xml");
+  const documentView: BtDocumentView = buildBtDocumentView(parsed, {
+    semantic: context.semantic,
+    config: context.config,
+    policy: context.nodeUsagePolicy,
+  });
+
+  return {
+    ...context,
+    document,
+    parsed,
+    documentView,
+  };
+}
+
+function uniqueBlackboardLocations(
+  locations: readonly { uri: string; range: SourceRange }[],
+): { uri: string; range: SourceRange }[] {
+  const seen = new Set<string>();
+  const result: { uri: string; range: SourceRange }[] = [];
+
+  for (const location of locations) {
+    const key = `${location.uri}:${location.range.start.offset}:${location.range.end.offset}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(location);
+  }
+
+  return result;
 }
 
 function toDocumentRange(

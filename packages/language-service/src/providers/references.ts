@@ -2,14 +2,23 @@ import {
   getAllBehaviorTreeDefinitions,
   getAllNodeModelDefinitions,
   getSubTreeReferences,
+  makeBlackboardIdentity,
   resolveNodeUsage,
 } from "@btxml/semantic";
 import { inspectXmlCursor } from "@btxml/syntax";
 import type { LanguageRequestContext } from "../context.js";
 import type { InternalReferencesInput } from "../internal-types.js";
 import type { Location, ReferencesResult } from "../public-types.js";
-import { getDefinitionLocations } from "./definition.js";
-import { getScriptIdentifierTarget, getScriptReferencesForSymbol } from "./script-context.js";
+import {
+  getDefinitionLocations,
+  getDocumentBlackboardLocations,
+  getWorkspaceBlackboardLocations,
+} from "./definition.js";
+import {
+  getGlobalBlackboardScriptLocations,
+  getScriptIdentifierTarget,
+  getScriptReferencesForSymbol,
+} from "./script-context.js";
 
 function toReferenceLocations(context: LanguageRequestContext, id: string): Location[] {
   return getSubTreeReferences(context.semantic, id)
@@ -77,7 +86,7 @@ export function getReferences(
     return {
       locations: uniqueLocations(
         getScriptReferencesForSymbol(context, scriptTarget).map((occurrence) => ({
-          uri: context.document.uri,
+          uri: occurrence.uri,
           range: occurrence.documentRange,
         })),
       ),
@@ -93,6 +102,51 @@ export function getReferences(
     : undefined;
   const element = inspect && "element" in inspect ? inspect.element : undefined;
   const attribute = inspect && "attribute" in inspect ? inspect.attribute : undefined;
+  const binding =
+    context.documentView && context.parsed
+      ? context.documentView.nodes
+          .flatMap((node) => node.portBindings)
+          .find(
+            (candidate) =>
+              candidate.attribute === attribute &&
+              input.position.offset >=
+                (candidate.attribute.valueContentRange ?? candidate.attribute.valueRange).start
+                  .offset &&
+              input.position.offset <=
+                (candidate.attribute.valueContentRange ?? candidate.attribute.valueRange).end
+                  .offset,
+          )
+      : undefined;
+  const blackboardReference = binding?.blackboardReferences.find(
+    (reference) =>
+      input.position.offset >= reference.range.start.offset &&
+      input.position.offset <= reference.range.end.offset,
+  );
+
+  if (blackboardReference) {
+    const identity = makeBlackboardIdentity({
+      scope: blackboardReference.scope,
+      key: blackboardReference.key,
+    });
+    return {
+      locations: uniqueLocations([
+        ...(blackboardReference.scope === "global"
+          ? getWorkspaceBlackboardLocations(
+              context.documentView,
+              context.workspace?.documents,
+              context.semantic,
+              context.config,
+              context.nodeUsagePolicy,
+              identity,
+              context.document.uri,
+            )
+          : getDocumentBlackboardLocations(context.documentView, identity, context.document.uri)),
+        ...(blackboardReference.scope === "global"
+          ? getGlobalBlackboardScriptLocations(context, blackboardReference.key)
+          : []),
+      ]),
+    };
+  }
 
   if (element?.name === "BehaviorTree" && attribute?.name === "ID") {
     return {

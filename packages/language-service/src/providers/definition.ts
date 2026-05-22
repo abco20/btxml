@@ -8,7 +8,11 @@ import {
   makeBlackboardIdentity,
   resolveNodeUsage,
 } from "@btxml/semantic";
-import { type BtDocumentView, findPortBindingAtPosition } from "@btxml/semantic/ast-view";
+import {
+  type BtDocumentView,
+  buildBtDocumentView,
+  findPortBindingAtPosition,
+} from "@btxml/semantic/ast-view";
 import {
   type BtDocument,
   inspectXmlCursor,
@@ -17,7 +21,11 @@ import {
 import type { LanguageRequestContext } from "../context.js";
 import type { InternalDefinitionInput } from "../internal-types.js";
 import type { DefinitionResult, Location } from "../public-types.js";
-import { getBehaviorTreeScriptFlowStates, getScriptIdentifierTarget } from "./script-context.js";
+import {
+  getBehaviorTreeScriptFlowStates,
+  getGlobalBlackboardReferenceLocations,
+  getScriptIdentifierTarget,
+} from "./script-context.js";
 
 function uniqueLocations(locations: readonly Location[]): Location[] {
   const seen = new Set<string>();
@@ -58,6 +66,58 @@ function getSubTreeModelDefinitionLocations(
       return undefined;
     })
     .filter((location): location is Location => Boolean(location));
+}
+
+function getBlackboardDefinitionLocations(
+  documentView: BtDocumentView | undefined,
+  identity: string,
+  fallbackUri: string,
+): Location[] {
+  if (!documentView) return [];
+
+  return uniqueLocations(
+    documentView.nodes.flatMap((node) =>
+      node.portBindings.flatMap((binding) =>
+        binding.blackboardReferences
+          .filter((reference) => reference.identity === identity)
+          .map((reference) => ({
+            uri: fallbackUri,
+            range: reference.range,
+          })),
+      ),
+    ),
+  );
+}
+
+export function getWorkspaceBlackboardLocations(
+  documentView: BtDocumentView | undefined,
+  workspaceDocuments: readonly BtDocument[] | undefined,
+  semantic: SemanticIndex,
+  config: EffectiveFileConfig | undefined,
+  policy: LanguageRequestContext["nodeUsagePolicy"] | undefined,
+  identity: string,
+  fallbackUri: string,
+): Location[] {
+  const current = getBlackboardDefinitionLocations(documentView, identity, fallbackUri);
+  const workspace = (workspaceDocuments ?? []).flatMap((document) => {
+    if (document.uri === fallbackUri) return [];
+    const view = buildBtDocumentView(document, {
+      semantic,
+      config,
+      policy,
+    });
+    return getBlackboardDefinitionLocations(view, identity, document.uri);
+  });
+
+  return uniqueLocations([...current, ...workspace]);
+}
+
+export function getDocumentBlackboardLocations(
+  documentView: BtDocumentView | undefined,
+  identity: string,
+  fallbackUri: string,
+): Location[] {
+  return getBlackboardDefinitionLocations(documentView, identity, fallbackUri);
 }
 
 export function getDefinitionLocations(
@@ -154,6 +214,25 @@ export function getDefinitionLocations(
   }
   if (attribute && element) {
     const binding = documentView ? findPortBindingAtPosition(documentView, position) : undefined;
+    const blackboardReference = binding?.blackboardReferences.find(
+      (reference) =>
+        position.offset >= reference.range.start.offset &&
+        position.offset <= reference.range.end.offset,
+    );
+    if (blackboardReference) {
+      return blackboardReference.scope === "global"
+        ? getWorkspaceBlackboardLocations(
+            documentView,
+            workspaceDocuments,
+            semantic,
+            config,
+            policy,
+            blackboardReference.identity,
+            parsed.uri,
+          )
+        : getDocumentBlackboardLocations(documentView, blackboardReference.identity, parsed.uri);
+    }
+
     if (binding?.declaredPort.status === "resolved") {
       const port = binding.declaredPort.port;
       if (port.nameRange) return [{ uri: port.uri || parsed.uri, range: port.nameRange }];
@@ -269,22 +348,31 @@ export function getDefinition(
       scope: "global",
       key: scriptTarget.reference.key,
     });
-    const binding = context.documentView?.nodes
-      .filter((node) => node.behaviorTree === scriptTarget.attributeContext.behaviorTree)
-      .flatMap((node) => node.portBindings)
-      .find((candidate) =>
-        candidate.blackboardReferences.some((reference) => reference.identity === targetIdentity),
-      );
-    const reference = binding?.blackboardReferences.find(
-      (candidate) => candidate.identity === targetIdentity,
-    );
+    const locations = getGlobalBlackboardReferenceLocations(context, scriptTarget.reference.key);
 
-    if (binding && reference) {
+    if (locations.length > 0) {
+      return {
+        locations,
+      };
+    }
+
+    const symbol = scriptTarget.reference.symbol;
+    if (symbol?.source.kind === "global-blackboard") {
+      const source = symbol.source;
+      const declarationState = getBehaviorTreeScriptFlowStates(
+        context,
+        scriptTarget.attributeContext.behaviorTree,
+      ).find((state) => state.id === source.originId);
+      const declarationContext = declarationState?.context ?? scriptTarget.attributeContext;
       return {
         locations: [
           {
             uri: context.document.uri,
-            range: reference.range,
+            range: mapDecodedAttributeRangeToDocumentRange(
+              context.parsed ?? { originalText: context.document.text },
+              declarationContext.attribute,
+              source.range,
+            ),
           },
         ],
       };

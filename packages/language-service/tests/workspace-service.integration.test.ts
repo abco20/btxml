@@ -778,3 +778,58 @@ test("node workspace service invalidates semantic snapshot when runtime config c
   assert.notStrictEqual(firstSemantic.view, secondSemantic.view);
   assert.notStrictEqual(firstDiagnostics.diagnostics, secondDiagnostics.diagnostics);
 });
+
+test("node workspace service resolves global blackboard definitions and references across documents", async () => {
+  const files = {
+    "file:///workspace/btxml.config.json": JSON.stringify({
+      files: { include: ["*.xml"] },
+    }),
+    "file:///workspace/main.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <AlwaysSuccess _successIf="@value &gt; 0"/>
+  </BehaviorTree>
+</root>`,
+    "file:///workspace/shared.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Shared">
+    <PrintNumber val="{@value}"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="PrintNumber">
+      <input_port name="val" type="double"/>
+    </Action>
+  </TreeNodesModel>
+</root>`,
+  };
+  const host = createMemoryHost(files);
+  const ws = createNodeWorkspaceService({
+    cwd: "/workspace",
+    host,
+    configPath: "btxml.config.json",
+  });
+
+  assert.equal((await ws.loadProject()).ok, true);
+  ws.openDocument(
+    "file:///workspace/main.xml",
+    files["file:///workspace/main.xml"],
+    1,
+    "btcpp-xml",
+  );
+
+  const main = ws.getDocument("file:///workspace/main.xml");
+  assert.ok(main);
+  const pos = main.positionAt(
+    files["file:///workspace/main.xml"].indexOf('_successIf="@value') + '_successIf="'.length + 3,
+  );
+
+  const definition = ws.getDefinition("file:///workspace/main.xml", pos);
+  assert.equal(definition.locations.length, 1);
+  assert.equal(definition.locations[0]?.uri, "file:///workspace/shared.xml");
+
+  const references = ws.getReferences("file:///workspace/main.xml", pos);
+  assert.ok(references.locations.some((location) => location.uri === "file:///workspace/main.xml"));
+  assert.ok(
+    references.locations.some((location) => location.uri === "file:///workspace/shared.xml"),
+  );
+});

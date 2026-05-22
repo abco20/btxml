@@ -195,10 +195,6 @@ export function getResolvedPortTypeDefinition(
   return resolveTypeDefinition(registry, getResolvedPortType(port));
 }
 
-export function getExactRemappedKey(portName: string, rawValue: string): string | undefined {
-  return getExactBlackboardReference(portName, rawValue)?.key;
-}
-
 export function getExactBlackboardReference(
   portName: string,
   rawValue: string,

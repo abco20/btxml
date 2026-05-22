@@ -103,3 +103,24 @@ test("BlackboardReferenceView extracts global and local references with separate
     ["local:value", "global:value"],
   );
 });
+
+test("BlackboardReferenceView extracts shorthand substitution references", () => {
+  const parsed = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <PrintNumber val="=" />
+  </BehaviorTree>
+</root>`,
+    { uri: "blackboard-shorthand.xml" },
+  );
+  assert.ok(parsed.document);
+
+  const view = buildLocalBtDocumentView(parsed.document, { config });
+  const binding = view.nodes[0]?.portBindings[0];
+  const reference = binding?.blackboardReferences[0];
+
+  assert.equal(reference?.syntax, "shorthand");
+  assert.equal(reference?.key, "val");
+  assert.equal(reference?.identity, "local:val");
+});

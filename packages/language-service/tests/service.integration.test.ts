@@ -428,3 +428,46 @@ test("definition jumps from global script usage to matching global blackboard re
   assert.equal(result.locations.length, 1);
   assert.equal(doc.getText(result.locations[0]?.range), "{@value}");
 });
+
+test("definition from a blackboard remap resolves to the remap identity", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Sequence>
+      <PrintNumber val="{@value}"/>
+      <AlwaysSuccess _successIf="@value &gt; 0"/>
+    </Sequence>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="PrintNumber">
+      <input_port name="val" type="double"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const pos = doc.positionAt(text.indexOf("{@value}") + 2);
+  const result = ls.getDefinition({ document: doc, position: pos });
+
+  assert.equal(result.locations.length, 1);
+  assert.equal(doc.getText(result.locations[0]?.range), "{@value}");
+});
+
+test("definition falls back to earlier global script assignment", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Sequence>
+      <Script code="@value := 1"/>
+      <AlwaysSuccess _successIf="@value &gt; 0"/>
+    </Sequence>
+  </BehaviorTree>
+</root>`;
+  const doc = createDoc(text);
+  const ls = createLanguageService({ config: defaultEffectiveConfig });
+  const pos = doc.positionAt(text.indexOf('_successIf="@value') + '_successIf="'.length + 3);
+  const result = ls.getDefinition({ document: doc, position: pos });
+
+  assert.equal(result.locations.length, 1);
+  assert.equal(doc.getText(result.locations[0]?.range), "@value");
+});

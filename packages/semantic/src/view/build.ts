@@ -126,6 +126,21 @@ function extractBlackboardReferences(
     });
   }
 
+  if (references.length === 0) {
+    const parsed = parsePortBlackboardReference({ portName, rawValue });
+    if (parsed.ok) {
+      references.push({
+        raw: rawValue,
+        key: parsed.reference.key,
+        scope: parsed.reference.scope,
+        identity: makeBlackboardIdentity(parsed.reference),
+        range: baseRange,
+        syntax: parsed.reference.syntax === "shorthand" ? "shorthand" : "braced",
+      });
+      return references;
+    }
+  }
+
   if (references.length === 0 && (rawValue.includes("{") || rawValue.includes("}"))) {
     references.push({
       raw: rawValue,
@@ -264,9 +279,12 @@ function getSemanticPortValueKind(
   blackboardReferences: readonly BlackboardReferenceView[],
 ): SemanticPortBindingView["valueKind"] {
   if (value === "") return "empty";
-  if (value === "{=}") return "substitution";
+  if (value === "{=}" || value === "=") return "substitution";
   if (blackboardReferences.some((reference) => reference.syntax === "braced")) {
     return "blackboard-reference";
+  }
+  if (blackboardReferences.some((reference) => reference.syntax === "shorthand")) {
+    return "substitution";
   }
   if (blackboardReferences.some((reference) => reference.syntax === "invalid")) {
     return "unknown";
