@@ -24,7 +24,7 @@
     "build": "tsup"
   },
   "dependencies": {
-    "@btxml/model": "0.1.0"
+    "@btxml/model": "workspace:*"
   },
   "exports": {
     ".": {

@@ -49,8 +49,8 @@
   "files": ["dist/**", "README.md", "LICENSE"],
   "sideEffects": false,
   "dependencies": {
-    "@btxml/foundation": "0.1.0",
-    "@btxml/model": "0.1.0",
+    "@btxml/foundation": "workspace:*",
+    "@btxml/model": "workspace:*",
     "zod": "^4.0.0"
   }
 }

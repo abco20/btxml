@@ -45,12 +45,12 @@
   "files": ["dist/**", "README.md", "LICENSE"],
   "sideEffects": false,
   "dependencies": {
-    "@btxml/foundation": "0.1.0",
-    "@btxml/syntax": "0.1.0",
-    "@btxml/model": "0.1.0",
-    "@btxml/config": "0.1.0",
-    "@btxml/analyzer": "0.1.0",
-    "@btxml/semantic": "0.1.0",
+    "@btxml/foundation": "workspace:*",
+    "@btxml/syntax": "workspace:*",
+    "@btxml/model": "workspace:*",
+    "@btxml/config": "workspace:*",
+    "@btxml/analyzer": "workspace:*",
+    "@btxml/semantic": "workspace:*",
     "ignore": "^7.0.5",
     "jsonc-parser": "^3.3.1",
     "zod": "^4.0.0"

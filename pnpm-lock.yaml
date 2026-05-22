@@ -73,22 +73,22 @@ importers:
   packages/analyzer:
     dependencies:
       '@btxml/config':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../config
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/model':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../model
       '@btxml/script':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../script
       '@btxml/semantic':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../semantic
       '@btxml/syntax':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../syntax
       ajv:
         specifier: ^8.0.0
@@ -149,10 +149,10 @@ importers:
   packages/btxml-lsp:
     dependencies:
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/language-service':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../language-service
       vscode-languageserver:
         specifier: ^9.0.1
@@ -164,10 +164,10 @@ importers:
   packages/config:
     dependencies:
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/model':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../model
       zod:
         specifier: ^4.0.0
@@ -176,16 +176,16 @@ importers:
   packages/core:
     dependencies:
       '@btxml/analyzer':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../analyzer
       '@btxml/config':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../config
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/syntax':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../syntax
 
   packages/foundation: {}
@@ -193,37 +193,37 @@ importers:
   packages/language-service:
     dependencies:
       '@btxml/analyzer':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../analyzer
       '@btxml/config':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../config
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/model':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../model
       '@btxml/project':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../project
       '@btxml/script':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../script
       '@btxml/semantic':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../semantic
       '@btxml/syntax':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../syntax
 
   packages/model:
     dependencies:
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/syntax':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../syntax
       jsonc-parser:
         specifier: ^3.3.1
@@ -235,22 +235,22 @@ importers:
   packages/project:
     dependencies:
       '@btxml/analyzer':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../analyzer
       '@btxml/config':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../config
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/model':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../model
       '@btxml/semantic':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../semantic
       '@btxml/syntax':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../syntax
       ignore:
         specifier: ^7.0.5
@@ -265,43 +265,43 @@ importers:
   packages/script:
     dependencies:
       '@btxml/model':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../model
 
   packages/semantic:
     dependencies:
       '@btxml/config':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../config
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
       '@btxml/model':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../model
       '@btxml/syntax':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../syntax
 
   packages/syntax:
     dependencies:
       '@btxml/foundation':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../foundation
 
   packages/vscode-btxml:
     dependencies:
       '@btxml/config':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../config
       '@btxml/core':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../core
       '@btxml/model':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../model
       '@btxml/syntax':
-        specifier: 0.1.0
+        specifier: workspace:*
         version: link:../syntax
       vscode-languageclient:
         specifier: ^9.0.1

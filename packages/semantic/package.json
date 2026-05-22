@@ -45,9 +45,9 @@
   },
   "files": ["dist/**", "README.md", "LICENSE"],
   "dependencies": {
-    "@btxml/foundation": "0.1.0",
-    "@btxml/syntax": "0.1.0",
-    "@btxml/model": "0.1.0",
-    "@btxml/config": "0.1.0"
+    "@btxml/foundation": "workspace:*",
+    "@btxml/syntax": "workspace:*",
+    "@btxml/model": "workspace:*",
+    "@btxml/config": "workspace:*"
   }
 }

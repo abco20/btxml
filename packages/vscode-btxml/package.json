@@ -38,10 +38,10 @@
   ],
   "main": "./dist/extension.cjs",
   "dependencies": {
-    "@btxml/config": "0.1.0",
-    "@btxml/core": "0.1.0",
-    "@btxml/model": "0.1.0",
-    "@btxml/syntax": "0.1.0",
+    "@btxml/config": "workspace:*",
+    "@btxml/core": "workspace:*",
+    "@btxml/model": "workspace:*",
+    "@btxml/syntax": "workspace:*",
     "vscode-languageclient": "^9.0.1"
   },
   "contributes": {
