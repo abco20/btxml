@@ -3,12 +3,9 @@ import test from "node:test";
 import {
   areTypesCompatible,
   createTypeRegistry,
-  getRemappedKey,
-  isBlackboardPointer,
   normalizeBuiltinTypeName,
   normalizeTypeName,
   resolveTypeDefinition,
-  stripBlackboardPointer,
 } from "@btxml/model";
 
 test("normalizeBuiltinTypeName canonicalizes built-in aliases", () => {
@@ -77,23 +74,4 @@ test("areTypesCompatible honors wildcard any and symmetric compatibleWith", () =
   assert.equal(areTypesCompatible(registry, "BT::AnyTypeAllowed", "Pose2D"), true);
   assert.equal(areTypesCompatible(registry, "MyAny", "std::string"), true);
   assert.equal(areTypesCompatible(registry, "Pose2D", "std::string"), false);
-});
-
-test("getRemappedKey matches BT.CPP-compatible remap parsing", () => {
-  assert.equal(getRemappedKey("goal", "{=}"), "goal");
-  assert.equal(getRemappedKey("goal", "="), "goal");
-  assert.equal(getRemappedKey("goal", "  {=}  "), "=");
-  assert.equal(getRemappedKey("goal", "  =  "), undefined);
-  assert.equal(getRemappedKey("goal", "{target}"), "target");
-  assert.equal(getRemappedKey("goal", "  {target}  "), "target");
-  assert.equal(getRemappedKey("goal", "target"), undefined);
-  assert.equal(getRemappedKey("goal", "{target"), undefined);
-});
-
-test("blackboard pointer helpers preserve BT.CPP whitespace behavior", () => {
-  assert.equal(isBlackboardPointer("{x}"), true);
-  assert.equal(isBlackboardPointer("  {x}  "), true);
-  assert.equal(isBlackboardPointer("="), false);
-  assert.equal(stripBlackboardPointer("  {value}  "), "value");
-  assert.equal(stripBlackboardPointer("value"), undefined);
 });

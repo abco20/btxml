@@ -283,7 +283,9 @@ function stripSubTreeReferenceAst(def: ExtractedSubTreeReference): SubTreeRefere
   };
 }
 
-function stripBlackboardReferenceAst(def: ExtractedBlackboardReference): DocumentBlackboardReference {
+function stripBlackboardReferenceAst(
+  def: ExtractedBlackboardReference,
+): DocumentBlackboardReference {
   return {
     name: def.name,
     attributeName: def.attributeName,

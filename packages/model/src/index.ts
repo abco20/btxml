@@ -12,13 +12,10 @@ export {
 export {
   areTypesCompatible,
   createTypeRegistry,
-  getRemappedKey,
   isAnyTypeName,
-  isBlackboardPointer,
   normalizeBuiltinTypeName,
   normalizeTypeName,
   resolveTypeDefinition,
-  stripBlackboardPointer,
 } from "./type-registry.js";
 
 export {

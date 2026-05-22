@@ -1,12 +1,19 @@
 import type {
   BehaviorTreeDef,
+  BlackboardScope,
   BtDocumentModel,
   ModelAugmentationFile,
   PortDef,
   SubTreeReference,
   TreeNodeModelDef,
 } from "@btxml/model";
-export { getRemappedKey } from "@btxml/model";
+export {
+  formatBlackboardReference,
+  makeBlackboardIdentity,
+  parsePortBlackboardReference,
+  parseScriptBlackboardIdentifier,
+} from "@btxml/model";
+export type { BlackboardScope } from "@btxml/model";
 import type { SemanticIndexState } from "./internal-types.js";
 import type { ModelConflictFact, SemanticIndex } from "./types.js";
 export {

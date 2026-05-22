@@ -150,8 +150,14 @@ test("script analysis keeps local and global blackboard identifiers distinct", (
 
   assert.equal(result.environment.symbols.get("x")?.type.kind, "number");
   assert.equal(result.environment.globalBlackboard.get("x")?.type.kind, "string");
-  assert.deepEqual(result.unknownIdentifiers.map((identifier) => identifier.name), []);
-  assert.deepEqual(result.diagnostics.map((diagnostic) => diagnostic.code), []);
+  assert.deepEqual(
+    result.unknownIdentifiers.map((identifier) => identifier.name),
+    [],
+  );
+  assert.deepEqual(
+    result.diagnostics.map((diagnostic) => diagnostic.code),
+    [],
+  );
 });
 
 test("script analysis treats invalid globals separately from unknown locals", () => {
@@ -161,9 +167,13 @@ test("script analysis treats invalid globals separately from unknown locals", ()
 
   const result = analyzeScript({ program: parsed.program, attributeName: "code" });
 
-  assert.deepEqual(result.invalidGlobalBlackboardIdentifiers.map((identifier) => identifier.name), [
-    "@",
-  ]);
-  assert.deepEqual(result.unknownIdentifiers.map((identifier) => identifier.name), []);
+  assert.deepEqual(
+    result.invalidGlobalBlackboardIdentifiers.map((identifier) => identifier.name),
+    ["@"],
+  );
+  assert.deepEqual(
+    result.unknownIdentifiers.map((identifier) => identifier.name),
+    [],
+  );
   assert.equal(result.diagnostics[0]?.code, "invalid-global-blackboard-identifier");
 });

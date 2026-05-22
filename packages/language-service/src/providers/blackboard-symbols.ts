@@ -1,8 +1,8 @@
 import {
   type BlackboardScope,
-  formatBlackboardReference as formatModelBlackboardReference,
+  formatBlackboardReference as formatSemanticBlackboardReference,
   makeBlackboardIdentity,
-} from "@btxml/model";
+} from "@btxml/semantic";
 import type { LanguageRequestContext } from "../context.js";
 
 export type BlackboardSymbol = {
@@ -17,7 +17,7 @@ export type BlackboardSymbol = {
 };
 
 export function formatBlackboardReference(symbol: Pick<BlackboardSymbol, "scope" | "key">) {
-  return formatModelBlackboardReference(symbol);
+  return formatSemanticBlackboardReference(symbol);
 }
 
 export function normalizeType(type?: string) {

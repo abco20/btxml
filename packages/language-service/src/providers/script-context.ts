@@ -1,5 +1,4 @@
 import type { SourcePosition, SourceRange } from "@btxml/foundation";
-import { parsePortBlackboardReference } from "@btxml/model";
 import {
   type ScriptEnvironment,
   type ScriptEnvironmentSymbolInput,
@@ -20,6 +19,7 @@ import {
   getNodeModel,
   getTypeDefinition,
   getTypeRegistry,
+  parsePortBlackboardReference,
 } from "@btxml/semantic";
 import type { BehaviorTreeView, PortBindingView, TreeNodeView } from "@btxml/semantic/ast-view";
 import {
@@ -42,7 +42,12 @@ export type ScriptAttributeContext = {
 
 export type ScriptSymbolReference =
   | { kind: "symbol"; symbol: ScriptSymbol }
-  | { kind: "global-blackboard"; key: string; symbol?: ScriptSymbol; origin?: "script" | "port-remap" }
+  | {
+      kind: "global-blackboard";
+      key: string;
+      symbol?: ScriptSymbol;
+      origin?: "script" | "port-remap";
+    }
   | { kind: "enum"; name: string; value: number };
 
 export type ScriptResolvedOccurrence = {
@@ -324,8 +329,8 @@ function buildBaseScriptEnvironment(
       node.usage.model.status === "resolved" ? node.usage.model.model.id : node.usage.nodeType;
     for (const binding of node.portBindings) {
       if (binding.declaredPort.status !== "resolved") continue;
-      const remappedKey = getRemappedKeyFromBinding(binding);
-      if (!remappedKey) continue;
+      const reference = getBlackboardReferenceFromBinding(binding);
+      if (!reference) continue;
 
       const resolvedTypeName = binding.declaredPort.port.type;
       const resolvedDefinition = getTypeDefinition(context.semantic, resolvedTypeName);
@@ -333,23 +338,23 @@ function buildBaseScriptEnvironment(
       const direction = binding.declaredPort.port.direction;
 
       const symbolInput: ScriptEnvironmentSymbolInput =
-        remappedKey.scope === "global"
+        reference.scope === "global"
           ? {
-              name: remappedKey.key,
+              name: reference.key,
               type: scriptTypeFromTypeName(registry, resolvedTypeName),
               source: {
                 kind: "global-blackboard-remap",
                 nodeType,
                 portName: binding.declaredPort.port.name,
                 direction,
-                key: remappedKey.key,
+                key: reference.key,
               },
               readable: direction === "input" || direction === "output" || direction === "inout",
               writable: direction === "output" || direction === "inout",
               compatibilityKey,
             }
           : {
-              name: remappedKey.key,
+              name: reference.key,
               type: scriptTypeFromTypeName(registry, resolvedTypeName),
               source: {
                 kind: "port-remap",
@@ -362,7 +367,7 @@ function buildBaseScriptEnvironment(
               compatibilityKey,
             };
 
-      if (remappedKey.scope === "global") {
+      if (reference.scope === "global") {
         globalBlackboardSymbols.push(symbolInput);
       } else {
         portSymbols.push(symbolInput);
@@ -470,7 +475,11 @@ function collectGlobalBlackboardRemapOccurrences(
             name: `@${reference.key}`,
             kind: "read",
             range: { start: 0, end: 0 },
-            identifier: { kind: "Identifier", name: `@${reference.key}`, range: { start: 0, end: 0 } },
+            identifier: {
+              kind: "Identifier",
+              name: `@${reference.key}`,
+              range: { start: 0, end: 0 },
+            },
             statementIndex: -1,
           },
           reference: {
@@ -532,11 +541,11 @@ export function mapDecodedOffsetToRawAttributeOffset(
   return mapDecodedAttributeOffsetToRawOffset(attribute, decodedOffset);
 }
 
-function getRemappedKeyFromBinding(binding: PortBindingView) {
+function getBlackboardReferenceFromBinding(binding: PortBindingView) {
   if (binding.declaredPort.status !== "resolved") return undefined;
   const parsed = parsePortBlackboardReference({
     portName: binding.declaredPort.port.name,
     rawValue: binding.value,
   });
-  return parsed.ok ? { key: parsed.reference.key, scope: parsed.reference.scope } : undefined;
+  return parsed.ok ? parsed.reference : undefined;
 }

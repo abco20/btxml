@@ -1,9 +1,9 @@
 import {
-  formatBlackboardReference,
-  makeBlackboardIdentity,
   type PortDef,
   type ResolvedTypeDefinition,
+  formatBlackboardReference,
   getInvalidPortNameReason,
+  makeBlackboardIdentity,
 } from "@btxml/model";
 import {
   areTypesCompatible,
@@ -254,7 +254,8 @@ export const modelRules = [
             const portUsage = context.getPortUsage(element, attr.name);
             if (portUsage?.status !== "resolved") continue;
             if (portUsage.port.direction !== "output") continue;
-            if (getExactBlackboardReference(portUsage.port.name, attr.value) !== undefined) continue;
+            if (getExactBlackboardReference(portUsage.port.name, attr.value) !== undefined)
+              continue;
 
             context.report({
               code: RuleCodes.OutputPortRequiresRemap,

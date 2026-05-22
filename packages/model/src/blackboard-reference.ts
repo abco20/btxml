@@ -26,8 +26,14 @@ export type ParseBlackboardReferenceResult =
   | { readonly ok: true; readonly reference: BlackboardReference }
   | { readonly ok: false; readonly error: BlackboardReferenceParseError };
 
-type ParseBlackboardReferenceSuccess = Extract<ParseBlackboardReferenceResult, { readonly ok: true }>;
-type ParseBlackboardReferenceFailure = Extract<ParseBlackboardReferenceResult, { readonly ok: false }>;
+type ParseBlackboardReferenceSuccess = Extract<
+  ParseBlackboardReferenceResult,
+  { readonly ok: true }
+>;
+type ParseBlackboardReferenceFailure = Extract<
+  ParseBlackboardReferenceResult,
+  { readonly ok: false }
+>;
 
 const BLACKBOARD_KEY_RE = /^[A-Za-z_][A-Za-z0-9_./:-]*$/;
 
@@ -54,7 +60,9 @@ function isValidKey(key: string): boolean {
   return BLACKBOARD_KEY_RE.test(key);
 }
 
-function parseScopedKey(raw: string):
+function parseScopedKey(
+  raw: string,
+):
   | { readonly ok: true; readonly scope: BlackboardScope; readonly key: string }
   | { readonly ok: false; readonly error: BlackboardReferenceParseError } {
   if (!raw) {
@@ -67,11 +75,7 @@ function parseScopedKey(raw: string):
       return error("empty-key", raw, "Global blackboard reference key must not be empty");
     }
     if (!isValidKey(key)) {
-      return error(
-        "invalid-global-key",
-        raw,
-        `Invalid global blackboard reference key: ${raw}`,
-      );
+      return error("invalid-global-key", raw, `Invalid global blackboard reference key: ${raw}`);
     }
     return { ok: true, scope: "global", key };
   }
@@ -103,7 +107,11 @@ export function parsePortBlackboardReference(input: {
   }
 
   if (!(rawValue.startsWith("{") && rawValue.endsWith("}"))) {
-    return error("unbalanced-braces", rawValue, `Unbalanced blackboard reference braces: ${rawValue}`);
+    return error(
+      "unbalanced-braces",
+      rawValue,
+      `Unbalanced blackboard reference braces: ${rawValue}`,
+    );
   }
 
   const body = rawValue.slice(1, -1);
@@ -149,7 +157,9 @@ export function parseScriptBlackboardIdentifier(input: {
   });
 }
 
-export function formatBlackboardReference(reference: Pick<BlackboardReference, "scope" | "key">): string {
+export function formatBlackboardReference(
+  reference: Pick<BlackboardReference, "scope" | "key">,
+): string {
   return reference.scope === "global" ? `{@${reference.key}}` : `{${reference.key}}`;
 }
 
@@ -159,6 +169,8 @@ export function formatScriptBlackboardIdentifier(
   return reference.scope === "global" ? `@${reference.key}` : reference.key;
 }
 
-export function makeBlackboardIdentity(reference: Pick<BlackboardReference, "scope" | "key">): string {
+export function makeBlackboardIdentity(
+  reference: Pick<BlackboardReference, "scope" | "key">,
+): string {
   return `${reference.scope}:${reference.key}`;
 }

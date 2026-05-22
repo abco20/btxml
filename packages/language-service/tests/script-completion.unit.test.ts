@@ -188,7 +188,8 @@ test("script completion includes global blackboard identifiers", () => {
 
   assert.ok(
     result.items.some(
-      (item) => item.label === "@value" && item.detail === "number from global blackboard PrintNumber.val",
+      (item) =>
+        item.label === "@value" && item.detail === "number from global blackboard PrintNumber.val",
     ),
   );
 });

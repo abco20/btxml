@@ -181,7 +181,10 @@ test("blackboard-type-mismatch reports global/global mismatches with global form
     (diag) => diag.code === "BT111_BLACKBOARD_TYPE_MISMATCH",
   );
   assert.ok(diagnostic);
-  assert.match(diagnostic.message, /blackboard entry `\{@shared\}` is used with incompatible port types:/);
+  assert.match(
+    diagnostic.message,
+    /blackboard entry `\{@shared\}` is used with incompatible port types:/,
+  );
   assert.match(diagnostic.message, /`Pose2D`/);
   assert.match(diagnostic.message, /`int32`/);
 });

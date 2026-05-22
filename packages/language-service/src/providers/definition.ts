@@ -1,11 +1,11 @@
 import type { EffectiveFileConfig } from "@btxml/config";
 import type { SourcePosition } from "@btxml/foundation";
-import { makeBlackboardIdentity } from "@btxml/model";
 import {
   type SemanticIndex,
   getBehaviorTrees,
   getNodeModel,
   getNodeModelDefinitions,
+  makeBlackboardIdentity,
   resolveNodeUsage,
 } from "@btxml/semantic";
 import { type BtDocumentView, findPortBindingAtPosition } from "@btxml/semantic/ast-view";

@@ -123,6 +123,16 @@ const RuleMetadataDetailsByCode: Record<string, Omit<RuleMetadata, "defaultSever
     validExample: '<Script code="count := 1; count = 2"/>',
     configExample: '{"linter":{"rules":{"script/valid-assignment":"error"}}}',
   },
+  [RuleCodes.InvalidGlobalBlackboardIdentifier]: {
+    code: RuleCodes.InvalidGlobalBlackboardIdentifier,
+    title: "Invalid global blackboard identifier",
+    description:
+      "Script global blackboard identifiers must use `@name` with a valid blackboard key after the scope marker.",
+    suppressible: true,
+    invalidExample: '<Script code="@ := 1"/>',
+    validExample: '<Script code="@count := 1"/>',
+    configExample: '{"linter":{"rules":{"script/valid-assignment":"error"}}}',
+  },
   [RuleCodes.InvalidRootElement]: defaultRule(
     RuleCodes.InvalidRootElement,
     "Invalid root element",

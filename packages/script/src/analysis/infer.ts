@@ -1,11 +1,11 @@
 import type { ScriptAssignmentExpression, ScriptExpression } from "../ast.js";
+import { classifyScriptIdentifier } from "./blackboard.js";
 import {
   cloneScriptEnvironment,
   commonScriptType,
   isScriptTypeAssignable,
   isScriptTypeBoolCompatible,
 } from "./environment.js";
-import { classifyScriptIdentifier } from "./blackboard.js";
 import type {
   AnalyzeScriptInput,
   AnalyzeScriptResult,
@@ -29,7 +29,8 @@ export function analyzeScript(input: AnalyzeScriptInput): AnalyzeScriptResult {
   const resolvedIdentifiers: ResolvedScriptIdentifier[] = [];
   const unknownIdentifiers: ScriptIdentifierAccess[] = [];
   const globalBlackboardAccesses: AnalyzeScriptResult["globalBlackboardAccesses"] = [];
-  const invalidGlobalBlackboardIdentifiers: AnalyzeScriptResult["invalidGlobalBlackboardIdentifiers"] = [];
+  const invalidGlobalBlackboardIdentifiers: AnalyzeScriptResult["invalidGlobalBlackboardIdentifiers"] =
+    [];
   const introducedSymbols: ScriptSymbol[] = [];
   const diagnostics: ScriptAnalysisDiagnostic[] = [];
   const statementTypes: ScriptType[] = [];
@@ -271,7 +272,12 @@ function analyzeAssignment(context: AnalyzeExpressionContext): ScriptType {
 
   if (classified.kind === "invalid-global-blackboard") {
     context.invalidGlobalBlackboardIdentifiers.push(access);
-    reportInvalidGlobalBlackboardIdentifier(context, left.range, classified.raw, classified.message);
+    reportInvalidGlobalBlackboardIdentifier(
+      context,
+      left.range,
+      classified.raw,
+      classified.message,
+    );
     return ERROR_TYPE;
   }
 
@@ -286,7 +292,11 @@ function analyzeAssignment(context: AnalyzeExpressionContext): ScriptType {
             : !existingSymbol
               ? rightType
               : undefined
-          : compoundAssignmentResult(existingSymbol?.type ?? UNKNOWN_TYPE, rightType, expression.operator);
+          : compoundAssignmentResult(
+              existingSymbol?.type ?? UNKNOWN_TYPE,
+              rightType,
+              expression.operator,
+            );
 
     if (expression.operator !== ":=" && expression.operator !== "=" && !accessType) {
       reportDiagnostic(

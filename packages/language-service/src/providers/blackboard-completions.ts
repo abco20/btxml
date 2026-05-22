@@ -58,15 +58,17 @@ export function createBlackboardCompletionItem(args: {
 }): CompletionItem {
   const { document, attribute, cursorOffset, symbol, detail } = args;
   const replacement = getBlackboardReplacementRange(document, attribute, cursorOffset);
+  const wrapsReference = replacement?.wrapsReference ?? false;
+  const hasScopeMarker = replacement?.hasScopeMarker ?? false;
   const label = replacement?.wrapsReference
     ? formatBlackboardReference(symbol)
     : symbol.scope === "global"
       ? `@${symbol.key}`
       : symbol.key;
-  const newText = replacement?.wrapsReference
+  const newText = wrapsReference
     ? formatBlackboardReference(symbol)
     : symbol.scope === "global"
-      ? replacement.hasScopeMarker
+      ? hasScopeMarker
         ? symbol.key
         : `@${symbol.key}`
       : symbol.key;
@@ -82,7 +84,8 @@ export function createBlackboardCompletionItem(args: {
         }
       : undefined,
     {
-      filterText: `${symbol.key} ${label} ${symbol.scope === "global" ? `@${symbol.key}` : ""}`.trim(),
+      filterText:
+        `${symbol.key} ${label} ${symbol.scope === "global" ? `@${symbol.key}` : ""}`.trim(),
       insertText: newText,
     },
   );
