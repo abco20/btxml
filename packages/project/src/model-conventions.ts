@@ -58,6 +58,10 @@ function definitionRange(definition: ModelDefinitionFact) {
   return definition.model.idRange ?? definition.range;
 }
 
+function definitionDeleteRange(definition: ModelDefinitionFact) {
+  return definition.range;
+}
+
 function definitionInfo(definition: ModelDefinitionFact) {
   return {
     uri: definition.uri,
@@ -159,11 +163,11 @@ function validateUsedOnly(input: {
           modelKind: definition.kind,
           sourceKind: "inline-tree-nodes-model",
           fix:
-            definition.uri && definitionRange(definition) && definition.editable
+            definition.uri && definitionDeleteRange(definition) && definition.editable
               ? {
                   kind: "delete-definition",
                   uri: definition.uri,
-                  range: definitionRange(definition),
+                  range: definitionDeleteRange(definition),
                 }
               : undefined,
         },
@@ -184,7 +188,7 @@ function duplicateFix(definitions: readonly ModelDefinitionFact[]) {
   const deleteTargets = definitions.filter((definition) => definition !== keep);
   if (
     deleteTargets.some(
-      (definition) => !definition.uri || !definitionRange(definition) || !definition.editable,
+      (definition) => !definition.uri || !definitionDeleteRange(definition) || !definition.editable,
     )
   ) {
     return undefined;
@@ -198,7 +202,7 @@ function duplicateFix(definitions: readonly ModelDefinitionFact[]) {
     },
     delete: deleteTargets.map((definition) => ({
       uri: definition.uri,
-      range: definitionRange(definition),
+      range: definitionDeleteRange(definition),
     })),
   };
 }

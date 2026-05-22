@@ -63,6 +63,7 @@ test("getSafeLintFixes applies BT121 delete-definition fix metadata", () => {
   assert.equal(fixes[0]?.uri, "tree.xml");
   assert.equal(fixes[0]?.edits.length, 1);
   assert.equal(fixes[0]?.edits[0]?.newText, "");
+  assert.deepEqual(fixes[0]?.edits[0]?.range, makeRange(10, 20));
 });
 
 test("getSafeLintFixes applies BT122 delete-non-canonical-definitions metadata", () => {
@@ -106,4 +107,47 @@ test("getSafeLintFixes applies BT122 delete-non-canonical-definitions metadata",
 
   assert.ok(treeB);
   assert.equal(treeB?.edits.length, 1);
+  assert.deepEqual(treeA?.edits[0]?.range, makeRange(40, 50));
+  assert.deepEqual(treeA?.edits[1]?.range, makeRange(20, 30));
+  assert.deepEqual(treeB?.edits[0]?.range, makeRange(15, 25));
+});
+
+test("getSafeLintFixes ignores BT121/BT122/BT120 when fix metadata is missing", () => {
+  const fixes = getSafeLintFixes({
+    documents: [],
+    diagnostics: [
+      {
+        code: "BT121_UNUSED_MODEL_DEFINITION",
+        severity: "error",
+        message: "unused",
+        uri: "tree.xml",
+        data: {
+          kind: "unused-model-definition",
+          nodeId: "UnusedAction",
+          modelKind: "Action",
+          sourceKind: "inline-tree-nodes-model",
+        },
+      },
+      {
+        code: "BT122_DUPLICATE_MODEL_DEFINITION",
+        severity: "error",
+        message: "duplicate",
+        uri: "tree.xml",
+        data: {
+          kind: "duplicate-model-definition",
+          nodeId: "Move",
+          modelKind: "Action",
+          definitions: [],
+        },
+      },
+      {
+        code: "BT120_CONFLICTING_MODEL_KIND",
+        severity: "error",
+        message: "conflicting kind",
+        uri: "tree.xml",
+      },
+    ],
+  });
+
+  assert.equal(fixes.length, 0);
 });

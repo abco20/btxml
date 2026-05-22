@@ -653,3 +653,125 @@ test("canonical source does not add canonical actions for kind conflicts", () =>
     false,
   );
 });
+
+test("canonical source does not add canonical actions when canonical model definitions are multiple", () => {
+  const canonicalDocA = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>`,
+    { uri: "models/a.xml", kind: "model-xml" },
+  );
+  const canonicalDocB = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Move"><input_port name="goal" type="Pose2D"/></Action></TreeNodesModel>`,
+    { uri: "models/b.xml", kind: "model-xml" },
+  );
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"><input_port name="goal" type="string"/></Action></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+
+  assert.ok(canonicalDocA.document);
+  assert.ok(canonicalDocB.document);
+  assert.ok(inlineDoc.document);
+
+  const documents = [canonicalDocA.document, canonicalDocB.document, inlineDoc.document];
+  const workspace = buildSemanticIndex(documents, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      includeConventionGroups: true,
+      canonicalSource: "model-files",
+      canonicalMode: "sync",
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Move");
+  assert.ok(group);
+  assert.equal(
+    group.actions.some(
+      (action) =>
+        action.kind === "match-canonical-model-file" ||
+        action.kind === "keep-canonical-model-file-definition",
+    ),
+    false,
+  );
+});
+
+test("without canonical source no canonical actions are emitted", () => {
+  const docA = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="A"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>`,
+    { uri: "a.xml" },
+  );
+  const docB = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="B"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>`,
+    { uri: "b.xml" },
+  );
+
+  assert.ok(docA.document);
+  assert.ok(docB.document);
+
+  const documents = [docA.document, docB.document];
+  const workspace = buildSemanticIndex(documents, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      includeConventionGroups: true,
+      convention: "single-source",
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Move");
+  assert.ok(group);
+  assert.ok(group.codes.includes("BT122_DUPLICATE_MODEL_DEFINITION"));
+  assert.equal(
+    group.actions.some(
+      (action) =>
+        action.kind === "match-canonical-model-file" ||
+        action.kind === "keep-canonical-model-file-definition",
+    ),
+    false,
+  );
+});
+
+test("canonical source does not add canonical actions for kind conflicts in dedupe mode", () => {
+  const inlineDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Foo/></BehaviorTree><TreeNodesModel><Condition ID="Foo"/></TreeNodesModel></root>`,
+    { uri: "tree.xml" },
+  );
+  const canonicalDoc = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="Foo"/></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(inlineDoc.document);
+  assert.ok(canonicalDoc.document);
+
+  const documents = [inlineDoc.document, canonicalDoc.document];
+  const workspace = buildSemanticIndex(documents, {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  }).index;
+  const groups = buildModelConflictRepairGroups({
+    documents,
+    workspace,
+    options: {
+      canonicalSource: "model-files",
+      canonicalMode: "dedupe",
+      includeConventionGroups: true,
+    },
+  });
+
+  const group = groups.find((entry) => entry.nodeId === "Foo");
+  assert.ok(group);
+  assert.equal(
+    group.actions.some(
+      (action) =>
+        action.kind === "match-canonical-model-file" ||
+        action.kind === "keep-canonical-model-file-definition",
+    ),
+    false,
+  );
+});
