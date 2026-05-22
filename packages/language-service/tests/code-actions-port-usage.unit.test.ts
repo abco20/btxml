@@ -1,10 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { TextEdit } from "@btxml/foundation";
 import {
   createLanguageService,
   createTextDocument,
   defaultEffectiveConfig,
 } from "./test-helpers.js";
+
+function applyTextEdits(text: string, edits: readonly TextEdit[]) {
+  const sorted = [...edits].sort(
+    (left, right) => right.range.start.offset - left.range.start.offset,
+  );
+  let output = text;
+  for (const edit of sorted) {
+    output =
+      output.slice(0, edit.range.start.offset) + edit.newText + output.slice(edit.range.end.offset);
+  }
+  return output;
+}
 
 test("code action adds missing required port from semantic usage", () => {
   const text = `<?xml version="1.0" encoding="UTF-8"?>
@@ -70,7 +83,24 @@ test("code action adds missing output remap attribute", () => {
   const diagnostics = ls.getDiagnostics({ document: doc }).diagnostics;
   const actions = ls.getCodeActions({ document: doc, diagnostics });
 
-  assert.ok(actions.actions.some((action) => action.title === "Remap output port result"));
+  const action = actions.actions.find(
+    (candidate) => candidate.title === "Remap output port result",
+  );
+  assert.ok(action);
+
+  const actual = applyTextEdits(text, action.edits);
+  const expected = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Foo result="{result}"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Foo">
+      <output_port name="result" type="int"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  assert.equal(actual, expected);
 });
 
 test("code action rewrites literal output binding to blackboard remap", () => {
@@ -90,5 +120,22 @@ test("code action rewrites literal output binding to blackboard remap", () => {
   const diagnostics = ls.getDiagnostics({ document: doc }).diagnostics;
   const actions = ls.getCodeActions({ document: doc, diagnostics });
 
-  assert.ok(actions.actions.some((action) => action.title === "Remap output port result"));
+  const action = actions.actions.find(
+    (candidate) => candidate.title === "Remap output port result",
+  );
+  assert.ok(action);
+
+  const actual = applyTextEdits(text, action.edits);
+  const expected = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Foo result="{result}"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Foo">
+      <output_port name="result" type="int"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  assert.equal(actual, expected);
 });

@@ -264,6 +264,12 @@ export const RULES = {
     defaultSeverity: "error",
     description: "Inline model definitions should be used in the same BT XML file.",
   },
+  "model/require-local-definition": {
+    code: RuleCodes.MissingLocalModelDefinition,
+    defaultSeverity: "error",
+    description:
+      "When models.convention is used-only, normal node usages should have a local TreeNodesModel definition in the same file.",
+  },
   "model/no-duplicate-definition": {
     code: RuleCodes.DuplicateModelDefinition,
     defaultSeverity: "error",

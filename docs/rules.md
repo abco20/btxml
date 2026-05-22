@@ -675,6 +675,42 @@ Violations can break runtime resolution, hide project issues, or reduce editor a
 
 Not suppressible.
 
+## model/require-local-definition
+
+**Title:** Missing local model definition
+**Diagnostic code:** `BT123_MISSING_LOCAL_MODEL_DEFINITION`
+**Default severity:** error
+
+### Description
+
+When models.convention is used-only, each normal node used in a file should have a local TreeNodesModel definition in that same file.
+
+### Why this matters
+
+Violations can break runtime resolution, hide project issues, or reduce editor and CI signal.
+
+### Invalid example
+
+```xml
+<root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence/><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>
+```
+
+### Valid example / fix
+
+```xml
+<root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence/><Move/></BehaviorTree><TreeNodesModel><Control ID="Sequence"/><Action ID="Move"/></TreeNodesModel></root>
+```
+
+### Config override
+
+```json
+{"linter":{"rules":{"model/require-local-definition":"warn"}}}
+```
+
+### Suppression
+
+Not suppressible.
+
 ## model/require-output-port-remap
 
 **Title:** Output port requires remap

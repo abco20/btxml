@@ -13,7 +13,9 @@ import type { CodeAction, CodeActionsResult } from "../public-types.js";
 import { fullDocumentRange } from "../ranges.js";
 
 type Diagnostic = NonNullable<InternalCodeActionsInput["diagnostics"]>[number];
-type DiagnosticWithRange = Diagnostic & { range: NonNullable<Diagnostic["range"]> };
+type DiagnosticWithRange = Diagnostic & {
+  range: NonNullable<Diagnostic["range"]>;
+};
 
 export function getCodeActions(
   context: LanguageRequestContext,
@@ -86,7 +88,7 @@ function resolveTargetElement(
 ) {
   const fallback = inspectElement(inspect);
   const root = context.parsed?.root;
-  if (!root) return fallback;
+  if (!root || !diag.range) return fallback;
 
   const targetOffset = Math.min(diag.range.start.offset + 1, diag.range.end.offset);
   return findElementAt(root, targetOffset) ?? fallback;
@@ -139,7 +141,9 @@ function addOutputRemapAction(
   const attribute = "attribute" in inspect ? inspect.attribute : undefined;
   if (attribute) {
     const binding = usage.portUsages.find(
-      (candidate): candidate is ResolvedPortUsage =>
+      (
+        candidate,
+      ): candidate is Extract<(typeof usage.portUsages)[number], { status: "resolved" }> =>
         isResolvedPortUsage(candidate) &&
         candidate.port.direction === "output" &&
         candidate.attribute === attribute &&
@@ -247,6 +251,7 @@ function addSuppressionAction(
   input: InternalCodeActionsInput,
   diag: DiagnosticWithRange,
 ) {
+  if (!diag.range) return;
   actions.push({
     title: `Suppress ${diag.code} for next line`,
     kind: "quickfix",

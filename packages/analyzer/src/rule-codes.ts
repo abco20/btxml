@@ -51,6 +51,7 @@ export const RuleCodes = {
   ConflictingModelKind: "BT120_CONFLICTING_MODEL_KIND",
   UnusedModelDefinition: "BT121_UNUSED_MODEL_DEFINITION",
   DuplicateModelDefinition: "BT122_DUPLICATE_MODEL_DEFINITION",
+  MissingLocalModelDefinition: "BT123_MISSING_LOCAL_MODEL_DEFINITION",
   ExternalModelFileNotFound: "BT321_EXTERNAL_MODEL_FILE_NOT_FOUND",
   AugmentationFileNotFound: "BT324_AUGMENTATION_FILE_NOT_FOUND",
   MissingTreeNodesModel: "BT322_MISSING_TREENODESMODEL",
