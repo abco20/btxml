@@ -3,10 +3,12 @@ import test from "node:test";
 import { getDefaultResolvedBtxmlConfig } from "@btxml/config";
 import {
   buildSemanticIndex,
+  getAllNodeUsages,
   getBehaviorTreeIds,
   getDocumentModel,
   getModelConflicts,
   getNodeModel,
+  getNodeUsagesByUri,
   getTypeDefinition,
   normalizeTypeName,
 } from "@btxml/semantic";
@@ -534,4 +536,52 @@ test("buildSemanticIndex reports BT119 when type refinement from does not match"
   assert.equal(port?.type, "int");
   assert.equal(port?.typeSource, "external-tree-nodes-model");
   assert.equal(port?.typeRefinement, undefined);
+});
+
+test("semantic queries expose all node usages", () => {
+  const parsed = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><MoveBase/><SubTree ID="Child"/></Sequence></BehaviorTree></root>`,
+    { uri: "main.xml" },
+  );
+  assert.ok(parsed.document);
+
+  const { index } = buildSemanticIndex([parsed.document], {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  });
+
+  assert.deepEqual(
+    getAllNodeUsages(index).map((usage) => ({ id: usage.id, kind: usage.kind })),
+    [
+      { id: "Sequence", kind: "node" },
+      { id: "MoveBase", kind: "node" },
+      { id: "Child", kind: "SubTree" },
+    ],
+  );
+});
+
+test("semantic queries group node usages by URI", () => {
+  const first = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="A"><Tick/></BehaviorTree></root>`,
+    { uri: "a.xml" },
+  );
+  const second = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="B"><SubTree ID="CallB"/></BehaviorTree></root>`,
+    { uri: "b.xml" },
+  );
+  assert.ok(first.document);
+  assert.ok(second.document);
+
+  const { index } = buildSemanticIndex([first.document, second.document], {
+    config: DEFAULT_RESOLVED_BTXML_CONFIG,
+  });
+
+  const grouped = getNodeUsagesByUri(index);
+  assert.deepEqual(
+    grouped.get("a.xml")?.map((usage) => usage.id),
+    ["Tick"],
+  );
+  assert.deepEqual(
+    grouped.get("b.xml")?.map((usage) => ({ id: usage.id, kind: usage.kind })),
+    [{ id: "CallB", kind: "SubTree" }],
+  );
 });

@@ -54,6 +54,7 @@ export type {
   DocumentBlackboardReference,
   EffectivePortTypeSource,
   ModelSourceRef,
+  NodeUsageDef,
   NodeModelSource,
   NodeModelSourceKind,
   PortDef,

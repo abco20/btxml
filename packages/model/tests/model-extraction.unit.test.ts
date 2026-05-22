@@ -85,3 +85,40 @@ test("buildDocumentModelResult computes blackboard reference range from raw sour
     "{@foo}",
   );
 });
+
+test("buildDocumentModelResult extracts node usages and skips TreeNodesModel definitions", () => {
+  const parsed = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><MoveBase goal="A"/><SubTree ID="Child"/></Sequence></BehaviorTree><TreeNodesModel><Action ID="DefinedOnly"/></TreeNodesModel></root>`,
+    { uri: "main.xml" },
+  );
+
+  assert.ok(parsed.document);
+  if (!parsed.document) throw new Error("parsed.document is null");
+
+  const result = buildDocumentModelResult(parsed.document);
+  const usages = result.model.nodeUsages;
+
+  assert.deepEqual(
+    usages.map((usage) => ({ id: usage.id, kind: usage.kind })),
+    [
+      { id: "Sequence", kind: "node" },
+      { id: "MoveBase", kind: "node" },
+      { id: "Child", kind: "SubTree" },
+    ],
+  );
+  assert.equal(usages.every((usage) => usage.parentBehaviorTreeId === "Main"), true);
+  assert.equal(usages.some((usage) => usage.id === "DefinedOnly"), false);
+});
+
+test("buildDocumentModelResult keeps node usages empty for pure model documents", () => {
+  const parsed = parseBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><TreeNodesModel><Action ID="OnlyDefinition"/></TreeNodesModel>`,
+    { uri: "models.xml", kind: "model-xml" },
+  );
+
+  assert.ok(parsed.document);
+  if (!parsed.document) throw new Error("parsed.document is null");
+
+  const result = buildDocumentModelResult(parsed.document);
+  assert.deepEqual(result.model.nodeUsages, []);
+});

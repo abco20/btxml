@@ -10,6 +10,7 @@ import type {
   BehaviorTreeDef,
   BtDocumentModel,
   ModelAugmentationFile,
+  NodeUsageDef,
   ModelSourceRef,
   PortDef,
   ResolvedTypeDefinition,
@@ -64,6 +65,7 @@ export type WorkspaceInput = {
 export type {
   BehaviorTreeDef,
   BtDocumentModel,
+  NodeUsageDef,
   PortDef,
   ResolvedTypeDefinition,
   TreeNodeModelDef,

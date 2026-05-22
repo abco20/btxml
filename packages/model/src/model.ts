@@ -14,6 +14,7 @@ import type {
   BehaviorTreeDef,
   BtDocumentModel,
   DocumentBlackboardReference,
+  NodeUsageDef,
   NodeModelSourceKind,
   PortDef,
   SubTreeReference,
@@ -343,6 +344,17 @@ function stripSubTreeReferenceAst(def: ExtractedSubTreeReference): SubTreeRefere
   };
 }
 
+function stripNodeUsageAst(def: NodeUsageDef): NodeUsageDef {
+  return {
+    id: def.id,
+    uri: def.uri,
+    kind: def.kind,
+    range: def.range,
+    elementRange: def.elementRange,
+    parentBehaviorTreeId: def.parentBehaviorTreeId,
+  };
+}
+
 function stripBlackboardReferenceAst(
   def: ExtractedBlackboardReference,
 ): DocumentBlackboardReference {
@@ -365,6 +377,7 @@ function toPublicDocumentModel(input: {
   kind: BtDocumentModel["kind"];
   behaviorTrees: readonly ExtractedBehaviorTreeDef[];
   subtreeReferences: readonly ExtractedSubTreeReference[];
+  nodeUsages: readonly NodeUsageDef[];
   blackboardReferences: readonly ExtractedBlackboardReference[];
   treeNodesModel: readonly ExtractedTreeNodeModelDef[];
   genericSubTreePorts: readonly ExtractedPortDef[];
@@ -377,11 +390,69 @@ function toPublicDocumentModel(input: {
     kind: input.kind,
     behaviorTrees: input.behaviorTrees.map(stripBehaviorTreeAst),
     subtreeReferences: input.subtreeReferences.map(stripSubTreeReferenceAst),
+    nodeUsages: input.nodeUsages.map(stripNodeUsageAst),
     blackboardReferences: input.blackboardReferences.map(stripBlackboardReferenceAst),
     treeNodesModel: input.treeNodesModel.map(stripTreeNodeModelAst),
     genericSubTreePorts: input.genericSubTreePorts.map(stripPortAst),
     rootMainTreeToExecute: cloneAttributeValueRef(input.rootMainTreeToExecute),
   };
+}
+
+function extractNodeUsages(root: BtXmlElement, uri: string): NodeUsageDef[] {
+  if (root.name === "TreeNodesModel") return [];
+
+  const usages: NodeUsageDef[] = [];
+
+  const walk = (node: BtXmlElement, parentBehaviorTreeId?: string, inTreeNodesModel = false) => {
+    if (inTreeNodesModel) return;
+
+    const nextInTreeNodesModel = node.name === "TreeNodesModel";
+    const currentBehaviorTreeId =
+      node.name === "BehaviorTree"
+        ? (getAttr(node, "ID")?.value ?? parentBehaviorTreeId)
+        : parentBehaviorTreeId;
+
+    if (node.name === "SubTree") {
+      const idAttr = getAttr(node, "ID");
+      if (idAttr) {
+        usages.push({
+          id: idAttr.value,
+          kind: "SubTree",
+          uri,
+          range: node.range,
+          elementRange: node.range,
+          parentBehaviorTreeId: currentBehaviorTreeId,
+        });
+      }
+    } else if (
+      node.name !== "root" &&
+      node.name !== "BehaviorTree" &&
+      node.name !== "TreeNodesModel"
+    ) {
+      usages.push({
+        id: node.name,
+        kind: "node",
+        uri,
+        range: node.range,
+        elementRange: node.range,
+        parentBehaviorTreeId: currentBehaviorTreeId,
+      });
+    }
+
+    for (const child of node.children || []) {
+      if (child.kind === "element") {
+        walk(child, currentBehaviorTreeId, nextInTreeNodesModel);
+      }
+    }
+  };
+
+  for (const child of root.children || []) {
+    if (child.kind === "element") {
+      walk(child);
+    }
+  }
+
+  return usages;
 }
 
 function addTreeNodeModelToCollections(input: {
@@ -455,6 +526,7 @@ function extractDocumentModel(
     }
   }
   const subtreeReferences = root ? extractSubTreeReferences(root, uri) : [];
+  const nodeUsages = root ? extractNodeUsages(root, uri) : [];
   const blackboardReferences = root
     ? (() => {
         const refs: ExtractedBlackboardReference[] = [];
@@ -470,6 +542,7 @@ function extractDocumentModel(
     kind,
     behaviorTrees,
     subtreeReferences,
+    nodeUsages,
     blackboardReferences,
     treeNodesModel,
     genericSubTreePorts,
