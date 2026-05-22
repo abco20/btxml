@@ -121,8 +121,6 @@ function createAppendToExistingTreeNodesModelEdit(
   treeNodesModel: BtXmlElement,
   models: FixableModel[],
 ): WorkspaceEdit | undefined {
-  if (!treeNodesModel.closeTagRange) return undefined;
-
   const parentIndent = getLineIndent(
     document.originalText,
     treeNodesModel.openTagRange.start.offset,
@@ -132,18 +130,40 @@ function createAppendToExistingTreeNodesModelEdit(
     .map((model) => serializeTreeNodeModelDefinition(model, childIndent))
     .join("\n");
 
-  return {
-    uri,
-    edits: [
-      {
-        range: {
-          start: point(treeNodesModel.closeTagRange.start.offset),
-          end: point(treeNodesModel.closeTagRange.start.offset),
+  if (treeNodesModel.closeTagRange) {
+    return {
+      uri,
+      edits: [
+        {
+          range: {
+            start: point(treeNodesModel.closeTagRange.start.offset),
+            end: point(treeNodesModel.closeTagRange.start.offset),
+          },
+          newText: `\n${serialized}\n${parentIndent}`,
         },
-        newText: `\n${serialized}\n${parentIndent}`,
-      },
-    ],
-  };
+      ],
+    };
+  }
+
+  if (treeNodesModel.selfClosing) {
+    const openTagEnd = treeNodesModel.openTagRange.end.offset;
+    if (openTagEnd < 2) return undefined;
+
+    return {
+      uri,
+      edits: [
+        {
+          range: {
+            start: point(openTagEnd - 2),
+            end: point(openTagEnd),
+          },
+          newText: `>\n${serialized}\n${parentIndent}</TreeNodesModel>`,
+        },
+      ],
+    };
+  }
+
+  return undefined;
 }
 
 function createInsertTreeNodesModelBlockEdit(

@@ -8,6 +8,7 @@ import {
   getModelConflicts,
   getModelDefinitionFacts,
   getNodeModel,
+  getNodeModelDefinitions,
   getNodeUsagesByUri,
   groupModelDefinitionsById,
   groupModelDefinitionsByKey,
@@ -319,12 +320,18 @@ function createMissingLocalDefinitionDiagnostics(input: {
 
   for (const nodeId of input.usedNodeIds) {
     if (input.localNormalIds.has(nodeId)) continue;
-    if (input.localAnyIds.has(nodeId)) continue;
+
+    const hasNormalModel = getNodeModelDefinitions(input.index, nodeId).some((definition) =>
+      isNormalModelKind(definition.kind),
+    );
+    if (!hasNormalModel) continue;
+
+    const hasNonNormalLocalDefinition = input.localAnyIds.has(nodeId);
 
     const firstUsage = input.sameFileNodeUsages.find(
       (usage) => usage.kind === "node" && usage.id === nodeId,
     );
-    const fixableModel = toFixableModel(input.index, nodeId);
+    const fixableModel = hasNonNormalLocalDefinition ? undefined : toFixableModel(input.index, nodeId);
 
     diagnostics.push(
       createConventionDiagnostic({

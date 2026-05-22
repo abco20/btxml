@@ -558,6 +558,39 @@ test("CLI lint --fix does not add local definition for unknown node", () => {
 
   const before = fs.readFileSync(file, "utf8");
   const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const after = fs.readFileSync(file, "utf8");
+  assert.equal(after, before);
+
+  const relint = run(["lint", "--json", "tree.xml"], dir);
+  assert.equal(relint.status, 0, relint.stderr);
+  const report = JSON.parse(relint.stdout);
+  const codes = new Set(
+    report.files.flatMap((entry: { diagnostics: Array<{ code: string }> }) =>
+      entry.diagnostics.map((diagnostic) => diagnostic.code),
+    ),
+  );
+  assert.equal(codes.has("BT123_MISSING_LOCAL_MODEL_DEFINITION"), false);
+});
+
+test("CLI lint --fix does not add local definition when local SubTree has same ID", () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-lint-fix-used-only-no-fix-non-normal-local-same-id-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><AlwaysSuccess/></Sequence></BehaviorTree><TreeNodesModel><SubTree ID="Sequence"/><Action ID="AlwaysSuccess"/></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const before = fs.readFileSync(file, "utf8");
+  const result = run(["lint", "--fix", "tree.xml"], dir);
   assert.equal(result.status, 1, result.stdout + result.stderr);
   const after = fs.readFileSync(file, "utf8");
   assert.equal(after, before);

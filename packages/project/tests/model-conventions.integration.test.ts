@@ -282,7 +282,9 @@ test("used-only reports BT123 for missing local builtin Sequence definition", as
   assert.ok(discovered.project);
   const result = await checkProject({ project: discovered.project });
   const missing = allDiagnostics(result).find(
-    (entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+    (entry) =>
+      entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION" &&
+      (entry.data as { nodeId?: string })?.nodeId === "Sequence",
   );
 
   assert.ok(missing);
@@ -460,6 +462,64 @@ test("used-only does not report BT123 for SubTree usage", async () => {
     allDiagnostics(result).some((entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION"),
     false,
   );
+});
+
+test("used-only does not emit BT123 for unknown node", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-convention-used-only-unknown-node-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only" },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><UnknownMove/></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const diagnostics = allDiagnostics(result);
+
+  assert.equal(diagnostics.some((entry) => entry.code === "BT105_UNKNOWN_NODE"), true);
+  assert.equal(
+    diagnostics.some((entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION"),
+    false,
+  );
+});
+
+test("used-only reports BT123 when Sequence is used but local TreeNodesModel has SubTree with same ID", async () => {
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "btxml-convention-used-only-non-normal-local-same-id-"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      files: { include: ["*.xml"] },
+      models: { convention: "used-only" },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "tree.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><AlwaysSuccess/></Sequence></BehaviorTree><TreeNodesModel><SubTree ID="Sequence"/></TreeNodesModel></root>',
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  const result = await checkProject({ project: discovered.project });
+  const missing = allDiagnostics(result).find(
+    (entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+  );
+
+  assert.ok(missing);
+  assert.equal((missing?.data as { nodeId?: string })?.nodeId, "Sequence");
+  assert.equal((missing?.data as { fix?: unknown })?.fix, undefined);
 });
 
 test("single-source reports duplicate user definitions", async () => {

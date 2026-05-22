@@ -264,3 +264,45 @@ test("getSafeLintFixes creates TreeNodesModel block for BT123 when missing", () 
   assert.ok(updated.includes("<TreeNodesModel>"));
   assert.ok(updated.includes('<Control ID="Sequence"/>'));
 });
+
+test("getSafeLintFixes expands self-closing TreeNodesModel for BT123", () => {
+  const parsed = parseBtXml(
+    '<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><AlwaysSuccess/></Sequence></BehaviorTree><TreeNodesModel/></root>',
+    { uri: "tree.xml" },
+  );
+  assert.ok(parsed.document);
+
+  const fixes = getSafeLintFixes({
+    documents: [parsed.document],
+    diagnostics: [
+      {
+        code: "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+        severity: "error",
+        message: "missing local",
+        uri: "tree.xml",
+        data: {
+          kind: "missing-local-model-definition",
+          nodeId: "Sequence",
+          sourceKind: "inline-tree-nodes-model",
+          fix: {
+            kind: "add-local-definition",
+            uri: "tree.xml",
+            nodeId: "Sequence",
+            model: {
+              id: "Sequence",
+              kind: "Control",
+              ports: [],
+            },
+          },
+        },
+      },
+    ],
+  });
+
+  assert.equal(fixes.length, 1);
+  const updated = applyTextEdits(parsed.document.originalText, fixes[0]?.edits ?? []);
+  assert.equal((updated.match(/<TreeNodesModel/g) ?? []).length, 1);
+  assert.ok(updated.includes("<TreeNodesModel>"));
+  assert.ok(updated.includes("</TreeNodesModel>"));
+  assert.ok(updated.includes('<Control ID="Sequence"/>'));
+});
