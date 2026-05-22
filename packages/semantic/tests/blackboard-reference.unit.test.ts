@@ -124,3 +124,23 @@ test("BlackboardReferenceView extracts shorthand substitution references", () =>
   assert.equal(reference?.key, "val");
   assert.equal(reference?.identity, "local:val");
 });
+
+test("BlackboardReferenceView trims shorthand raw and narrows range to '='", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <PrintNumber val=" = " />
+  </BehaviorTree>
+</root>`;
+  const parsed = parseBtXml(text, { uri: "blackboard-shorthand-spaces.xml" });
+  assert.ok(parsed.document);
+
+  const view = buildLocalBtDocumentView(parsed.document, { config });
+  const reference = view.nodes[0]?.portBindings[0]?.blackboardReferences[0];
+
+  assert.equal(reference?.raw, "=");
+  assert.equal(
+    reference ? text.slice(reference.range.start.offset, reference.range.end.offset) : "",
+    "=",
+  );
+});

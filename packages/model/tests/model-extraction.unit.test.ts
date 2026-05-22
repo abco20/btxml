@@ -60,3 +60,28 @@ test("buildDocumentModel reports duplicate node model IDs without mutating the d
   assert.equal(result.diagnostics.length, 1);
   assert.deepEqual(parsed.document.diagnostics, diagnosticsBefore);
 });
+
+test("buildDocumentModelResult computes blackboard reference range from raw source when entities precede it", () => {
+  const text = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="main">
+    <Action ID="Node" port="a &amp; b {@foo}"/>
+  </BehaviorTree>
+</root>`;
+  const parsed = parseBtXml(text);
+  assert.equal(parsed.ok, true);
+  assert.ok(parsed.document);
+  if (!parsed.document) throw new Error("parsed.document is null");
+
+  const result = buildDocumentModelResult(parsed.document);
+  const reference = result.model.blackboardReferences[0];
+  assert.ok(reference);
+  assert.equal(reference?.raw, "{@foo}");
+  assert.equal(reference?.key, "foo");
+  assert.equal(
+    reference
+      ? text.slice(reference.range?.start.offset ?? 0, reference.range?.end.offset ?? 0)
+      : "",
+    "{@foo}",
+  );
+});

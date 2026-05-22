@@ -129,12 +129,17 @@ function extractBlackboardReferences(
   if (references.length === 0) {
     const parsed = parsePortBlackboardReference({ portName, rawValue });
     if (parsed.ok) {
+      const parsedOffset = Math.max(0, rawValue.indexOf(parsed.reference.raw));
       references.push({
-        raw: rawValue,
+        raw: parsed.reference.raw,
         key: parsed.reference.key,
         scope: parsed.reference.scope,
         identity: makeBlackboardIdentity(parsed.reference),
-        range: baseRange,
+        range: rangeFromText(
+          baseRange.start,
+          rawValue.slice(0, parsedOffset),
+          parsed.reference.raw,
+        ),
         syntax: parsed.reference.syntax === "shorthand" ? "shorthand" : "braced",
       });
       return references;

@@ -71,14 +71,44 @@ function toPortSource(
   return fallback;
 }
 
+function advancePosition(start: { line: number; character: number; offset: number }, text: string) {
+  let line = start.line;
+  let character = start.character;
+  let offset = start.offset;
+  for (const char of text) {
+    offset += char.length;
+    if (char === "\n") {
+      line += 1;
+      character = 0;
+      continue;
+    }
+    character += char.length;
+  }
+  return { line, character, offset };
+}
+
+function rangeFromRawText(
+  start: { line: number; character: number; offset: number },
+  prefix: string,
+  text: string,
+) {
+  const rangeStart = advancePosition(start, prefix);
+  const rangeEnd = advancePosition(rangeStart, text);
+  return {
+    start: rangeStart,
+    end: rangeEnd,
+  };
+}
+
 function collectBlackboardReferences(
   element: BtXmlElement,
   refs: ExtractedBlackboardReference[],
   uri: string,
+  documentText: string,
 ) {
   for (const attr of element.attributes || []) {
-    const valueRange = attr.valueContentRange ?? attr.valueRange;
-    const rawValue = String(attr.value);
+    const baseRange = attr.valueContentRange ?? attr.valueRange;
+    const rawValue = documentText.slice(baseRange.start.offset, baseRange.end.offset);
 
     const collectParsedReference = (input: {
       parsedRaw: string;
@@ -100,18 +130,11 @@ function collectBlackboardReferences(
         attributeName: attr.name,
         element,
         uri,
-        range: {
-          start: {
-            ...valueRange.start,
-            character: valueRange.start.character + input.parsedOffset,
-            offset: valueRange.start.offset + input.parsedOffset,
-          },
-          end: {
-            ...valueRange.start,
-            character: valueRange.start.character + input.parsedOffset + referenceLength,
-            offset: valueRange.start.offset + input.parsedOffset + referenceLength,
-          },
-        },
+        range: rangeFromRawText(
+          baseRange.start,
+          rawValue.slice(0, input.parsedOffset),
+          parsed.reference.raw.slice(0, referenceLength),
+        ),
       });
     };
 
@@ -135,7 +158,7 @@ function collectBlackboardReferences(
     }
   }
   for (const child of element.children || []) {
-    if (child.kind === "element") collectBlackboardReferences(child, refs, uri);
+    if (child.kind === "element") collectBlackboardReferences(child, refs, uri, documentText);
   }
 }
 
@@ -435,7 +458,7 @@ function extractDocumentModel(
   const blackboardReferences = root
     ? (() => {
         const refs: ExtractedBlackboardReference[] = [];
-        collectBlackboardReferences(root, refs, uri);
+        collectBlackboardReferences(root, refs, uri, document.originalText);
         return refs;
       })()
     : [];
