@@ -236,6 +236,60 @@ test("CLI lint --fix exits 1 when non-fixable diagnostics remain", () => {
   assert.ok(result.stdout.includes("fixed 0 problems"));
 });
 
+test("CLI lint --fix removes used-only unused inline definitions", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-used-only-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ models: { convention: "used-only" } }),
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?>\n<root BTCPP_format="4"><BehaviorTree ID="Main"><UsedAction/></BehaviorTree><TreeNodesModel><Action ID="UsedAction"/><Action ID="UnusedAction"/></TreeNodesModel></root>\n',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stdout.includes("fixed"));
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(content.includes('Action ID="UsedAction"'));
+  assert.ok(!content.includes('Action ID="UnusedAction"'));
+});
+
+test("CLI lint --fix removes non-canonical duplicates for single-source", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-single-source-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      models: {
+        convention: "single-source",
+        files: ["models.xml"],
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "models.xml"),
+    '<?xml version="1.0" encoding="UTF-8"?>\n<TreeNodesModel><Action ID="Move"/></TreeNodesModel>\n',
+    "utf8",
+  );
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?>\n<root BTCPP_format="4"><BehaviorTree ID="Main"><Move/></BehaviorTree><TreeNodesModel><Action ID="Move"/></TreeNodesModel></root>\n',
+    "utf8",
+  );
+
+  const result = run(["lint", "--fix", "tree.xml"], dir);
+  assert.equal(result.status, 0, result.stderr);
+
+  const content = fs.readFileSync(file, "utf8");
+  assert.ok(!content.includes('<Action ID="Move"/>'));
+});
+
 test("CLI check --fix exits 2", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-check-fix-"));
   const result = run(["check", "--fix", "tree.xml"], dir);
