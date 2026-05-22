@@ -331,7 +331,9 @@ function createMissingLocalDefinitionDiagnostics(input: {
     const firstUsage = input.sameFileNodeUsages.find(
       (usage) => usage.kind === "node" && usage.id === nodeId,
     );
-    const fixableModel = hasNonNormalLocalDefinition ? undefined : toFixableModel(input.index, nodeId);
+    const fixableModel = hasNonNormalLocalDefinition
+      ? undefined
+      : toFixableModel(input.index, nodeId);
 
     diagnostics.push(
       createConventionDiagnostic({

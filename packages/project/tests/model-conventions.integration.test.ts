@@ -485,7 +485,10 @@ test("used-only does not emit BT123 for unknown node", async () => {
   const result = await checkProject({ project: discovered.project });
   const diagnostics = allDiagnostics(result);
 
-  assert.equal(diagnostics.some((entry) => entry.code === "BT105_UNKNOWN_NODE"), true);
+  assert.equal(
+    diagnostics.some((entry) => entry.code === "BT105_UNKNOWN_NODE"),
+    true,
+  );
   assert.equal(
     diagnostics.some((entry) => entry.code === "BT123_MISSING_LOCAL_MODEL_DEFINITION"),
     false,
