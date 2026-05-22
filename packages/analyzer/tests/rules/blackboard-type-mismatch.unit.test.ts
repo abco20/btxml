@@ -46,7 +46,7 @@ test("blackboard-type-mismatch reports std::string mismatches when compatibility
   assert.ok(diagnostic);
   assert.match(
     diagnostic.message,
-    /blackboard entry `target` is used with incompatible port types: `Pose2D`, `std::string`/,
+    /blackboard entry `\{target\}` is used with incompatible port types: `Pose2D`, `std::string`/,
   );
   assert.deepEqual(diagnostic.details?.notes, [
     "ReadPose.pose declares Pose2D",
@@ -131,4 +131,57 @@ test("blackboard-type-mismatch ignores Any while still reporting concrete mismat
     "UseInt.value declares int",
     "UseString.text declares std::string",
   ]);
+});
+
+test("blackboard-type-mismatch separates local and global blackboard identities", () => {
+  const config = getEffectiveConfigForFile(
+    {
+      ...DEFAULT_RESOLVED_BTXML_CONFIG,
+      linter: {
+        ...DEFAULT_RESOLVED_BTXML_CONFIG.linter,
+        rules: {
+          "model/no-blackboard-type-mismatch": ["error", { allowStringEntryCompatibility: false }],
+        },
+      },
+    },
+    "test.xml",
+  );
+
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Sequence><UseInt value="{shared}"/><UseString text="{@shared}"/></Sequence></BehaviorTree><TreeNodesModel><Action ID="UseInt"><input_port name="value" type="int"/></Action><Action ID="UseString"><input_port name="text" type="std::string"/></Action></TreeNodesModel></root>`,
+    { config },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT111_BLACKBOARD_TYPE_MISMATCH"),
+    false,
+  );
+});
+
+test("blackboard-type-mismatch reports global/global mismatches with global formatting", () => {
+  const config = getEffectiveConfigForFile(
+    {
+      ...DEFAULT_RESOLVED_BTXML_CONFIG,
+      linter: {
+        ...DEFAULT_RESOLVED_BTXML_CONFIG.linter,
+        rules: {
+          "model/no-blackboard-type-mismatch": ["error", { allowStringEntryCompatibility: false }],
+        },
+      },
+    },
+    "test.xml",
+  );
+
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Sequence><UseInt value="{@shared}"/><UsePose pose="{@shared}"/></Sequence></BehaviorTree><TreeNodesModel><Action ID="UseInt"><input_port name="value" type="int"/></Action><Action ID="UsePose"><input_port name="pose" type="Pose2D"/></Action></TreeNodesModel></root>`,
+    { config },
+  );
+
+  const diagnostic = result.diagnostics.find(
+    (diag) => diag.code === "BT111_BLACKBOARD_TYPE_MISMATCH",
+  );
+  assert.ok(diagnostic);
+  assert.match(diagnostic.message, /blackboard entry `\{@shared\}` is used with incompatible port types:/);
+  assert.match(diagnostic.message, /`Pose2D`/);
+  assert.match(diagnostic.message, /`int32`/);
 });

@@ -1,8 +1,9 @@
 import {
+  formatBlackboardReference,
+  makeBlackboardIdentity,
   type PortDef,
   type ResolvedTypeDefinition,
   getInvalidPortNameReason,
-  getRemappedKey,
 } from "@btxml/model";
 import {
   areTypesCompatible,
@@ -15,7 +16,7 @@ import { RuleCodes } from "../../rule-codes.js";
 import { makeRuleModule } from "../module.js";
 import type { RuleModule } from "../rule.js";
 import {
-  getExactRemappedKey,
+  getExactBlackboardReference,
   getResolvedPortType,
   getResolvedPortTypeDefinition,
   reportLiteralValidation,
@@ -132,7 +133,7 @@ export const modelRules = [
           if (!port) return;
 
           if (port.direction === "output") {
-            if (getRemappedKey(port.name, defaultAttr.value) === undefined) {
+            if (getExactBlackboardReference(port.name, defaultAttr.value) === undefined) {
               context.report({
                 code: RuleCodes.InvalidPortDefaultValue,
                 message: `output port default for \`${port.name}\` must be a blackboard remap`,
@@ -170,7 +171,7 @@ export const modelRules = [
       return {
         ProgramExit() {
           const typeRegistry = getTypeRegistry(context.semantic);
-          const bindingsByKey = new Map<string, BlackboardBindingRecord[]>();
+          const bindingsByIdentity = new Map<string, BlackboardBindingRecord[]>();
           const allowStringEntryCompatibility =
             (context.options as { allowStringEntryCompatibility?: boolean })
               .allowStringEntryCompatibility ?? true;
@@ -179,8 +180,8 @@ export const modelRules = [
             for (const binding of node.portBindings) {
               if (binding.declaredPort.status !== "resolved") continue;
 
-              const key = getExactRemappedKey(binding.name, binding.value);
-              if (!key) continue;
+              const reference = getExactBlackboardReference(binding.name, binding.value);
+              if (!reference) continue;
 
               const typeDefinition = getResolvedPortTypeDefinition(
                 typeRegistry,
@@ -188,19 +189,23 @@ export const modelRules = [
               );
               if (!typeDefinition || typeDefinition.kind === "any") continue;
 
-              const records = bindingsByKey.get(key) ?? [];
+              const identity = makeBlackboardIdentity(reference);
+              const records = bindingsByIdentity.get(identity) ?? [];
               records.push({
-                key,
+                key: reference.key,
+                scope: reference.scope,
+                displayName: formatBlackboardReference(reference),
+                identity,
                 nodeId: describeBindingNode(node.element),
                 port: binding.declaredPort.port,
                 typeDefinition,
                 range: binding.attribute.range,
               });
-              bindingsByKey.set(key, records);
+              bindingsByIdentity.set(identity, records);
             }
           }
 
-          for (const [key, bindings] of bindingsByKey) {
+          for (const bindings of bindingsByIdentity.values()) {
             const incompatibleTypes = collectIncompatibleTypes(
               context.semantic,
               bindings,
@@ -214,10 +219,10 @@ export const modelRules = [
 
             context.report({
               code: RuleCodes.BlackboardTypeMismatch,
-              message: `blackboard entry \`${key}\` is used with incompatible port types: ${incompatibleTypes.map((type) => `\`${type}\``).join(", ")}`,
+              message: `blackboard entry \`${primary?.displayName ?? bindings[0]?.displayName ?? bindings[0]?.key ?? ""}\` is used with incompatible port types: ${incompatibleTypes.map((type) => `\`${type}\``).join(", ")}`,
               range: primary?.range,
               details: {
-                primaryLabel: `blackboard entry \`${key}\` mixes incompatible port types`,
+                primaryLabel: `blackboard entry \`${primary?.displayName ?? bindings[0]?.displayName ?? bindings[0]?.key ?? ""}\` mixes incompatible port types`,
                 notes: bindings
                   .filter((binding) => incompatibleTypes.includes(binding.typeDefinition.canonical))
                   .map(
@@ -249,7 +254,7 @@ export const modelRules = [
             const portUsage = context.getPortUsage(element, attr.name);
             if (portUsage?.status !== "resolved") continue;
             if (portUsage.port.direction !== "output") continue;
-            if (getExactRemappedKey(portUsage.port.name, attr.value) !== undefined) continue;
+            if (getExactBlackboardReference(portUsage.port.name, attr.value) !== undefined) continue;
 
             context.report({
               code: RuleCodes.OutputPortRequiresRemap,
@@ -269,6 +274,9 @@ export const modelRules = [
 
 type BlackboardBindingRecord = {
   key: string;
+  scope: "local" | "global";
+  displayName: string;
+  identity: string;
   nodeId: string;
   port: PortDef;
   typeDefinition: ResolvedTypeDefinition;

@@ -1,10 +1,11 @@
 import type { SourceRange } from "@btxml/foundation";
 import {
+  type BlackboardReference,
   type PortDef,
   type ResolvedTypeDefinition,
   type TypeRegistry,
-  getRemappedKey,
   normalizeBuiltinTypeName,
+  parsePortBlackboardReference,
   resolveTypeDefinition,
 } from "@btxml/model";
 import type { BtXmlElement } from "@btxml/syntax";
@@ -141,11 +142,11 @@ export function reportLiteralValidation(
 export function validateLiteralValue(
   input: LiteralValidationInput,
 ): LiteralValidationResult | undefined {
-  const remappedKey = getRemappedKey(input.port.name, input.value);
-  if (input.allowRemap && remappedKey !== undefined) {
+  const remappedReference = getExactBlackboardReference(input.port.name, input.value);
+  if (input.allowRemap && remappedReference !== undefined) {
     return undefined;
   }
-  if (!input.allowRemap && remappedKey !== undefined) {
+  if (!input.allowRemap && remappedReference !== undefined) {
     return invalidLiteral(input.diagnosticCode, input.value, input.portLabel);
   }
 
@@ -195,7 +196,18 @@ export function getResolvedPortTypeDefinition(
 }
 
 export function getExactRemappedKey(portName: string, rawValue: string): string | undefined {
-  return getRemappedKey(portName, rawValue);
+  return getExactBlackboardReference(portName, rawValue)?.key;
+}
+
+export function getExactBlackboardReference(
+  portName: string,
+  rawValue: string,
+): BlackboardReference | undefined {
+  const parsed = parsePortBlackboardReference({
+    portName,
+    rawValue: rawValue.trim(),
+  });
+  return parsed.ok ? parsed.reference : undefined;
 }
 
 function invalidLiteral(code: string, literal: string, portLabel: string): LiteralValidationResult {

@@ -59,6 +59,18 @@ test("port-value still skips validation for whitespace-padded blackboard key syn
   );
 });
 
+test("port-value skips literal validation for global remaps", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="Main"><SubTree ID="Child" _autoremap="{@flag}"/></BehaviorTree><BehaviorTree ID="Child"><AlwaysSuccess/></BehaviorTree></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT103_INVALID_PORT_VALUE_TYPE"),
+    false,
+  );
+});
+
 test("port-value reports BT112 for custom literal without validator", () => {
   const result = validateBtXml(
     `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><MoveTo target="1.0;2.0;3.14"/></BehaviorTree><TreeNodesModel><Action ID="MoveTo"><input_port name="target" type="Pose2D"/></Action></TreeNodesModel></root>`,

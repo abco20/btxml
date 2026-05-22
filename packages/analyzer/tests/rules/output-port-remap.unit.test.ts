@@ -54,3 +54,15 @@ test("output-port-remap accepts whitespace-padded blackboard key syntax", () => 
     false,
   );
 });
+
+test("output-port-remap accepts global blackboard remaps", () => {
+  const result = validateBtXml(
+    `<?xml version="1.0" encoding="UTF-8"?><root BTCPP_format="4"><BehaviorTree ID="main"><Producer result="{@shared}"/></BehaviorTree><TreeNodesModel><Action ID="Producer"><output_port name="result" type="Any"/></Action></TreeNodesModel></root>`,
+    { config: defaultEffectiveConfig },
+  );
+
+  assert.equal(
+    result.diagnostics.some((diag) => diag.code === "BT115_OUTPUT_PORT_REQUIRES_REMAP"),
+    false,
+  );
+});
