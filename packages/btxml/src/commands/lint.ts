@@ -1,5 +1,5 @@
 import type { ResolvedBtxmlConfig } from "@btxml/config";
-import { type Diagnostic, applyTextEdits } from "@btxml/foundation";
+import type { Diagnostic } from "@btxml/foundation";
 import {
   type BtxmlProject,
   type DiagnosticBaseline,
@@ -8,7 +8,7 @@ import {
 } from "@btxml/project";
 import {
   createNodeProjectHost,
-  fileUriToPath,
+  getNodeProjectModelFiles,
   getNodeProjectRootDir,
   getNodeProjectSelectedFiles,
 } from "@btxml/project/node";
@@ -16,7 +16,10 @@ import type { CommandModule } from "yargs";
 import { runLintCommand } from "../context.ts";
 import { hasFailingDiagnostics } from "../diagnostics.ts";
 import { CliError } from "../errors.ts";
-import { readText, writeTextAtomic } from "../io.ts";
+import { runLintFixEngine } from "../fix/engine.ts";
+import { formatFixSummaryLines } from "../fix/report.ts";
+import type { FixRunSummary } from "../fix/types.ts";
+import { readText } from "../io.ts";
 import { parseCommandOptions } from "../options/common.ts";
 import { lintOptionsSchema } from "../options/lint.ts";
 import {
@@ -29,7 +32,6 @@ import {
   summarizeDiagnostics,
   toJsonReport,
 } from "../output.ts";
-import { getSafeLintFixes } from "../repair/lint-fixes.ts";
 
 type LintRunOptions = {
   reporter: "human" | "json";
@@ -42,86 +44,179 @@ type LintRunOptions = {
   updateBaseline?: boolean | string;
   projectDiagnostics?: Diagnostic[];
   fix?: boolean;
+  fixDryRun?: boolean;
+  unsafe?: boolean;
+  fixMaxPasses?: number;
+  fixNoFormat?: boolean;
 };
 
-export async function runLint(project: BtxmlProject, options: LintRunOptions) {
-  const host = createNodeProjectHost(getNodeProjectRootDir(project));
-  let {
-    documents,
-    externalModelDocuments,
-    diagnostics: externalDiagnostics,
-  } = await loadProjectDocuments(project, host);
+type LoadedLintState = {
+  documents: Awaited<ReturnType<typeof loadProjectDocuments>>["documents"];
+  externalModelDocuments: Awaited<
+    ReturnType<typeof loadProjectDocuments>
+  >["externalModelDocuments"];
+  externalDiagnostics: Awaited<ReturnType<typeof loadProjectDocuments>>["diagnostics"];
+};
 
-  let result = await checkProject({
-    project,
-    documents,
-    externalModelDocuments,
+async function loadLintState(
+  project: BtxmlProject,
+  host: ReturnType<typeof createNodeProjectHost>,
+) {
+  const loaded = await loadProjectDocuments(project, host);
+  return {
+    documents: loaded.documents,
+    externalModelDocuments: loaded.externalModelDocuments,
+    externalDiagnostics: loaded.diagnostics,
+  } satisfies LoadedLintState;
+}
+
+async function runLintCheck(input: {
+  project: BtxmlProject;
+  host: ReturnType<typeof createNodeProjectHost>;
+  state: LoadedLintState;
+  options: LintRunOptions;
+}) {
+  return checkProject({
+    project: input.project,
+    documents: input.state.documents,
+    externalModelDocuments: input.state.externalModelDocuments,
     mode: "lint",
-    showSuppressed: options.showSuppressed,
-    baseline: options.baseline,
-    maxWarnings: options.maxWarnings,
+    showSuppressed: input.options.showSuppressed,
+    baseline: input.options.baseline,
+    maxWarnings: input.options.maxWarnings,
     includeRawDiagnostics: true,
-    projectDiagnostics: [...(options.projectDiagnostics || []), ...externalDiagnostics],
-    host,
+    projectDiagnostics: [
+      ...(input.options.projectDiagnostics || []),
+      ...input.state.externalDiagnostics,
+    ],
+    host: input.host,
   });
+}
 
-  let fixedCount = 0;
-  let fixedFiles = 0;
-
-  if (options.fix) {
-    const allDiagnostics = [
-      ...(options.projectDiagnostics || []),
-      ...result.projectDiagnostics,
-      ...result.files.flatMap((f) => f.rawDiagnostics ?? f.diagnostics),
-    ];
-    const fixes = getSafeLintFixes({ documents, diagnostics: allDiagnostics });
-    if (fixes.length > 0) {
-      const seenUris = new Set<string>();
-      for (const edit of fixes) {
-        const file = getNodeProjectSelectedFiles(project).find(
-          (f) => f.absolutePath === edit.uri || f.path === edit.uri || f.uri === edit.uri,
-        );
-        const filePath =
-          file?.absolutePath ??
-          (edit.uri.startsWith("file://") ? fileUriToPath(edit.uri) : edit.uri);
-        const text = readText(filePath);
-        const newText = applyTextEdits(text, edit.edits);
-        writeTextAtomic(filePath, newText);
-        if (!seenUris.has(edit.uri)) {
-          seenUris.add(edit.uri);
-          fixedFiles++;
-        }
-        fixedCount += edit.edits.length;
-      }
-      // Reload and re-check after fixes
-      const reload = await loadProjectDocuments(project, host);
-      documents = reload.documents;
-      externalModelDocuments = reload.externalModelDocuments;
-      externalDiagnostics = reload.diagnostics;
-      result = await checkProject({
-        project,
-        documents,
-        externalModelDocuments,
-        mode: "lint",
-        showSuppressed: options.showSuppressed,
-        baseline: options.baseline,
-        maxWarnings: options.maxWarnings,
-        includeRawDiagnostics: true,
-        projectDiagnostics: [...(options.projectDiagnostics || []), ...externalDiagnostics],
-        host,
-      });
-    }
-  }
-
-  const projectDiagnostics = [...(options.projectDiagnostics || []), ...result.projectDiagnostics];
-
-  const reports: FileReport[] = result.files.map((file) => ({
+function toFileReports(result: Awaited<ReturnType<typeof checkProject>>): FileReport[] {
+  return result.files.map((file) => ({
     path: file.path,
     diagnostics: file.diagnostics,
     rawDiagnostics: file.rawDiagnostics,
     skipped: file.skipped,
     skipReason: file.skipReason,
   }));
+}
+
+function buildHumanSourceTextMap(input: {
+  project: BtxmlProject;
+  fixSummary?: FixRunSummary;
+}) {
+  const texts = new Map<string, string>();
+  for (const file of [
+    ...getNodeProjectSelectedFiles(input.project),
+    ...getNodeProjectModelFiles(input.project),
+  ]) {
+    if (texts.has(file.path)) continue;
+    texts.set(file.path, readText(file.absolutePath));
+  }
+
+  if (input.fixSummary?.dryRun && input.fixSummary.fixedTextByPath) {
+    for (const [path, text] of Object.entries(input.fixSummary.fixedTextByPath)) {
+      texts.set(path, text);
+    }
+  }
+
+  return texts;
+}
+
+function printHumanLintOutput(input: {
+  project: BtxmlProject;
+  options: LintRunOptions;
+  ok: boolean;
+  reports: FileReport[];
+  projectDiagnostics: Diagnostic[];
+  summary: ReturnType<typeof summarizeDiagnostics>;
+  resultSummary: Awaited<ReturnType<typeof checkProject>>["summary"];
+  fixSummary?: FixRunSummary;
+}) {
+  if (input.fixSummary) {
+    for (const line of formatFixSummaryLines(input.fixSummary)) {
+      console.log(line);
+    }
+  }
+
+  const texts = buildHumanSourceTextMap({
+    project: input.project,
+    fixSummary: input.fixSummary,
+  });
+
+  const printed = printProjectDiagnostics(input.projectDiagnostics, input.options.reporter, texts);
+  if (printed) console.error(printed);
+
+  for (const report of input.reports) {
+    const text = printDiagnostics(report.path, report.diagnostics, input.options.reporter, texts);
+    if (text) console.error(text);
+  }
+
+  const staleCount = input.resultSummary?.staleEntries?.length;
+  const lintSummary = printCheckSummary(
+    input.ok,
+    input.reports.length,
+    staleCount,
+    "lint",
+    input.summary.errors,
+    input.summary.warnings,
+    input.options.maxWarnings === 0,
+  );
+
+  if (input.ok) {
+    if (!input.fixSummary) {
+      console.log(lintSummary);
+    } else if (input.fixSummary.appliedDiagnostics === 0) {
+      console.log("ok: lint passed");
+    }
+    return;
+  }
+
+  console.error(lintSummary);
+  const staleNote = printStaleBaselineNote(staleCount);
+  if (staleNote) console.error(staleNote);
+}
+
+async function runLintFixIfNeeded(input: {
+  project: BtxmlProject;
+  host: ReturnType<typeof createNodeProjectHost>;
+  options: LintRunOptions;
+}) {
+  if (!input.options.fix && !input.options.fixDryRun) return undefined;
+
+  return runLintFixEngine({
+    project: input.project,
+    host: input.host,
+    options: {
+      unsafe: input.options.unsafe === true,
+      dryRun: input.options.fixDryRun === true,
+      maxPasses: input.options.fixMaxPasses ?? 10,
+      formatAfterFix: input.options.fixNoFormat !== true,
+      resolvedConfig: input.options.resolvedConfig,
+      baseline: input.options.baseline,
+      maxWarnings: input.options.maxWarnings,
+      showSuppressed: input.options.showSuppressed,
+      projectDiagnostics: input.options.projectDiagnostics ?? [],
+    },
+  });
+}
+
+export async function runLint(project: BtxmlProject, options: LintRunOptions) {
+  const host = createNodeProjectHost(getNodeProjectRootDir(project));
+  const state = await loadLintState(project, host);
+  let result = await runLintCheck({ project, host, state, options });
+
+  let fixSummary: FixRunSummary | undefined;
+  const fixed = await runLintFixIfNeeded({ project, host, options });
+  if (fixed) {
+    result = fixed.result;
+    fixSummary = fixed.summary;
+  }
+
+  const projectDiagnostics = [...(options.projectDiagnostics || []), ...result.projectDiagnostics];
+  const reports = toFileReports(result);
 
   const ok = !hasFailingDiagnostics(
     collectAllDiagnostics({ projectDiagnostics, files: reports }),
@@ -136,51 +231,22 @@ export async function runLint(project: BtxmlProject, options: LintRunOptions) {
         files: reports,
         projectDiagnostics,
         summary: result.summary,
+        fixes: fixSummary,
       }),
     );
   }
 
   if (!options.quiet && options.reporter === "human") {
-    if (options.fix) {
-      if (fixedCount > 0) {
-        console.log(
-          `fixed ${fixedCount} problem${fixedCount === 1 ? "" : "s"} in ${fixedFiles} file${fixedFiles === 1 ? "" : "s"}`,
-        );
-      } else {
-        console.log("fixed 0 problems");
-      }
-    }
-    const texts = new Map<string, string>();
-    for (const file of getNodeProjectSelectedFiles(project)) {
-      texts.set(file.path, readText(file.absolutePath));
-    }
-    const printed = printProjectDiagnostics(projectDiagnostics, options.reporter, texts);
-    if (printed) console.error(printed);
-    for (const report of reports) {
-      const text = printDiagnostics(report.path, report.diagnostics, options.reporter, texts);
-      if (text) console.error(text);
-    }
-    const staleCount = result.summary?.staleEntries?.length;
-    const lintSummary = printCheckSummary(
+    printHumanLintOutput({
+      project,
+      options,
       ok,
-      reports.length,
-      staleCount,
-      "lint",
-      summary.errors,
-      summary.warnings,
-      options.maxWarnings === 0,
-    );
-    if (ok) {
-      if (!options.fix) {
-        console.log(lintSummary);
-      } else if (fixedCount === 0) {
-        console.log("ok: lint passed");
-      }
-    } else {
-      console.error(lintSummary);
-      const staleNote = printStaleBaselineNote(staleCount);
-      if (staleNote) console.error(staleNote);
-    }
+      reports,
+      projectDiagnostics,
+      summary,
+      resultSummary: result.summary,
+      fixSummary,
+    });
   }
 
   return {
@@ -214,6 +280,10 @@ export const lintCommand: CommandModule = {
       .option("update-baseline", { type: "string" })
       .option("no-baseline", { type: "boolean" })
       .option("fix", { type: "boolean" })
+      .option("fix-dry-run", { type: "boolean" })
+      .option("unsafe", { type: "boolean" })
+      .option("fix-max-passes", { type: "number" })
+      .option("fix-no-format", { type: "boolean" })
       .option("stdout", { type: "boolean", hidden: true }),
   handler: async (argv) => {
     if (argv.stdout) {

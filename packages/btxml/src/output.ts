@@ -1,5 +1,6 @@
 import type { Diagnostic } from "@btxml/foundation";
 import { collectDiagnostics } from "./diagnostics.ts";
+import type { FixRunSummary } from "./fix/types.ts";
 import { renderHumanDiagnostics } from "./render/human-diagnostic.ts";
 
 declare const __BTXML_VERSION__: string | undefined;
@@ -92,6 +93,7 @@ export function toJsonReport(input: {
   files: FileReport[];
   projectDiagnostics?: Diagnostic[];
   summary?: { suppressed?: number; baselineFiltered?: number };
+  fixes?: FixRunSummary;
 }) {
   const files = [...input.files]
     .map((file) => {
@@ -120,6 +122,7 @@ export function toJsonReport(input: {
         suppressed: input.summary?.suppressed || 0,
         baselineFiltered: input.summary?.baselineFiltered || 0,
       },
+      ...(input.fixes ? { fixes: input.fixes } : {}),
     },
     null,
     2,

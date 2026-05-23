@@ -41,6 +41,10 @@ export type ProjectCommandOptions = {
   formatOnly?: boolean;
   lintOnly?: boolean;
   fix?: boolean;
+  fixDryRun?: boolean;
+  unsafe?: boolean;
+  fixMaxPasses?: number;
+  fixNoFormat?: boolean;
   show?: string;
 };
 
@@ -113,6 +117,10 @@ export async function runFormatCommand(options: ProjectCommandOptions): Promise<
 }
 
 export async function runLintCommand(options: ProjectCommandOptions): Promise<number> {
+  if (options.unsafe && !options.fix && !options.fixDryRun) {
+    throw new CliError("--unsafe can only be used with --fix or --fix-dry-run", 2);
+  }
+
   const projectResult = await discoverCommandProject("lint", options);
   if (!projectResult) return 2;
 

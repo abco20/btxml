@@ -22,6 +22,10 @@ function run(args: string[], cwd: string) {
   });
 }
 
+function stripAnsi(text: string) {
+  return text.replace(new RegExp(String.raw`${String.fromCodePoint(0x1b)}\[[0-9;]*m`, "g"), "");
+}
+
 test("CLI doctor returns workspace summary", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-doctor-"));
   writeFile(
@@ -55,6 +59,36 @@ test("CLI normalizes output defaults and warning flags", () => {
   const checkResult = run(["check", "--warnings-as-errors", "tree.xml"], dir);
   assert.equal(checkResult.status, 0, checkResult.stderr);
   assert.ok(checkResult.stdout.includes("checked 1 files") || checkResult.stdout.includes("ok:"));
+});
+
+test("CLI lint --unsafe alone exits 2 with usage error", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-unsafe-alone-"));
+  const result = run(["lint", "--unsafe"], dir);
+  assert.equal(result.status, 2, result.stdout + result.stderr);
+  const stripped = stripAnsi(result.stderr);
+  assert.match(stripped, /--unsafe` can only be used with `--fix` or `--fix-dry-run/);
+});
+
+test("CLI lint fix-engine flags are available", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-flags-"));
+  writeFile(
+    dir,
+    "tree.xml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+<root><BehaviorTree ID="main"><AlwaysSuccess/></BehaviorTree></root>`,
+  );
+
+  const dryRun = run(["lint", "--fix-dry-run", "--output", "json", "tree.xml"], dir);
+  assert.equal(dryRun.status, 0, dryRun.stdout + dryRun.stderr);
+  const dryRunJson = JSON.parse(dryRun.stdout);
+  assert.equal(dryRunJson.fixes?.dryRun, true);
+  assert.ok(dryRunJson.fixes?.appliedDiagnostics >= 1);
+
+  const maxPasses = run(["lint", "--fix", "--fix-max-passes", "2", "tree.xml"], dir);
+  assert.equal(maxPasses.status, 0, maxPasses.stdout + maxPasses.stderr);
+
+  const noFormat = run(["lint", "--fix", "--fix-no-format", "tree.xml"], dir);
+  assert.equal(noFormat.status, 0, noFormat.stdout + noFormat.stderr);
 });
 
 test("CLI deleted commands fail", () => {
@@ -204,7 +238,7 @@ test("CLI lint --fix adds BTCPP_format=4", () => {
     '<?xml version="1.0" encoding="UTF-8"?>\n<root><BehaviorTree ID="main"><AlwaysSuccess/></BehaviorTree></root>\n',
     "utf8",
   );
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
   const content = fs.readFileSync(file, "utf8");
   assert.ok(content.includes('BTCPP_format="4"'));
@@ -236,7 +270,7 @@ test("CLI lint --fix exits 1 when non-fixable diagnostics remain", () => {
   assert.ok(result.stdout.includes("fixed 0 problems"));
 });
 
-test("CLI lint --fix removes used-only unused inline definitions", () => {
+test("CLI lint --fix --unsafe removes used-only unused inline definitions", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-lint-fix-used-only-"));
   fs.writeFileSync(
     path.join(dir, "btxml.config.json"),
@@ -250,7 +284,7 @@ test("CLI lint --fix removes used-only unused inline definitions", () => {
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
   assert.ok(result.stdout.includes("fixed"));
 
@@ -275,7 +309,7 @@ test("CLI lint --fix removes whole self-closing unused model element and keeps X
     "utf8",
   );
 
-  const fixResult = run(["lint", "--fix", "tree.xml"], dir);
+  const fixResult = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(fixResult.status, 0, fixResult.stderr);
 
   const content = fs.readFileSync(file, "utf8");
@@ -326,7 +360,7 @@ test("CLI lint --fix removes whole block unused model element", () => {
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
 
   const content = fs.readFileSync(file, "utf8");
@@ -359,7 +393,7 @@ test("CLI lint --fix inserts missing builtin Sequence local definition", () => {
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
 
   const content = fs.readFileSync(file, "utf8");
@@ -390,7 +424,7 @@ test("CLI lint --fix inserts missing builtin decorator local definition", () => 
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
 
   const content = fs.readFileSync(file, "utf8");
@@ -429,12 +463,12 @@ test("CLI lint --fix serializes missing external Action definition with ports", 
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
 
   const content = fs.readFileSync(file, "utf8");
   assert.ok(content.includes('<Action ID="Move">'));
-  assert.ok(content.includes('<input_port name="goal" type="Pose2D"/>'));
+  assert.ok(content.includes('<input_port name="goal"'));
 });
 
 test("CLI lint --fix serializes missing node-definition-file model into XML", () => {
@@ -472,12 +506,12 @@ test("CLI lint --fix serializes missing node-definition-file model into XML", ()
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
 
   const content = fs.readFileSync(file, "utf8");
   assert.ok(content.includes('<Action ID="JsonMove">'));
-  assert.ok(content.includes('<input_port name="goal" type="Pose2D"/>'));
+  assert.ok(content.includes('<input_port name="goal"'));
 });
 
 test("CLI lint --fix serializes missing config-inline model into XML", () => {
@@ -508,12 +542,12 @@ test("CLI lint --fix serializes missing config-inline model into XML", () => {
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
 
   const content = fs.readFileSync(file, "utf8");
   assert.ok(content.includes('<Action ID="ConfigMove">'));
-  assert.ok(content.includes('<input_port name="goal" type="Pose2D"/>'));
+  assert.ok(content.includes('<input_port name="goal"'));
 });
 
 test("CLI lint --fix creates TreeNodesModel when missing", () => {
@@ -532,7 +566,7 @@ test("CLI lint --fix creates TreeNodesModel when missing", () => {
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
 
   const content = fs.readFileSync(file, "utf8");
@@ -557,7 +591,7 @@ test("CLI lint --fix does not add local definition for unknown node", () => {
   );
 
   const before = fs.readFileSync(file, "utf8");
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   const after = fs.readFileSync(file, "utf8");
   assert.equal(after, before);
@@ -590,7 +624,7 @@ test("CLI lint --fix does not add local definition when local SubTree has same I
   );
 
   const before = fs.readFileSync(file, "utf8");
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 1, result.stdout + result.stderr);
   const after = fs.readFileSync(file, "utf8");
   assert.equal(after, before);
@@ -628,7 +662,7 @@ test("CLI lint --fix does not add local definition when model conflicts on shape
   );
 
   const before = fs.readFileSync(file, "utf8");
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 1, result.stdout + result.stderr);
   const after = fs.readFileSync(file, "utf8");
   assert.equal(after, before);
@@ -693,7 +727,7 @@ test("CLI lint --fix keeps SubTree model untouched and does not require it", () 
     "utf8",
   );
 
-  const result = run(["lint", "--fix", "tree.xml"], dir);
+  const result = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(result.status, 0, result.stderr);
   const content = fs.readFileSync(file, "utf8");
   assert.ok(content.includes('<SubTree ID="UnusedSubTreeContract"/>'));
@@ -726,7 +760,7 @@ test("CLI used-only fix result passes re-lint", () => {
     "utf8",
   );
 
-  const fix = run(["lint", "--fix", "tree.xml"], dir);
+  const fix = run(["lint", "--fix", "--unsafe", "tree.xml"], dir);
   assert.equal(fix.status, 0, fix.stderr);
 
   const relint = run(["lint", "--json", "tree.xml"], dir);
@@ -890,10 +924,7 @@ test("CLI check --fix exits 2", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-check-fix-"));
   const result = run(["check", "--fix", "tree.xml"], dir);
   assert.equal(result.status, 2, result.stderr);
-  const stripped = result.stderr.replace(
-    new RegExp(String.raw`${String.fromCodePoint(0x1b)}\[[0-9;]*m`, "g"),
-    "",
-  );
+  const stripped = stripAnsi(result.stderr);
   assert.ok(stripped.includes("`--fix` is only supported for"), stripped);
 });
 

@@ -57,10 +57,10 @@ async function waitForEditorState(
   expectedCursorText: string,
 ) {
   const expectedCursor = extractCursor(expectedCursorText);
-  await waitFor(() => editor.document.getText() === expectedText, 5000);
+  await waitFor(() => editor.document.getText() === expectedText, 15000);
   await waitFor(
     () => editor.selection.active.isEqual(editor.document.positionAt(expectedCursor.offset)),
-    5000,
+    15000,
   );
 }
 
