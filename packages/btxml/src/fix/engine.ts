@@ -340,22 +340,10 @@ export async function runLintFixEngineCore(input: {
       ...state.documents,
       ...state.externalModelDocuments,
     ]);
-    let candidates = input.getCandidates({
+    const candidates = input.getCandidates({
       documents: allDocuments,
       diagnostics,
     });
-    if (process.env.BTXML_TEST_FORCE_OVERLAP_SKIP === "1" && candidates[0]) {
-      const first = candidates[0];
-      candidates = [
-        ...candidates,
-        {
-          ...first,
-          id: `${first.id}#overlap-test`,
-          diagnosticCode: `${first.diagnosticCode}__OVERLAP_TEST`,
-          title: `${first.title} (overlap-test)`,
-        },
-      ];
-    }
     const textByUri = new Map(
       allDocuments.map((document) => [document.uri, document.originalText]),
     );
@@ -386,7 +374,6 @@ export async function runLintFixEngineCore(input: {
 
     const applied = await input.applyPlan({
       plan,
-      dryRun: false,
       readText: input.readCurrentText,
       writeText: input.writeCurrentText,
     });
@@ -567,12 +554,6 @@ export async function runLintFixEngine(input: {
       if (!input.options.resolvedConfig) return undefined;
       const filePath = toDisplayPath(input.project, uri);
       const effective = getEffectiveConfigForFile(input.options.resolvedConfig, filePath);
-      if (process.env.BTXML_TEST_FORCE_INVALID_FORMATTER_OUTPUT === "1") {
-        return {
-          ok: true,
-          text: "<root",
-        };
-      }
       return formatBtXml(text, {
         indentWidth: effective.formatter.indentWidth,
         xmlDeclaration: effective.formatter.xmlDeclaration,

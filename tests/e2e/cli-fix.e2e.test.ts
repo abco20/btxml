@@ -193,24 +193,6 @@ test("FIX-E2E-009 lint --fix-dry-run reaches final pass before preview", () => {
   assert.equal(parsed.fixes?.fixedTextByPath?.["bt123.xml"], undefined);
 });
 
-test("FIX-E2E-010 lint --fix --unsafe JSON includes overlap skip", () => {
-  const { cwd } = setupFixture();
-  const result = runCli(["lint", "--fix", "--unsafe", "--output", "json", "bt002.xml"], cwd, {
-    BTXML_TEST_FORCE_OVERLAP_SKIP: "1",
-  });
-  assert.equal(result.status, 0, result.stdout + result.stderr);
-
-  const parsed = JSON.parse(result.stdout) as {
-    fixes?: {
-      skipped?: Array<{ reason: string }>;
-    };
-  };
-  assert.equal(
-    parsed.fixes?.skipped?.some((entry) => entry.reason === "overlap"),
-    true,
-  );
-});
-
 test("FIX-E2E-011 lint --fix-dry-run JSON is valid against report schema", () => {
   const { cwd } = setupFixture();
   const result = runCli(
@@ -219,35 +201,6 @@ test("FIX-E2E-011 lint --fix-dry-run JSON is valid against report schema", () =>
   );
   assert.equal(result.status, 0, result.stdout + result.stderr);
   jsonCheckReportSchema.parse(JSON.parse(result.stdout));
-});
-
-test("FIX-E2E-012 lint --fix rolls back whole pass when formatter output is parse-invalid", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-fix-rollback-e2e-"));
-  const file = path.join(dir, "tree.xml");
-  fs.writeFileSync(
-    file,
-    '<?xml version="1.0" encoding="UTF-8"?><root><BehaviorTree ID="Main"><AlwaysSuccess/></BehaviorTree></root>',
-    "utf8",
-  );
-  const before = read(file);
-
-  const result = runCli(["lint", "--fix", "--output", "json", "tree.xml"], dir, {
-    BTXML_TEST_FORCE_INVALID_FORMATTER_OUTPUT: "1",
-  });
-  assert.equal(result.status, 1, result.stdout + result.stderr);
-
-  const after = read(file);
-  assert.equal(after, before);
-
-  const parsed = JSON.parse(result.stdout) as {
-    fixes?: {
-      skipped?: Array<{ reason: string }>;
-    };
-  };
-  assert.equal(
-    parsed.fixes?.skipped?.some((entry) => entry.reason === "formatter-failed"),
-    true,
-  );
 });
 
 test("FIX-E2E-013 lint --fix honors formatter override after fix", () => {

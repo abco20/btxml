@@ -31,7 +31,6 @@ test("applyFixPlan writes each uri only once", async () => {
   const writes: Array<{ uri: string; text: string }> = [];
   const result = await applyFixPlan({
     plan,
-    dryRun: false,
     readText: () => "123456",
     writeText: (uri, text) => writes.push({ uri, text }),
   });
@@ -49,7 +48,6 @@ test("applyFixPlan supports multi-file writes", async () => {
   const writes: string[] = [];
   await applyFixPlan({
     plan,
-    dryRun: false,
     readText: () => "x",
     writeText: (uri) => writes.push(uri),
   });
@@ -60,21 +58,20 @@ test("applyFixPlan supports multi-file writes", async () => {
   );
 });
 
-test("applyFixPlan dry-run does not write files", async () => {
+test("applyFixPlan delegates persistence to writer callback", async () => {
   const plan = emptyPlan();
   plan.editsByUri.set("tree.xml", [edit(0, 1, "X")]);
 
-  let writeCount = 0;
+  const writes: Array<{ uri: string; text: string }> = [];
   const result = await applyFixPlan({
     plan,
-    dryRun: true,
     readText: () => "a",
-    writeText: () => {
-      writeCount += 1;
-    },
+    writeText: (uri, text) => writes.push({ uri, text }),
   });
 
-  assert.equal(writeCount, 0);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0]?.uri, "tree.xml");
+  assert.equal(writes[0]?.text, "X");
   assert.equal(result.fixedTextByUri.get("tree.xml"), "X");
 });
 
@@ -84,7 +81,6 @@ test("applyFixPlan applies edits in descending offsets", async () => {
 
   const result = await applyFixPlan({
     plan,
-    dryRun: true,
     readText: () => "abcd",
     writeText: () => {},
   });
@@ -95,7 +91,6 @@ test("applyFixPlan applies edits in descending offsets", async () => {
 test("applyFixPlan handles empty plan", async () => {
   const result = await applyFixPlan({
     plan: emptyPlan(),
-    dryRun: false,
     readText: () => "x",
     writeText: () => {
       throw new Error("must not be called");

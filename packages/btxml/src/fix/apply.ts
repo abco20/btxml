@@ -5,7 +5,6 @@ export async function applyFixPlan(input: {
   plan: FixPlan;
   readText: (uri: string) => string;
   writeText: (uri: string, text: string) => void;
-  dryRun: boolean;
 }): Promise<{
   originalTextByUri: Map<string, string>;
   fixedTextByUri: Map<string, string>;
@@ -22,10 +21,7 @@ export async function applyFixPlan(input: {
 
     originalTextByUri.set(uri, originalText);
     fixedTextByUri.set(uri, fixedText);
-
-    if (!input.dryRun) {
-      input.writeText(uri, fixedText);
-    }
+    input.writeText(uri, fixedText);
   }
 
   return {

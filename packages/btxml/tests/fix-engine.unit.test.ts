@@ -224,6 +224,27 @@ test("fix-engine dedupes unsafe skips across multipass", async () => {
   );
 });
 
+test("fix-engine records overlap skip from competing candidates", async () => {
+  const result = await runCore({
+    initialText: "AB",
+    options: { formatAfterFix: false, maxPasses: 2 },
+    getDiagnostics: (text) => (text === "XB" ? [] : [diagnostic("BT_OVERLAP")]),
+    getCandidates: (text) => {
+      if (text !== "AB") return [];
+      return [
+        candidateFromText({ id: "left", code: "BT_OVERLAP", from: "AB", to: "XB" }),
+        candidateFromText({ id: "right", code: "BT_OVERLAP", from: "AB", to: "AX" }),
+      ];
+    },
+  });
+
+  assert.equal(result.summary.appliedDiagnostics, 1);
+  assert.equal(
+    result.summary.skipped.some((entry) => entry.reason === "overlap"),
+    true,
+  );
+});
+
 test("fix-engine includes external model documents in fix candidates", async () => {
   const texts = new Map<string, string>([
     ["tree.xml", "TREE"],
