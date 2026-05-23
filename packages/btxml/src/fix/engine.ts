@@ -117,9 +117,30 @@ function collectFixDiagnostics(result: CheckProjectResultWithFixMetadata): Diagn
   });
 }
 
-function appendSkippedFromPlan(summary: FixRunSummary, planSkipped: FixRunSummary["skipped"]) {
-  summary.skipped.push(...planSkipped);
-  summary.unsafeSkippedDiagnostics += planSkipped.filter(
+function dedupeDocumentsByUri(documents: BtDocument[]): BtDocument[] {
+  const map = new Map<string, BtDocument>();
+  for (const document of documents) {
+    map.set(document.uri, document);
+  }
+  return [...map.values()];
+}
+
+function skippedSummaryKey(entry: FixRunSummary["skipped"][number]) {
+  return `${entry.code}\u0000${entry.uri}\u0000${entry.reason}\u0000${entry.title}`;
+}
+
+function appendSkippedEntries(input: {
+  summary: FixRunSummary;
+  dedupeKeys: Set<string>;
+  entries: FixRunSummary["skipped"];
+}) {
+  for (const entry of input.entries) {
+    const key = skippedSummaryKey(entry);
+    if (input.dedupeKeys.has(key)) continue;
+    input.dedupeKeys.add(key);
+    input.summary.skipped.push(entry);
+  }
+  input.summary.unsafeSkippedDiagnostics = input.summary.skipped.filter(
     (entry) => entry.reason === "unsafe-not-enabled",
   ).length;
 }
@@ -135,6 +156,7 @@ function createSummarySkippedEntries(plan: ReturnType<typeof planFixes>): FixRun
 
 export type LintFixEngineCoreState = {
   documents: BtDocument[];
+  externalModelDocuments: BtDocument[];
   result: CheckProjectResult;
 };
 
@@ -175,55 +197,76 @@ function setDryRunPreview(input: {
 }
 
 function recordParseFailed(input: {
+  dedupeKeys: Set<string>;
   summary: FixRunSummary;
   plan: ReturnType<typeof planFixes>;
   originalTextByUri: Map<string, string>;
   writeCurrentText: (uri: string, text: string) => void;
 }) {
-  input.summary.skipped.push(
-    ...input.plan.applied.map((candidate) => ({
+  appendSkippedEntries({
+    summary: input.summary,
+    dedupeKeys: input.dedupeKeys,
+    entries: input.plan.applied.map((candidate) => ({
       code: candidate.diagnosticCode,
       uri: candidate.uri,
       reason: "parse-failed" as const,
       title: candidate.title,
     })),
-  );
+  });
 
   for (const [uri, text] of input.originalTextByUri) {
     input.writeCurrentText(uri, text);
   }
 }
 
-function applyFormatting(input: {
+function formatAndValidate(input: {
   options: LintFixEngineOptions;
-  summary: FixRunSummary;
-  plan: ReturnType<typeof planFixes>;
   fixedTextByUri: Map<string, string>;
+  parseHasErrors: LintFixEngineCoreInput["parseHasErrors"];
   formatText: LintFixEngineCoreInput["formatText"];
   writeCurrentText: LintFixEngineCoreInput["writeCurrentText"];
-}) {
-  if (!input.options.formatAfterFix) return;
+}): { ok: boolean } {
+  if (!input.options.formatAfterFix) return { ok: true };
 
   for (const [uri, text] of input.fixedTextByUri) {
     const formatted = input.formatText({ uri, text });
     if (!formatted) continue;
 
     if (!formatted.ok || formatted.skipped || !formatted.text) {
-      input.summary.skipped.push(
-        ...input.plan.applied
-          .filter((candidate) => candidate.uri === uri)
-          .map((candidate) => ({
-            code: candidate.diagnosticCode,
-            uri: candidate.uri,
-            reason: "formatter-failed" as const,
-            title: candidate.title,
-          })),
-      );
-      continue;
+      return { ok: false };
+    }
+
+    if (input.parseHasErrors({ uri, text: formatted.text })) {
+      return { ok: false };
     }
 
     input.fixedTextByUri.set(uri, formatted.text);
     input.writeCurrentText(uri, formatted.text);
+  }
+
+  return { ok: true };
+}
+
+function recordFormatterFailed(input: {
+  dedupeKeys: Set<string>;
+  summary: FixRunSummary;
+  plan: ReturnType<typeof planFixes>;
+  originalTextByUri: Map<string, string>;
+  writeCurrentText: (uri: string, text: string) => void;
+}) {
+  appendSkippedEntries({
+    summary: input.summary,
+    dedupeKeys: input.dedupeKeys,
+    entries: input.plan.applied.map((candidate) => ({
+      code: candidate.diagnosticCode,
+      uri: candidate.uri,
+      reason: "formatter-failed" as const,
+      title: candidate.title,
+    })),
+  });
+
+  for (const [uri, text] of input.originalTextByUri) {
+    input.writeCurrentText(uri, text);
   }
 }
 
@@ -283,6 +326,7 @@ export async function runLintFixEngineCore(input: {
   });
 
   const seenHashes = new Set<string>();
+  const skippedDedupeKeys = new Set<string>();
   const changedUris = new Set<string>();
 
   let state = await input.getState();
@@ -292,9 +336,28 @@ export async function runLintFixEngineCore(input: {
     summary.passes = pass;
 
     const diagnostics = collectFixDiagnostics(result);
-    const candidates = input.getCandidates({ documents: state.documents, diagnostics });
+    const allDocuments = dedupeDocumentsByUri([
+      ...state.documents,
+      ...state.externalModelDocuments,
+    ]);
+    let candidates = input.getCandidates({
+      documents: allDocuments,
+      diagnostics,
+    });
+    if (process.env.BTXML_TEST_FORCE_OVERLAP_SKIP === "1" && candidates[0]) {
+      const first = candidates[0];
+      candidates = [
+        ...candidates,
+        {
+          ...first,
+          id: `${first.id}#overlap-test`,
+          diagnosticCode: `${first.diagnosticCode}__OVERLAP_TEST`,
+          title: `${first.title} (overlap-test)`,
+        },
+      ];
+    }
     const textByUri = new Map(
-      state.documents.map((document) => [document.uri, document.originalText]),
+      allDocuments.map((document) => [document.uri, document.originalText]),
     );
     const plan = planFixes({
       pass,
@@ -303,7 +366,11 @@ export async function runLintFixEngineCore(input: {
       unsafe: input.options.unsafe,
     });
 
-    appendSkippedFromPlan(summary, createSummarySkippedEntries(plan));
+    appendSkippedEntries({
+      summary,
+      dedupeKeys: skippedDedupeKeys,
+      entries: createSummarySkippedEntries(plan),
+    });
 
     if (plan.applied.length === 0) {
       summary.changedFiles = changedUris.size;
@@ -330,6 +397,7 @@ export async function runLintFixEngineCore(input: {
 
     if (parseFailed) {
       recordParseFailed({
+        dedupeKeys: skippedDedupeKeys,
         summary,
         plan,
         originalTextByUri: applied.originalTextByUri,
@@ -349,14 +417,35 @@ export async function runLintFixEngineCore(input: {
       return { result, summary };
     }
 
-    applyFormatting({
+    const formatResult = formatAndValidate({
       options: input.options,
-      summary,
-      plan,
       fixedTextByUri: applied.fixedTextByUri,
+      parseHasErrors: input.parseHasErrors,
       formatText: input.formatText,
       writeCurrentText: input.writeCurrentText,
     });
+
+    if (!formatResult.ok) {
+      recordFormatterFailed({
+        dedupeKeys: skippedDedupeKeys,
+        summary,
+        plan,
+        originalTextByUri: applied.originalTextByUri,
+        writeCurrentText: input.writeCurrentText,
+      });
+
+      state = await input.getState();
+      result = state.result;
+      summary.changedFiles = changedUris.size;
+      setDryRunPreview({
+        options: input.options,
+        summary,
+        changedUris,
+        readCurrentText: input.readCurrentText,
+        toDisplayPath: input.toDisplayPath,
+      });
+      return { result, summary };
+    }
 
     const changedThisPass = collectChangedUris({
       fixedTextByUri: applied.fixedTextByUri,
@@ -443,6 +532,7 @@ export async function runLintFixEngine(input: {
     });
     return {
       documents: loaded.documents,
+      externalModelDocuments: loaded.externalModelDocuments,
       result,
     };
   }
@@ -475,8 +565,14 @@ export async function runLintFixEngine(input: {
     },
     formatText: ({ uri, text }) => {
       if (!input.options.resolvedConfig) return undefined;
-      const filePath = resolvePathFromUri(input.project, uri);
+      const filePath = toDisplayPath(input.project, uri);
       const effective = getEffectiveConfigForFile(input.options.resolvedConfig, filePath);
+      if (process.env.BTXML_TEST_FORCE_INVALID_FORMATTER_OUTPUT === "1") {
+        return {
+          ok: true,
+          text: "<root",
+        };
+      }
       return formatBtXml(text, {
         indentWidth: effective.formatter.indentWidth,
         xmlDeclaration: effective.formatter.xmlDeclaration,

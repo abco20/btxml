@@ -98,6 +98,7 @@ async function runCore(input: {
       const diagnostics = input.getDiagnostics(text);
       return {
         documents: [makeDoc(uri, text)],
+        externalModelDocuments: [],
         result: makeResult(diagnostics),
       };
     },
@@ -155,6 +156,7 @@ test("fix-engine rolls back pass on parse failure", async () => {
     },
     getState: async () => ({
       documents: [makeDoc("tree.xml", current)],
+      externalModelDocuments: [],
       result: makeResult(current === "OK" ? [diagnostic("BT_PARSE")] : []),
     }),
     getCandidates: ({ diagnostics }) =>
@@ -178,7 +180,99 @@ test("fix-engine rolls back pass on parse failure", async () => {
   );
 });
 
-test("fix-engine records formatter-failed without rollback", async () => {
+test("fix-engine dedupes unsafe skips across multipass", async () => {
+  const result = await runCore({
+    initialText: "A",
+    options: { unsafe: false, formatAfterFix: false, maxPasses: 10 },
+    getDiagnostics: (text) => {
+      const diagnostics: Diagnostic[] = [diagnostic("BT_UNSAFE")];
+      if (text === "A" || text === "B") diagnostics.push(diagnostic("BT_SAFE"));
+      return diagnostics;
+    },
+    getCandidates: (text, diagnostics) => {
+      const candidates: FixCandidate[] = [];
+      if (diagnostics.some((entry) => entry.code === "BT_SAFE")) {
+        candidates.push(
+          candidateFromText({
+            id: `safe-${text}`,
+            code: "BT_SAFE",
+            from: text,
+            to: text === "A" ? "B" : "C",
+          }),
+        );
+      }
+      if (diagnostics.some((entry) => entry.code === "BT_UNSAFE")) {
+        candidates.push(
+          candidateFromText({
+            id: "unsafe",
+            code: "BT_UNSAFE",
+            safety: "unsafe",
+            from: text,
+            to: text,
+          }),
+        );
+      }
+      return candidates;
+    },
+  });
+
+  assert.equal(result.summary.passes, 3);
+  assert.equal(result.summary.unsafeSkippedDiagnostics, 1);
+  assert.equal(
+    result.summary.skipped.filter((entry) => entry.reason === "unsafe-not-enabled").length,
+    1,
+  );
+});
+
+test("fix-engine includes external model documents in fix candidates", async () => {
+  const texts = new Map<string, string>([
+    ["tree.xml", "TREE"],
+    ["models.xml", "MODEL"],
+  ]);
+
+  const result = await runLintFixEngineCore({
+    options: {
+      unsafe: false,
+      dryRun: false,
+      maxPasses: 3,
+      formatAfterFix: false,
+    },
+    getState: async () => ({
+      documents: [makeDoc("tree.xml", texts.get("tree.xml") ?? "")],
+      externalModelDocuments: [makeDoc("models.xml", texts.get("models.xml") ?? "")],
+      result: makeResult(
+        texts.get("models.xml") === "MODEL_FIXED" ? [] : [diagnostic("BT_EXTERNAL", "models.xml")],
+      ),
+    }),
+    getCandidates: ({ documents, diagnostics }) => {
+      if (!documents.some((document) => document.uri === "models.xml")) return [];
+      if (!diagnostics.some((entry) => entry.code === "BT_EXTERNAL")) return [];
+      const current = texts.get("models.xml") ?? "";
+      return [
+        candidateFromText({
+          id: "model-fix",
+          uri: "models.xml",
+          code: "BT_EXTERNAL",
+          from: current,
+          to: "MODEL_FIXED",
+        }),
+      ];
+    },
+    applyPlan: applyFixPlan,
+    parseHasErrors: () => false,
+    formatText: () => undefined,
+    readCurrentText: (uri) => texts.get(uri) ?? "",
+    writeCurrentText: (uri, text) => {
+      texts.set(uri, text);
+    },
+    toDisplayPath: (uri) => uri,
+  });
+
+  assert.equal(texts.get("models.xml"), "MODEL_FIXED");
+  assert.equal(result.summary.appliedDiagnostics, 1);
+});
+
+test("fix-engine rolls back pass when formatter output becomes parse-invalid", async () => {
   let current = "A";
   const result = await runLintFixEngineCore({
     options: {
@@ -189,6 +283,7 @@ test("fix-engine records formatter-failed without rollback", async () => {
     },
     getState: async () => ({
       documents: [makeDoc("tree.xml", current)],
+      externalModelDocuments: [],
       result: makeResult(current === "A" ? [diagnostic("BT_FORMAT")] : []),
     }),
     getCandidates: ({ diagnostics }) =>
@@ -196,8 +291,8 @@ test("fix-engine records formatter-failed without rollback", async () => {
         ? [candidateFromText({ id: "A->B", from: "A", to: "B", code: "BT_FORMAT" })]
         : [],
     applyPlan: applyFixPlan,
-    parseHasErrors: () => false,
-    formatText: () => ({ ok: false }),
+    parseHasErrors: ({ text }) => text.includes("BROKEN"),
+    formatText: () => ({ ok: true, text: "BROKEN" }),
     readCurrentText: () => current,
     writeCurrentText: (_uri, text) => {
       current = text;
@@ -205,7 +300,7 @@ test("fix-engine records formatter-failed without rollback", async () => {
     toDisplayPath: (uri) => uri,
   });
 
-  assert.equal(current, "B");
+  assert.equal(current, "A");
   assert.equal(
     result.summary.skipped.some((entry) => entry.reason === "formatter-failed"),
     true,
@@ -225,6 +320,7 @@ test("fix-engine skips formatter when fix-no-format is enabled", async () => {
     },
     getState: async () => ({
       documents: [makeDoc("tree.xml", current)],
+      externalModelDocuments: [],
       result: makeResult(current === "A" ? [diagnostic("BT_NO_FORMAT")] : []),
     }),
     getCandidates: ({ diagnostics }) =>

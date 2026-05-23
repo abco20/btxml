@@ -4,16 +4,18 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { jsonCheckReportSchema } from "@abco20/btxml-checker";
 
 const repoRoot = process.cwd();
 const cli = path.resolve(repoRoot, "packages/btxml/dist/cli.js");
 const fixtures = path.resolve(repoRoot, "tests/e2e/fixtures/fix");
 const snapshots = path.resolve(repoRoot, "tests/e2e/snapshots/fix");
 
-function runCli(args: string[], cwd = repoRoot) {
+function runCli(args: string[], cwd = repoRoot, env?: NodeJS.ProcessEnv) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd,
     encoding: "utf8",
+    env: env ? { ...process.env, ...env } : process.env,
   });
 }
 
@@ -189,4 +191,91 @@ test("FIX-E2E-009 lint --fix-dry-run reaches final pass before preview", () => {
   assert.equal(parsed.fixes?.passes, 2);
   assert.equal(typeof parsed.fixes?.fixedTextByPath?.["bt002.xml"], "string");
   assert.equal(parsed.fixes?.fixedTextByPath?.["bt123.xml"], undefined);
+});
+
+test("FIX-E2E-010 lint --fix --unsafe JSON includes overlap skip", () => {
+  const { cwd } = setupFixture();
+  const result = runCli(["lint", "--fix", "--unsafe", "--output", "json", "bt002.xml"], cwd, {
+    BTXML_TEST_FORCE_OVERLAP_SKIP: "1",
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+
+  const parsed = JSON.parse(result.stdout) as {
+    fixes?: {
+      skipped?: Array<{ reason: string }>;
+    };
+  };
+  assert.equal(
+    parsed.fixes?.skipped?.some((entry) => entry.reason === "overlap"),
+    true,
+  );
+});
+
+test("FIX-E2E-011 lint --fix-dry-run JSON is valid against report schema", () => {
+  const { cwd } = setupFixture();
+  const result = runCli(
+    ["lint", "--fix-dry-run", "--unsafe", "--output", "json", "bt123.xml"],
+    cwd,
+  );
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  jsonCheckReportSchema.parse(JSON.parse(result.stdout));
+});
+
+test("FIX-E2E-012 lint --fix rolls back whole pass when formatter output is parse-invalid", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-fix-rollback-e2e-"));
+  const file = path.join(dir, "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root><BehaviorTree ID="Main"><AlwaysSuccess/></BehaviorTree></root>',
+    "utf8",
+  );
+  const before = read(file);
+
+  const result = runCli(["lint", "--fix", "--output", "json", "tree.xml"], dir, {
+    BTXML_TEST_FORCE_INVALID_FORMATTER_OUTPUT: "1",
+  });
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+
+  const after = read(file);
+  assert.equal(after, before);
+
+  const parsed = JSON.parse(result.stdout) as {
+    fixes?: {
+      skipped?: Array<{ reason: string }>;
+    };
+  };
+  assert.equal(
+    parsed.fixes?.skipped?.some((entry) => entry.reason === "formatter-failed"),
+    true,
+  );
+});
+
+test("FIX-E2E-013 lint --fix honors formatter override after fix", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-fix-override-e2e-"));
+  fs.mkdirSync(path.join(dir, "legacy"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({
+      formatter: { indentWidth: 2 },
+      overrides: [
+        {
+          files: ["legacy/*.xml"],
+          formatter: { indentWidth: 4 },
+        },
+      ],
+    }),
+    "utf8",
+  );
+  const file = path.join(dir, "legacy", "tree.xml");
+  fs.writeFileSync(
+    file,
+    '<?xml version="1.0" encoding="UTF-8"?><root><BehaviorTree ID="Main"><AlwaysSuccess/></BehaviorTree></root>',
+    "utf8",
+  );
+
+  const result = runCli(["lint", "--fix", "legacy/tree.xml"], dir);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+
+  const fixed = read(file);
+  assert.match(fixed, /\n {4}<BehaviorTree ID="Main">/);
 });

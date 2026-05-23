@@ -8,6 +8,7 @@ import {
 } from "@btxml/project";
 import {
   createNodeProjectHost,
+  getNodeProjectModelFiles,
   getNodeProjectRootDir,
   getNodeProjectSelectedFiles,
 } from "@btxml/project/node";
@@ -102,6 +103,28 @@ function toFileReports(result: Awaited<ReturnType<typeof checkProject>>): FileRe
   }));
 }
 
+function buildHumanSourceTextMap(input: {
+  project: BtxmlProject;
+  fixSummary?: FixRunSummary;
+}) {
+  const texts = new Map<string, string>();
+  for (const file of [
+    ...getNodeProjectSelectedFiles(input.project),
+    ...getNodeProjectModelFiles(input.project),
+  ]) {
+    if (texts.has(file.path)) continue;
+    texts.set(file.path, readText(file.absolutePath));
+  }
+
+  if (input.fixSummary?.dryRun && input.fixSummary.fixedTextByPath) {
+    for (const [path, text] of Object.entries(input.fixSummary.fixedTextByPath)) {
+      texts.set(path, text);
+    }
+  }
+
+  return texts;
+}
+
 function printHumanLintOutput(input: {
   project: BtxmlProject;
   options: LintRunOptions;
@@ -118,10 +141,10 @@ function printHumanLintOutput(input: {
     }
   }
 
-  const texts = new Map<string, string>();
-  for (const file of getNodeProjectSelectedFiles(input.project)) {
-    texts.set(file.path, readText(file.absolutePath));
-  }
+  const texts = buildHumanSourceTextMap({
+    project: input.project,
+    fixSummary: input.fixSummary,
+  });
 
   const printed = printProjectDiagnostics(input.projectDiagnostics, input.options.reporter, texts);
   if (printed) console.error(printed);
