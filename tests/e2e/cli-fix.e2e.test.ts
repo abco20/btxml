@@ -56,11 +56,17 @@ test("FIX-E2E-003 lint --fix --unsafe applies BT121 and BT123", () => {
 
   const bt121 = runCli(["lint", "--fix", "--unsafe", "bt121.xml"], cwd);
   assert.equal(bt121.status, 0, bt121.stdout + bt121.stderr);
-  assert.equal(read(path.join(cwd, "bt121.xml")), read(path.join(snapshots, "bt121-unsafe.expected.xml")));
+  assert.equal(
+    read(path.join(cwd, "bt121.xml")),
+    read(path.join(snapshots, "bt121-unsafe.expected.xml")),
+  );
 
   const bt123 = runCli(["lint", "--fix", "--unsafe", "bt123.xml"], cwd);
   assert.equal(bt123.status, 0, bt123.stdout + bt123.stderr);
-  assert.equal(read(path.join(cwd, "bt123.xml")), read(path.join(snapshots, "bt123-unsafe.expected.xml")));
+  assert.equal(
+    read(path.join(cwd, "bt123.xml")),
+    read(path.join(snapshots, "bt123-unsafe.expected.xml")),
+  );
 });
 
 test("FIX-E2E-004 lint --fix-dry-run --unsafe --output json previews without writing", () => {
@@ -68,7 +74,10 @@ test("FIX-E2E-004 lint --fix-dry-run --unsafe --output json previews without wri
   const file = path.join(cwd, "bt123.xml");
   const before = read(file);
 
-  const result = runCli(["lint", "--fix-dry-run", "--unsafe", "--output", "json", "bt123.xml"], cwd);
+  const result = runCli(
+    ["lint", "--fix-dry-run", "--unsafe", "--output", "json", "bt123.xml"],
+    cwd,
+  );
   assert.equal(result.status, 0, result.stdout + result.stderr);
 
   const parsed = JSON.parse(result.stdout) as {
@@ -126,7 +135,16 @@ test("FIX-E2E-008 lint --fix-dry-run honors --fix-max-passes and reports passes"
   const { cwd } = setupFixture();
 
   const result = runCli(
-    ["lint", "--fix-dry-run", "--fix-max-passes", "1", "--output", "json", "bt002.xml", "bt123.xml"],
+    [
+      "lint",
+      "--fix-dry-run",
+      "--fix-max-passes",
+      "1",
+      "--output",
+      "json",
+      "bt002.xml",
+      "bt123.xml",
+    ],
     cwd,
   );
   assert.equal(result.status, 1, result.stdout + result.stderr);
@@ -151,7 +169,10 @@ test("FIX-E2E-008 lint --fix-dry-run honors --fix-max-passes and reports passes"
 test("FIX-E2E-009 lint --fix-dry-run reaches final pass before preview", () => {
   const { cwd } = setupFixture();
 
-  const result = runCli(["lint", "--fix-dry-run", "--output", "json", "bt002.xml", "bt123.xml"], cwd);
+  const result = runCli(
+    ["lint", "--fix-dry-run", "--output", "json", "bt002.xml", "bt123.xml"],
+    cwd,
+  );
   assert.equal(result.status, 1, result.stdout + result.stderr);
 
   const parsed = JSON.parse(result.stdout) as {

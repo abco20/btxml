@@ -116,7 +116,8 @@ function getTreeNodesModelElement(document: BtDocument): BtXmlElement | undefine
 
 function getBtcppInsertOffset(document: BtDocument): number | undefined {
   if (document.root?.name !== "root") return undefined;
-  if (document.root.attributes.some((attribute) => attribute.name === "BTCPP_format")) return undefined;
+  if (document.root.attributes.some((attribute) => attribute.name === "BTCPP_format"))
+    return undefined;
   if (document.root.nameRange) return document.root.nameRange.end.offset;
   if (document.root.openTagRange) return document.root.openTagRange.start.offset + "<root".length;
   return undefined;
@@ -233,9 +234,9 @@ function getDeleteDuplicateDefinitionCandidates(diagnostic: Diagnostic): FixCand
   return candidates;
 }
 
-function collectMissingLocalModelsByUri(diagnostics: Diagnostic[]):
-  | Map<string, { models: FixableModel[]; diagnostic: Diagnostic }>
-  | undefined {
+function collectMissingLocalModelsByUri(
+  diagnostics: Diagnostic[],
+): Map<string, { models: FixableModel[]; diagnostic: Diagnostic }> | undefined {
   const definitionsByUri = new Map<string, { models: FixableModel[]; diagnostic: Diagnostic }>();
 
   for (const diagnostic of diagnostics) {
@@ -271,9 +272,14 @@ function createAppendToExistingTreeNodesModelEdit(
   treeNodesModel: BtXmlElement,
   models: FixableModel[],
 ): TextEdit | undefined {
-  const parentIndent = getLineIndent(document.originalText, treeNodesModel.openTagRange.start.offset);
+  const parentIndent = getLineIndent(
+    document.originalText,
+    treeNodesModel.openTagRange.start.offset,
+  );
   const childIndent = `${parentIndent}  `;
-  const serialized = models.map((model) => serializeTreeNodeModelDefinition(model, childIndent)).join("\n");
+  const serialized = models
+    .map((model) => serializeTreeNodeModelDefinition(model, childIndent))
+    .join("\n");
 
   if (treeNodesModel.closeTagRange) {
     return {
@@ -312,7 +318,9 @@ function createInsertTreeNodesModelBlockEdit(
   const rootIndent = getLineIndent(document.originalText, document.root.openTagRange.start.offset);
   const treeIndent = `${rootIndent}  `;
   const modelIndent = `${treeIndent}  `;
-  const serialized = models.map((model) => serializeTreeNodeModelDefinition(model, modelIndent)).join("\n");
+  const serialized = models
+    .map((model) => serializeTreeNodeModelDefinition(model, modelIndent))
+    .join("\n");
 
   return {
     range: {
@@ -378,7 +386,10 @@ export function getLintFixCandidates(input: {
   return [
     ...getBtcppFormatFixCandidates(input),
     ...modelConvention,
-    ...getMissingLocalModelFixCandidates({ diagnostics: input.diagnostics, documents: input.documents }),
+    ...getMissingLocalModelFixCandidates({
+      diagnostics: input.diagnostics,
+      documents: input.documents,
+    }),
   ];
 }
 

@@ -1,21 +1,21 @@
 import { getEffectiveConfigForFile } from "@btxml/config";
+import type { ResolvedBtxmlConfig } from "@btxml/config";
 import { formatBtXml } from "@btxml/core";
-import { DiagnosticSeverity, type Diagnostic } from "@btxml/foundation";
+import { type Diagnostic, DiagnosticSeverity } from "@btxml/foundation";
 import {
   type BtxmlProject,
   type CheckProjectResult,
   type DiagnosticBaseline,
+  type ProjectHost,
   checkProject,
   loadProjectDocuments,
 } from "@btxml/project";
 import {
-  type ProjectHost,
   fileUriToPath,
   getNodeProjectModelFiles,
   getNodeProjectSelectedFiles,
 } from "@btxml/project/node";
-import { parseBtXml, type BtDocument } from "@btxml/syntax";
-import type { ResolvedBtxmlConfig } from "@btxml/config";
+import { type BtDocument, parseBtXml } from "@btxml/syntax";
 import { readText, writeTextAtomic } from "../io.ts";
 import { applyFixPlan } from "./apply.ts";
 import { getLintFixCandidates } from "./candidates.ts";
@@ -35,12 +35,19 @@ export type LintFixEngineOptions = {
   projectDiagnostics?: Diagnostic[];
 };
 
+type CheckProjectResultWithFixMetadata = CheckProjectResult & {
+  suppressedDiagnostics?: Diagnostic[];
+  baselineDiagnostics?: Diagnostic[];
+};
+
 function resolvePathFromUri(project: BtxmlProject, uri: string): string {
   const knownFiles = [
     ...getNodeProjectSelectedFiles(project),
     ...getNodeProjectModelFiles(project),
   ];
-  const known = knownFiles.find((file) => file.uri === uri || file.absolutePath === uri || file.path === uri);
+  const known = knownFiles.find(
+    (file) => file.uri === uri || file.absolutePath === uri || file.path === uri,
+  );
   if (known?.absolutePath) return known.absolutePath;
   if (uri.startsWith("file://")) return fileUriToPath(uri);
   return uri;
@@ -51,7 +58,9 @@ function toDisplayPath(project: BtxmlProject, uri: string): string {
     ...getNodeProjectSelectedFiles(project),
     ...getNodeProjectModelFiles(project),
   ];
-  const known = knownFiles.find((file) => file.uri === uri || file.absolutePath === uri || file.path === uri);
+  const known = knownFiles.find(
+    (file) => file.uri === uri || file.absolutePath === uri || file.path === uri,
+  );
   if (known?.path) return known.path;
   if (known?.absolutePath) return known.absolutePath;
   return uri;
@@ -64,7 +73,7 @@ function hashTouchedState(input: { uris: string[]; readTextByUri: (uri: string) 
     .join("\n");
 }
 
-function collectFixDiagnostics(result: CheckProjectResult): Diagnostic[] {
+function collectFixDiagnostics(result: CheckProjectResultWithFixMetadata): Diagnostic[] {
   const suppressed = new Set(
     (result.suppressedDiagnostics ?? []).map((diagnostic) =>
       [
@@ -88,7 +97,10 @@ function collectFixDiagnostics(result: CheckProjectResult): Diagnostic[] {
     ),
   );
 
-  const diagnostics = [...result.projectDiagnostics, ...result.files.flatMap((file) => file.diagnostics)];
+  const diagnostics = [
+    ...result.projectDiagnostics,
+    ...result.files.flatMap((file) => file.diagnostics),
+  ];
 
   return diagnostics.filter((diagnostic) => {
     if (diagnostic.suppressed) return false;
@@ -107,7 +119,9 @@ function collectFixDiagnostics(result: CheckProjectResult): Diagnostic[] {
 
 function appendSkippedFromPlan(summary: FixRunSummary, planSkipped: FixRunSummary["skipped"]) {
   summary.skipped.push(...planSkipped);
-  summary.unsafeSkippedDiagnostics += planSkipped.filter((entry) => entry.reason === "unsafe-not-enabled").length;
+  summary.unsafeSkippedDiagnostics += planSkipped.filter(
+    (entry) => entry.reason === "unsafe-not-enabled",
+  ).length;
 }
 
 function createSummarySkippedEntries(plan: ReturnType<typeof planFixes>): FixRunSummary["skipped"] {
@@ -127,8 +141,10 @@ export type LintFixEngineCoreState = {
 type LintFixEngineCoreInput = {
   options: LintFixEngineOptions;
   getState: () => Promise<LintFixEngineCoreState>;
-  getCandidates: (value: { documents: LintFixEngineCoreState["documents"]; diagnostics: Diagnostic[] }) =>
-    ReturnType<typeof getLintFixCandidates>;
+  getCandidates: (value: {
+    documents: LintFixEngineCoreState["documents"];
+    diagnostics: Diagnostic[];
+  }) => ReturnType<typeof getLintFixCandidates>;
   applyPlan: typeof applyFixPlan;
   parseHasErrors: (value: { uri: string; text: string }) => boolean;
   formatText: (value: { uri: string; text: string }) =>
@@ -152,10 +168,9 @@ function setDryRunPreview(input: {
 }) {
   if (!input.options.dryRun) return;
   input.summary.fixedTextByPath = Object.fromEntries(
-    [...input.changedUris].sort((left, right) => left.localeCompare(right)).map((uri) => [
-      input.toDisplayPath(uri),
-      input.readCurrentText(uri),
-    ]),
+    [...input.changedUris]
+      .sort((left, right) => left.localeCompare(right))
+      .map((uri) => [input.toDisplayPath(uri), input.readCurrentText(uri)]),
   );
 }
 
@@ -239,8 +254,10 @@ function detectCircular(input: {
 export async function runLintFixEngineCore(input: {
   options: LintFixEngineOptions;
   getState: () => Promise<LintFixEngineCoreState>;
-  getCandidates: (value: { documents: LintFixEngineCoreState["documents"]; diagnostics: Diagnostic[] }) =>
-    ReturnType<typeof getLintFixCandidates>;
+  getCandidates: (value: {
+    documents: LintFixEngineCoreState["documents"];
+    diagnostics: Diagnostic[];
+  }) => ReturnType<typeof getLintFixCandidates>;
   applyPlan: typeof applyFixPlan;
   parseHasErrors: (value: { uri: string; text: string }) => boolean;
   formatText: (value: { uri: string; text: string }) =>
@@ -276,7 +293,9 @@ export async function runLintFixEngineCore(input: {
 
     const diagnostics = collectFixDiagnostics(result);
     const candidates = input.getCandidates({ documents: state.documents, diagnostics });
-    const textByUri = new Map(state.documents.map((document) => [document.uri, document.originalText]));
+    const textByUri = new Map(
+      state.documents.map((document) => [document.uri, document.originalText]),
+    );
     const plan = planFixes({
       pass,
       candidates,
@@ -349,8 +368,13 @@ export async function runLintFixEngineCore(input: {
     }
 
     summary.appliedDiagnostics += plan.applied.length;
-    summary.appliedEdits += plan.applied.reduce((sum, candidate) => sum + candidate.edits.length, 0);
-    summary.unsafeAppliedDiagnostics += plan.applied.filter((candidate) => candidate.safety === "unsafe").length;
+    summary.appliedEdits += plan.applied.reduce(
+      (sum, candidate) => sum + candidate.edits.length,
+      0,
+    );
+    summary.unsafeAppliedDiagnostics += plan.applied.filter(
+      (candidate) => candidate.safety === "unsafe",
+    ).length;
     summary.changedFiles = changedUris.size;
 
     if (detectCircular({ plan, seenHashes, readCurrentText: input.readCurrentText })) {
@@ -445,7 +469,9 @@ export async function runLintFixEngine(input: {
     applyPlan: applyFixPlan,
     parseHasErrors: ({ uri, text }) => {
       const parsed = parseBtXml(text, { uri });
-      return parsed.diagnostics.some((diagnostic) => diagnostic.severity === DiagnosticSeverity.Error);
+      return parsed.diagnostics.some(
+        (diagnostic) => diagnostic.severity === DiagnosticSeverity.Error,
+      );
     },
     formatText: ({ uri, text }) => {
       if (!input.options.resolvedConfig) return undefined;

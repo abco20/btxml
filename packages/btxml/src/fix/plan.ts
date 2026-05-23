@@ -144,7 +144,10 @@ export function planFixes(input: {
   }
 
   for (const [uri, edits] of editsByUri) {
-    editsByUri.set(uri, [...edits].sort((a, b) => b.range.start.offset - a.range.start.offset));
+    editsByUri.set(
+      uri,
+      [...edits].sort((a, b) => b.range.start.offset - a.range.start.offset),
+    );
   }
 
   return {

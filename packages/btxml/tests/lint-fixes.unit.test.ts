@@ -47,7 +47,9 @@ test("getLintFixCandidates classifies BT002 and BT122 as safe", () => {
   });
 
   const bt002 = candidates.find((entry) => entry.diagnosticCode === "BT002_MISSING_BTCPP_FORMAT");
-  const bt122 = candidates.find((entry) => entry.diagnosticCode === "BT122_DUPLICATE_MODEL_DEFINITION");
+  const bt122 = candidates.find(
+    (entry) => entry.diagnosticCode === "BT122_DUPLICATE_MODEL_DEFINITION",
+  );
   assert.equal(bt002?.safety, "safe");
   assert.equal(bt122?.safety, "safe");
 });
@@ -96,8 +98,12 @@ test("getLintFixCandidates classifies BT121 and BT123 as unsafe", () => {
     ],
   });
 
-  const bt121 = candidates.find((entry) => entry.diagnosticCode === "BT121_UNUSED_MODEL_DEFINITION");
-  const bt123 = candidates.find((entry) => entry.diagnosticCode === "BT123_MISSING_LOCAL_MODEL_DEFINITION");
+  const bt121 = candidates.find(
+    (entry) => entry.diagnosticCode === "BT121_UNUSED_MODEL_DEFINITION",
+  );
+  const bt123 = candidates.find(
+    (entry) => entry.diagnosticCode === "BT123_MISSING_LOCAL_MODEL_DEFINITION",
+  );
   assert.equal(bt121?.safety, "unsafe");
   assert.equal(bt123?.safety, "unsafe");
 });

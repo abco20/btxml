@@ -1,5 +1,5 @@
 import type { ResolvedBtxmlConfig } from "@btxml/config";
-import { type Diagnostic } from "@btxml/foundation";
+import type { Diagnostic } from "@btxml/foundation";
 import {
   type BtxmlProject,
   type DiagnosticBaseline,
@@ -15,10 +15,10 @@ import type { CommandModule } from "yargs";
 import { runLintCommand } from "../context.ts";
 import { hasFailingDiagnostics } from "../diagnostics.ts";
 import { CliError } from "../errors.ts";
-import { readText } from "../io.ts";
 import { runLintFixEngine } from "../fix/engine.ts";
 import { formatFixSummaryLines } from "../fix/report.ts";
 import type { FixRunSummary } from "../fix/types.ts";
+import { readText } from "../io.ts";
 import { parseCommandOptions } from "../options/common.ts";
 import { lintOptionsSchema } from "../options/lint.ts";
 import {
@@ -51,11 +51,16 @@ type LintRunOptions = {
 
 type LoadedLintState = {
   documents: Awaited<ReturnType<typeof loadProjectDocuments>>["documents"];
-  externalModelDocuments: Awaited<ReturnType<typeof loadProjectDocuments>>["externalModelDocuments"];
+  externalModelDocuments: Awaited<
+    ReturnType<typeof loadProjectDocuments>
+  >["externalModelDocuments"];
   externalDiagnostics: Awaited<ReturnType<typeof loadProjectDocuments>>["diagnostics"];
 };
 
-async function loadLintState(project: BtxmlProject, host: ReturnType<typeof createNodeProjectHost>) {
+async function loadLintState(
+  project: BtxmlProject,
+  host: ReturnType<typeof createNodeProjectHost>,
+) {
   const loaded = await loadProjectDocuments(project, host);
   return {
     documents: loaded.documents,
@@ -79,7 +84,10 @@ async function runLintCheck(input: {
     baseline: input.options.baseline,
     maxWarnings: input.options.maxWarnings,
     includeRawDiagnostics: true,
-    projectDiagnostics: [...(input.options.projectDiagnostics || []), ...input.state.externalDiagnostics],
+    projectDiagnostics: [
+      ...(input.options.projectDiagnostics || []),
+      ...input.state.externalDiagnostics,
+    ],
     host: input.host,
   });
 }

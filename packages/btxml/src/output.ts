@@ -1,6 +1,6 @@
 import type { Diagnostic } from "@btxml/foundation";
-import type { FixRunSummary } from "./fix/types.ts";
 import { collectDiagnostics } from "./diagnostics.ts";
+import type { FixRunSummary } from "./fix/types.ts";
 import { renderHumanDiagnostics } from "./render/human-diagnostic.ts";
 
 declare const __BTXML_VERSION__: string | undefined;

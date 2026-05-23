@@ -54,7 +54,10 @@ test("applyFixPlan supports multi-file writes", async () => {
     writeText: (uri) => writes.push(uri),
   });
 
-  assert.deepEqual([...writes].sort((a, b) => a.localeCompare(b)), ["a.xml", "b.xml"]);
+  assert.deepEqual(
+    [...writes].sort((a, b) => a.localeCompare(b)),
+    ["a.xml", "b.xml"],
+  );
 });
 
 test("applyFixPlan dry-run does not write files", async () => {

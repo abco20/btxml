@@ -15,7 +15,9 @@ export async function applyFixPlan(input: {
 
   for (const [uri, edits] of input.plan.editsByUri) {
     const originalText = input.readText(uri);
-    const sorted = [...edits].sort((left, right) => right.range.start.offset - left.range.start.offset);
+    const sorted = [...edits].sort(
+      (left, right) => right.range.start.offset - left.range.start.offset,
+    );
     const fixedText = applyTextEdits(originalText, sorted);
 
     originalTextByUri.set(uri, originalText);

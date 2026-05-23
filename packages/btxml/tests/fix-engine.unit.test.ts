@@ -4,7 +4,7 @@ import type { Diagnostic, TextEdit } from "@btxml/foundation";
 import type { CheckProjectResult } from "@btxml/project";
 import type { BtDocument } from "@btxml/syntax";
 import { applyFixPlan } from "../src/fix/apply.ts";
-import { runLintFixEngineCore, type LintFixEngineOptions } from "../src/fix/engine.ts";
+import { type LintFixEngineOptions, runLintFixEngineCore } from "../src/fix/engine.ts";
 import type { FixCandidate } from "../src/fix/types.ts";
 
 function diagnostic(code: string, uri = "tree.xml"): Diagnostic {
@@ -172,7 +172,10 @@ test("fix-engine rolls back pass on parse failure", async () => {
   });
 
   assert.equal(current, "OK");
-  assert.equal(result.summary.skipped.some((entry) => entry.reason === "parse-failed"), true);
+  assert.equal(
+    result.summary.skipped.some((entry) => entry.reason === "parse-failed"),
+    true,
+  );
 });
 
 test("fix-engine records formatter-failed without rollback", async () => {
@@ -203,7 +206,10 @@ test("fix-engine records formatter-failed without rollback", async () => {
   });
 
   assert.equal(current, "B");
-  assert.equal(result.summary.skipped.some((entry) => entry.reason === "formatter-failed"), true);
+  assert.equal(
+    result.summary.skipped.some((entry) => entry.reason === "formatter-failed"),
+    true,
+  );
 });
 
 test("fix-engine skips formatter when fix-no-format is enabled", async () => {
