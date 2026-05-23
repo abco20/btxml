@@ -56,6 +56,43 @@ export const fileReportSchema = z
   })
   .strict();
 
+const fixSummarySchema = z
+  .object({
+    enabled: z.boolean(),
+    unsafe: z.boolean(),
+    dryRun: z.boolean(),
+    maxPasses: z.number(),
+    passes: z.number(),
+    circularFixesDetected: z.boolean(),
+    appliedDiagnostics: z.number(),
+    appliedEdits: z.number(),
+    changedFiles: z.number(),
+    unsafeAppliedDiagnostics: z.number(),
+    unsafeSkippedDiagnostics: z.number(),
+    skipped: z.array(
+      z
+        .object({
+          code: z.string(),
+          uri: z.string(),
+          reason: z.enum([
+            "unsafe-not-enabled",
+            "invalid-range",
+            "overlap",
+            "stale-document",
+            "parse-failed",
+            "formatter-failed",
+            "empty-edit",
+            "baseline-filtered",
+            "suppressed",
+          ]),
+          title: z.string(),
+        })
+        .strict(),
+    ),
+    fixedTextByPath: z.record(z.string(), z.string()).optional(),
+  })
+  .strict();
+
 export const jsonCheckReportSchema = z
   .object({
     ok: z.boolean(),
@@ -75,6 +112,7 @@ export const jsonCheckReportSchema = z
         baselineFiltered: z.number(),
       })
       .strict(),
+    fixes: fixSummarySchema.optional(),
   })
   .strict();
 

@@ -21,9 +21,22 @@ export const lintOptionsSchema = projectOptionsSchema.pipe(
       showSkipped: z.boolean().optional(),
       showSuppressed: z.boolean().optional(),
       fix: z.boolean().optional(),
+      fixDryRun: z.boolean().optional(),
+      unsafe: z.boolean().optional(),
+      fixMaxPasses: z.number().int().min(1).max(20).optional(),
+      fixNoFormat: z.boolean().optional(),
     })
     .merge(baselineOptionsSchema)
     .merge(filesSchema)
+    .superRefine((options, ctx) => {
+      if (options.unsafe && !options.fix && !options.fixDryRun) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["unsafe"],
+          message: "`--unsafe` can only be used with `--fix` or `--fix-dry-run`",
+        });
+      }
+    })
     .transform((options) => ({
       ...options,
       output: options.json ? "json" : options.output,

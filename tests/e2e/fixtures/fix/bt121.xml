@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="MainBt121">
+    <Used/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="Used"/>
+    <Action ID="Unused"/>
+  </TreeNodesModel>
+</root>

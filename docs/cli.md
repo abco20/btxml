@@ -33,6 +33,10 @@ These options control the CLI at runtime and do **not** belong in `btxml.config.
 ### Fix and write
 
 - `--fix` — apply safe, deterministic lint fixes (lint only).
+- `--fix-dry-run` — preview fix changes without writing files (lint only).
+- `--unsafe` — allow unsafe fixes (lint only). Can only be used with `--fix` or `--fix-dry-run`.
+- `--fix-max-passes <n>` — maximum fix/re-lint passes (lint only, default: `10`, range: `1..20`).
+- `--fix-no-format` — skip post-fix formatting (lint only).
 - `--write` — write repaired models interactively (repair only).
 - `--force` — overwrite existing files (init/repair).
 - `--source model-files` — treat `models.files` as canonical source when repairing model definitions (repair only).
@@ -87,10 +91,44 @@ btxmlc repair --source model-files --mode auto
 `btxmlc lint --fix` applies only deterministic safe fixes:
 
 - `BT002_MISSING_BTCPP_FORMAT`: inserts `BTCPP_format="4"` on `<root>`.
-- `BT121_UNUSED_MODEL_DEFINITION`: removes unused inline model definitions for `used-only` convention.
 - `BT122_DUPLICATE_MODEL_DEFINITION`: removes non-canonical duplicates when exactly one canonical model-file definition exists.
 
+Unsafe fixes require `--unsafe`:
+
+- `BT121_UNUSED_MODEL_DEFINITION`: removes unused inline model definitions.
+- `BT123_MISSING_LOCAL_MODEL_DEFINITION`: adds missing local model definitions to `<TreeNodesModel>`.
+
 No automatic fix is applied for `BT120_CONFLICTING_MODEL_KIND`.
+
+Examples:
+
+```bash
+# apply safe fixes only
+btxmlc lint --fix
+
+# include unsafe fixes
+btxmlc lint --fix --unsafe
+
+# preview all fixes without writing
+btxmlc lint --fix-dry-run --unsafe --output json
+```
+
+When fixes are enabled, human output includes a summary such as:
+
+- `fixed N problems with M edits in K files`
+- `autofix passes: P/MAX`
+- `skipped X unsafe fixes; rerun with --fix --unsafe to apply them`
+- `stopped autofix because a circular fix pattern was detected` (when detected)
+
+`--fix-dry-run` evaluates until the final reachable pass (or `--fix-max-passes`) and then returns preview text.
+
+Exit code policy for `--fix-dry-run` follows normal lint semantics:
+
+- `0`: no failing diagnostics remain after the dry-run fix passes.
+- `1`: failing diagnostics still remain (including `--max-warnings` threshold failures).
+- `2`: CLI usage/configuration error (for example, invalid options).
+
+JSON output keeps `schemaVersion: "2"` and adds an optional `fixes` object with fix-run details (`dryRun`, `passes`, `maxPasses`, `circularFixesDetected`, `appliedDiagnostics`, `changedFiles`, `skipped`, and `fixedTextByPath` for dry-run previews).
 
 ## `repair --source model-files`
 
