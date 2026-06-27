@@ -58,6 +58,7 @@ type OpenDocumentSnapshot = {
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
 const openUris = new Set<string>();
+const openTokens = new Map<string, symbol>();
 const debounceTimers = new Map<string, NodeJS.Timeout>();
 const documentProjectKeys = new Map<string, ProjectKey>();
 const projectBindings = new Map<ProjectKey, ProjectBinding>();
@@ -332,6 +333,17 @@ function disposeUnusedProjects() {
   }
 }
 
+function closeBoundDocument(normalizedUri: string) {
+  const projectKey = documentProjectKeys.get(normalizedUri);
+  const projectService = projectKey ? projectServices.get(projectKey) : undefined;
+
+  projectService?.closeDocument(normalizedUri);
+  if (!projectKey) return;
+
+  documentProjectKeys.delete(normalizedUri);
+  disposeProjectIfUnused(projectKey);
+}
+
 async function reloadProject(binding: ProjectBinding, options?: { publishDiagnostics?: boolean }) {
   const projectService = getProjectService(binding);
   const result = await projectService.loadProject(
@@ -367,23 +379,32 @@ async function ensureProjectLoaded(binding: ProjectBinding) {
   return true;
 }
 
-async function bindOpenDocument(uri: string, snapshot: OpenDocumentSnapshot) {
+async function bindOpenDocument(
+  uri: string,
+  snapshot: OpenDocumentSnapshot,
+  isCurrent = () => true,
+) {
   const normalizedUri = normalizeDocumentUri(uri);
   const nextBinding = await resolveProjectForDocumentUri(normalizedUri);
+  if (!isCurrent()) return { binding: nextBinding, reloaded: false, stale: true };
+
   const previousKey = documentProjectKeys.get(normalizedUri);
   const previousService = previousKey ? projectServices.get(previousKey) : undefined;
   const nextService = getProjectService(nextBinding);
   const changedProject = previousKey !== nextBinding.key;
   const wasLoaded = loadedProjects.has(nextBinding.key);
 
+  if (!wasLoaded) {
+    await reloadProject(nextBinding, { publishDiagnostics: false });
+  }
+  if (!isCurrent()) {
+    return { binding: nextBinding, reloaded: !wasLoaded, stale: true };
+  }
+
   if (changedProject) previousService?.closeDocument(normalizedUri);
 
   documentProjectKeys.set(normalizedUri, nextBinding.key);
   projectBindings.set(nextBinding.key, nextBinding);
-
-  if (!wasLoaded) {
-    await reloadProject(nextBinding, { publishDiagnostics: false });
-  }
 
   if (!wasLoaded || changedProject || !nextService.getDocument(normalizedUri)) {
     nextService.openDocument(normalizedUri, snapshot.text, snapshot.version, snapshot.languageId);
@@ -392,7 +413,7 @@ async function bindOpenDocument(uri: string, snapshot: OpenDocumentSnapshot) {
   }
 
   if (changedProject && previousKey) disposeProjectIfUnused(previousKey);
-  return { binding: nextBinding, reloaded: !wasLoaded };
+  return { binding: nextBinding, reloaded: !wasLoaded, stale: false };
 }
 
 async function rebindAllOpenDocuments() {
@@ -463,8 +484,15 @@ function bindingMatchesFilePath(binding: ProjectBinding, fsPath: string) {
 
 documents.onDidOpen(async (event: TextDocumentChangeEvent<TextDocument>) => {
   const normalizedUri = normalizeDocumentUri(event.document.uri);
+  const openToken = Symbol(normalizedUri);
+  openTokens.set(normalizedUri, openToken);
   openUris.add(normalizedUri);
-  await bindOpenDocument(normalizedUri, toDocumentSnapshot(event.document));
+  const result = await bindOpenDocument(
+    normalizedUri,
+    toDocumentSnapshot(event.document),
+    () => openTokens.get(normalizedUri) === openToken,
+  );
+  if (result.stale) return;
   publishDiagnostics(normalizedUri);
 });
 
@@ -483,20 +511,15 @@ documents.onDidChangeContent((event: TextDocumentChangeEvent<TextDocument>) => {
 
 documents.onDidClose((event: TextDocumentChangeEvent<TextDocument>) => {
   const normalizedUri = normalizeDocumentUri(event.document.uri);
-  const projectKey = documentProjectKeys.get(normalizedUri);
-  const projectService = projectKey ? projectServices.get(projectKey) : undefined;
 
   openUris.delete(normalizedUri);
+  openTokens.delete(normalizedUri);
 
   const existing = debounceTimers.get(normalizedUri);
   if (existing) clearTimeout(existing);
   debounceTimers.delete(normalizedUri);
 
-  projectService?.closeDocument(normalizedUri);
-  if (projectKey) {
-    documentProjectKeys.delete(normalizedUri);
-    disposeProjectIfUnused(projectKey);
-  }
+  closeBoundDocument(normalizedUri);
 
   connection.sendNotification("textDocument/publishDiagnostics", {
     uri: normalizedUri,
