@@ -41,6 +41,7 @@ export async function loadProjectSemanticIndex(
     activeDocumentUris: new Set(documents.map((document) => document.uri)),
     externalModelDocuments,
     augmentations,
+    resolutionMode: input.resolutionMode,
     resolveGraph: input.resolveGraph,
     resolvedConfig,
     host,

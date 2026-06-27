@@ -3,7 +3,7 @@ import type { Diagnostic, TextDocument } from "@btxml/foundation";
 import type { NodeUsagePolicy, SemanticIndex } from "@btxml/semantic";
 import type { BtDocumentView } from "@btxml/semantic/ast-view";
 import type { BtDocument } from "@btxml/syntax";
-import type { WorkspaceSnapshot } from "./internal-types.js";
+import type { WorkspaceAnalysisSnapshot } from "./internal-types.js";
 
 export type LanguageRequestContext = {
   document: TextDocument;
@@ -14,5 +14,5 @@ export type LanguageRequestContext = {
   semantic: SemanticIndex;
   config: EffectiveFileConfig;
   nodeUsagePolicy: Partial<NodeUsagePolicy>;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };

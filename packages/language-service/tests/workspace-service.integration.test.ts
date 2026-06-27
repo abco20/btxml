@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { getDefaultResolvedBtxmlConfig } from "@btxml/config";
 import type { WorkspaceHost } from "@btxml/language-service";
 import { createWorkspaceService } from "@btxml/language-service";
 import { createNodeWorkspaceService } from "@btxml/language-service/node";
+import { buildSemanticIndex } from "@btxml/semantic";
+import { parseBtXml } from "@btxml/syntax";
 
 function getGoalPortType(ws: ReturnType<typeof createWorkspaceService>, uri: string) {
   return ws
@@ -244,42 +247,24 @@ test("node workspace service keeps config-included xml active without bt root ma
 });
 
 test("workspace service resolves relative paths from Windows and percent-encoded file URIs", () => {
+  const resolvedConfig = {
+    ...getDefaultResolvedBtxmlConfig(),
+    files: {
+      ...getDefaultResolvedBtxmlConfig().files,
+      include: ["behavior trees/**/*.xml"],
+      ignore: [],
+    },
+  };
   const ws = createWorkspaceService({
     getRuntimeState: () => ({
       version: 1,
       workspace: {
         rootDir: "C:/workspace",
         documents: [],
+        semanticIndex: buildSemanticIndex([], { config: resolvedConfig }).index,
+        nodeDefinitionModels: [],
       },
-      resolvedConfig: {
-        files: {
-          include: ["behavior trees/**/*.xml"],
-          ignore: [],
-        },
-        resolver: {
-          behaviorTreeIds: "workspace-unique",
-          includePaths: [],
-          packageMap: {},
-        },
-        models: {
-          builtin: "btcpp-v4",
-          nodeDefinitions: [],
-        },
-        linter: {
-          enabled: true,
-          rules: {},
-          suppressions: [],
-        },
-        formatter: {
-          indentWidth: 2,
-          lineWidth: 100,
-          xmlDeclaration: "always",
-          trailingNewline: true,
-          spaceBeforeEmptyCloseTag: true,
-          attributeOrder: "preserve",
-        },
-        overrides: [],
-      },
+      resolvedConfig,
       diagnostics: [],
     }),
   } as Parameters<typeof createWorkspaceService>[0]);
@@ -359,6 +344,45 @@ test("workspace service reuses one semantic snapshot across diagnostics and sema
     semantic.view?.nodes[0]?.portBindings[0]?.resolution.status,
   );
   assert.equal(portInfo.usage?.status, semantic.view?.nodes[0]?.portBindings[0]?.usage.status);
+});
+
+test("workspace service uses dirty document overlay over shared workspace analysis", () => {
+  const uri = "file:///workspace/main.xml";
+  const original = `<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <Action ID="MoveBase" goal="{target}"/>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="MoveBase">
+      <input_port name="goal" type="Pose2D"/>
+    </Action>
+  </TreeNodesModel>
+</root>`;
+  const dirty = original.replace('type="Pose2D"', 'type="Twist"');
+  const config = getDefaultResolvedBtxmlConfig();
+  const parsed = parseBtXml(original, { uri, path: "main.xml" });
+  assert.ok(parsed.document);
+  const semanticIndex = buildSemanticIndex([parsed.document], { config }).index;
+  const ws = createWorkspaceService({
+    getRuntimeState: () => ({
+      version: 1,
+      workspace: {
+        rootDir: "/workspace",
+        documents: [parsed.document],
+        semanticIndex,
+        nodeDefinitionModels: [],
+      },
+      resolvedConfig: config,
+      diagnostics: [],
+    }),
+  } as Parameters<typeof createWorkspaceService>[0]);
+
+  ws.openDocument(uri, original, 1, "xml");
+  assert.equal(getGoalPortType(ws, uri), "Pose2D");
+
+  ws.updateDocument(uri, dirty, 2, "xml");
+  assert.equal(getGoalPortType(ws, uri), "Twist");
 });
 
 test("workspace service semantic view respects strict subtree port policy", () => {

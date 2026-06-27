@@ -3,6 +3,8 @@ import test from "node:test";
 import { getDefaultResolvedBtxmlConfig, getEffectiveConfigForFile } from "@btxml/config";
 import { createTextDocument } from "@btxml/foundation";
 import { createLanguageService } from "@btxml/language-service";
+import { buildSemanticIndex } from "@btxml/semantic";
+import { parseBtXml } from "@btxml/syntax";
 
 const defaultEffectiveConfig = getEffectiveConfigForFile(
   getDefaultResolvedBtxmlConfig(),
@@ -595,17 +597,32 @@ test("completion suggests resolved subtree ports from local BehaviorTree definit
   </TreeNodesModel>
 </root>`;
   const doc = createDoc(mainText, localUri);
+  const mainParsed = parseBtXml(mainText, { uri: localUri });
+  const externalParsed = parseBtXml(externalText, { uri: externalUri });
+  assert.ok(mainParsed.document);
+  assert.ok(externalParsed.document);
+  const workspaceDocuments = [mainParsed.document, externalParsed.document];
+  const semanticIndex = buildSemanticIndex(workspaceDocuments, {
+    config: getDefaultResolvedBtxmlConfig(),
+  }).index;
   const ls = createLanguageService({ config: defaultEffectiveConfig });
   const pos = doc.positionAt(mainText.indexOf('" />') + 2);
-  const result = ls.getCompletions({
+  const input = {
     document: doc,
     position: pos,
     workspace: {
-      documents: [createDoc(mainText, localUri), createDoc(externalText, externalUri)],
+      documents: workspaceDocuments,
+      semanticIndex,
+      nodeDefinitionModels: [],
     },
   } as Parameters<typeof ls.getCompletions>[0] & {
-    workspace: { documents: ReturnType<typeof createDoc>[] };
-  });
+    workspace: {
+      documents: typeof workspaceDocuments;
+      semanticIndex: typeof semanticIndex;
+      nodeDefinitionModels: [];
+    };
+  };
+  const result = ls.getCompletions(input);
   assert.equal(
     result.items.some((item) => item.label === "goal"),
     false,

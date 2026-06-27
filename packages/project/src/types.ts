@@ -137,6 +137,7 @@ export type LoadProjectSemanticIndexInput = {
   documents?: BtDocument[];
   externalModelDocuments?: BtDocument[];
   augmentations?: ModelAugmentationFile[];
+  resolutionMode?: "workspace" | "entrypoints";
   resolveGraph?: boolean;
   host?: ProjectHost;
 };
