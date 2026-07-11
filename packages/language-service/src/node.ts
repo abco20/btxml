@@ -258,7 +258,8 @@ export function createNodeWorkspaceService(
       project: discovered.project,
       documents: workspaceDocuments,
       externalModelDocuments: workspaceModelDocuments,
-      resolveGraph: true,
+      resolutionMode: "workspace",
+      resolveGraph: false,
       host: projectHost,
     });
 
@@ -286,7 +287,9 @@ export function createNodeWorkspaceService(
       workspace: {
         rootDir: getNodeProjectRootDir(discovered.project),
         documents: workspaceDocuments,
+        semanticIndex: semantic.semanticIndex,
         nodeDefinitionModels: semantic.nodeDefinitionModels,
+        augmentations: loadedDocuments.augmentations,
       },
     };
 

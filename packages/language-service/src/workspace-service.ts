@@ -33,7 +33,7 @@ import type {
   InternalHoverInput,
   InternalReferencesInput,
   InternalWorkspaceServiceOptions,
-  WorkspaceSnapshot,
+  WorkspaceAnalysisSnapshot,
 } from "./internal-types.js";
 import { buildLanguageRequestContext } from "./parsed-state.js";
 import type {
@@ -60,7 +60,7 @@ import { createLanguageService } from "./service.js";
 type SemanticSnapshot = {
   document: BtTextDocument;
   documentVersion: number;
-  workspace: WorkspaceSnapshot | undefined;
+  workspace: WorkspaceAnalysisSnapshot | undefined;
   workspaceVersion: number;
   configFingerprint: string;
   diagnostics: DiagnosticsResult;
@@ -149,7 +149,7 @@ function buildConfigFingerprint(config: EffectiveFileConfig | undefined): string
 
 function buildSemanticSnapshot(
   document: BtTextDocument,
-  workspace: WorkspaceSnapshot | undefined,
+  workspace: WorkspaceAnalysisSnapshot | undefined,
   workspaceVersion: number,
   config: EffectiveFileConfig | undefined,
   configFingerprint: string,

@@ -1,6 +1,7 @@
 import type { RawBtxmlConfig, ResolvedBtxmlConfig } from "@btxml/config";
 import type { Diagnostic, TextDocument } from "@btxml/foundation";
-import type { TreeNodeModelDef } from "@btxml/model";
+import type { ModelAugmentationFile, TreeNodeModelDef } from "@btxml/model";
+import type { SemanticIndex } from "@btxml/semantic";
 import type { BtDocument } from "@btxml/syntax";
 import type {
   BtEditorService,
@@ -23,10 +24,12 @@ export type InternalDiagnosticsResult = import("./public-types.js").DiagnosticsR
 
 export type BtTextDocument = TextDocument;
 
-export type WorkspaceSnapshot = {
+export type WorkspaceAnalysisSnapshot = {
   rootDir?: string;
-  documents: BtDocument[];
+  documents: readonly BtDocument[];
+  semanticIndex: SemanticIndex;
   nodeDefinitionModels: readonly TreeNodeModelDef[];
+  augmentations?: readonly ModelAugmentationFile[];
 };
 
 export type WorkspaceLoadResult = {
@@ -34,51 +37,51 @@ export type WorkspaceLoadResult = {
   projectOk?: boolean;
   diagnostics: Diagnostic[];
   resolvedConfig?: ResolvedBtxmlConfig;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
   rawConfig?: RawBtxmlConfig;
 };
 
 export type WorkspaceRuntimeState = {
   version: number;
   diagnostics: readonly Diagnostic[];
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
   rawConfig?: RawBtxmlConfig;
   resolvedConfig?: ResolvedBtxmlConfig;
 };
 
 export type InternalDiagnosticsInput = DiagnosticsInput & {
   document: TextDocument;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };
 
 export type InternalCompletionInput = CompletionInput & {
   document: TextDocument;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };
 
 export type InternalHoverInput = HoverInput & {
   document: TextDocument;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };
 
 export type InternalDefinitionInput = DefinitionInput & {
   document: TextDocument;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };
 
 export type InternalReferencesInput = ReferencesInput & {
   document: TextDocument;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };
 
 export type InternalDocumentSymbolsInput = DocumentSymbolsInput & {
   document: TextDocument;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };
 
 export type InternalCodeActionsInput = CodeActionsInput & {
   document: TextDocument;
-  workspace?: WorkspaceSnapshot;
+  workspace?: WorkspaceAnalysisSnapshot;
 };
 
 export type InternalFormattingInput = FormattingInput & {

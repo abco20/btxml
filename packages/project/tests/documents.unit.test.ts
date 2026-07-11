@@ -117,3 +117,39 @@ test("loadProjectDocuments preserves wrapper comments around rerooted external m
     ],
   );
 });
+
+test("loadProjectDocuments skips XML files that are not BTXML candidates", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "btxml-documents-skip-non-bt-"));
+  fs.writeFileSync(
+    path.join(dir, "btxml.config.json"),
+    JSON.stringify({ files: { include: ["**/*.xml"] } }),
+    "utf8",
+  );
+  fs.mkdirSync(path.join(dir, "src", "demo", "behavior_trees"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "src", "demo", "package.xml"),
+    `<package format="3"><name>demo</name><version>0.0.0</version></package>`,
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "src", "demo", "plugin.xml"),
+    `<library path="demo"><class name="DemoPlugin" type="demo::Plugin"/></library>`,
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(dir, "src", "demo", "behavior_trees", "tree.xml"),
+    `<root BTCPP_format="4"><BehaviorTree ID="main"><AlwaysSuccess/></BehaviorTree></root>`,
+    "utf8",
+  );
+
+  const discovered = await discoverNodeProject({ cwd: dir });
+  assert.ok(discovered.project);
+  assert.equal(getProjectSelectedFiles(discovered.project).length, 3);
+
+  const loaded = await loadProjectDocuments(discovered.project);
+
+  assert.deepEqual(
+    loaded.documents.map((document) => document.path),
+    ["src/demo/behavior_trees/tree.xml"],
+  );
+});

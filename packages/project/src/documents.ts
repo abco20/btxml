@@ -44,6 +44,14 @@ export async function parseProjectFile(file: ProjectFile, host: ProjectHost) {
   });
 }
 
+function isLikelyBtXmlDocument(text: string) {
+  return (
+    text.includes("BTCPP_format") ||
+    text.includes("<BehaviorTree") ||
+    text.includes("<TreeNodesModel")
+  );
+}
+
 export async function loadExternalTreeNodesModelFile(
   file: ProjectFile,
   host: ProjectHost,
@@ -131,6 +139,7 @@ export async function loadProjectDocuments(
   for (const file of internalProject.selectedFiles) {
     if (!(await activeHost.exists(file.uri))) continue;
     const text = await activeHost.readFile(file.uri);
+    if (!isLikelyBtXmlDocument(text)) continue;
     const parsed = parseBtXml(text, {
       uri: file.uri,
       path: file.path,
